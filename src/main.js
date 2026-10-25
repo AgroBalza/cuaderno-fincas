@@ -1351,7 +1351,8 @@ function subscribeRegs() {
 }
 function subscribeStatic() {
   const db = S.db, on = u => S.unsubs.push(u);
-  on(db.collection('fincas').onSnapshot(s => { S.fincas = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => N(a.orden) - N(b.orden)); S.loaded.fincas = true; render(); }, snapErr));
+  on(db.collection('fincas').onSnapshot(s => { if (s.empty && S.rol === 'admin' && !s.fromCache && !S.seeded) sembrarInicio();
+    S.fincas = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => N(a.orden) - N(b.orden)); S.loaded.fincas = true; render(); }, snapErr));
   on(db.doc('ajustes/general').onSnapshot(s => { S.cfg = { ...DEF, ...(s.exists ? s.data() : {}) }; S.loaded.cfg = true; render(); }, snapErr));
   on(db.collection('lotes').limit(2000).onSnapshot(s => { S.lotes = s.docs.map(d => ({ id: d.id, ...d.data() })); S.loaded.lotes = true; render(); }, snapErr));
   on(db.collection('labores').limit(5000).onSnapshot(s => { S.labores = s.docs.map(d => ({ id: d.id, ...d.data() })); S.loaded.labores = true; render(); }, snapErr));
@@ -1360,6 +1361,13 @@ function subscribeStatic() {
   on(db.collection('cierres').limit(500).onSnapshot(s => { S.cierres = s.docs.map(d => ({ id: d.id, ...d.data() })); S.loaded.cierres = true; render(); }, snapErr));
   on(db.collection('registros').where('cobrado', '==', false).limit(1000).onSnapshot(s => { S.pend = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(r => r.tipo === 'venta' && isoOk(r.fecha)); S.loaded.pend = true; render(); }, snapErr));
   if (S.rol === 'admin') on(db.collection('miembros').onSnapshot(s => { S.miembros = s.docs.map(d => ({ id: d.id, ...d.data() })); S.miembros.forEach(m => { if (m.nombre) S.names[m.id] = m.nombre; }); render(); }, snapErr));
+}
+// First admin login on an empty database: create the three farms and default settings.
+function sembrarInicio() {
+  S.seeded = true;
+  [['el-baho', 'El Baho', 1], ['el-mostrenco', 'El Mostrenco', 2], ['hoyo-el-barro', 'Hoyo El Barro', 3]].forEach(([id, nombre, orden]) => S.db.doc('fincas/' + id).set({ nombre, ha: 14, encargado: '', orden }));
+  S.db.doc('ajustes/general').set({ ...DEF });
+  S.db.doc('precios/coche-2026-01-13').set({ fecha: '2026-01-13', mercado: 'coche', producto: 'Papa', precio: 35, kgSaco: 45, desc: '2001online, 13-ene-2026' });
 }
 function arrancar() {
   stopSubs();
