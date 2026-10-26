@@ -191,10 +191,16 @@ function doRender() {
   renderHeader();
   let html;
   try { html = (VIEWS[S.view] || VIEWS.resumen)(); } catch (e) { console.error(e); html = `<div class="notice">Algo falló al mostrar esta sección: ${esc(e.message)}</div>`; }
-  v.innerHTML = html;
+  v.innerHTML = pendienteHtml() + html;
   syncLotes(v);
   if (keep) restoreForm(v, keep);
   resolveNames();
+}
+// Reminder while changes are saved on the phone but not uploaded yet: they only go up with the app open and signal.
+function pendienteHtml() {
+  const n = S.demo ? 0 : N(S.porSubir);
+  if (!n || S.online) return '';
+  return `<div class="notice pend-subir"><strong>${n === 1 ? 'Tienes 1 dato guardado en el teléfono que no ha subido' : `Tienes ${nf(n)} datos guardados en el teléfono que no han subido`}.</strong><p>No se pierden. Cuando tengas señal, abre la app unos segundos y se suben solos. Si no la abres, los demás no los ven.</p></div>`;
 }
 function renderHeader() {
   const cur = S.view;
@@ -226,7 +232,8 @@ function renderHeader() {
   if (fsel.dataset.k !== fopts) { fsel.innerHTML = fopts; fsel.dataset.k = fopts; }
   if (S.rol === 'encargado') S.finca = S.miFinca;
   else if (S.finca !== 'all' && S.fincas.length && !S.fincas.some(f => f.id === S.finca)) S.finca = 'all';
-  const nt = $('#net'); if (nt) nt.hidden = S.online || !!S.demo;
+  const nt = $('#net'), ps = S.demo ? 0 : N(S.porSubir);
+  if (nt) { nt.hidden = S.demo || (S.online && !ps); const tx = !S.online ? `Sin señal${ps ? ` · ${ps} por subir` : ' · se guarda en el teléfono'}` : `Subiendo ${ps}…`; if (nt.textContent !== tx) nt.textContent = tx; }
   const db = $('#demo-bar');
   if (db) {
     db.hidden = !S.demo;
@@ -1443,7 +1450,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
 (() => {
   const cfg = window.CUADERNO_CONFIG || {};
   if (!window.__fbMock && !(cfg.firebase && cfg.firebase.apiKey)) { S.status = 'noconfig'; S.auth = 'out'; render(); return; }
-  const fb = (window.__fbMock || initFb)(cfg.firebase, writeErr);
+  const fb = (window.__fbMock || initFb)(cfg.firebase, writeErr, n => { if (n !== S.porSubir) { S.porSubir = n; render(); } });
   S.fb = fb; S.db = fb.db; S.downloads = { save: descargar };
   const owners = (cfg.administradores || []).map(x => String(x).toLowerCase());
   let unsubMe = null;

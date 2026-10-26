@@ -22,7 +22,7 @@ const db={ doc:docRef, collection:p=>query(p) };
 window.__store=store; window.__notify=notify;
 const authCbs=[]; let cur=null;
 const auth={ onChange(cb){authCbs.push(cb); setTimeout(()=>cb(cur),10); return ()=>{}}, login: async(e,p)=>{ if(p!=='secreto') throw {code:'auth/invalid-credential'}; cur={email:e.toLowerCase(),name:''}; authCbs.forEach(c=>c(cur)); }, register: async(e,p,n)=>{ cur={email:e.toLowerCase(),name:n}; authCbs.forEach(c=>c(cur)); }, reset: async()=>{}, logout: async()=>{ cur=null; authCbs.forEach(c=>c(null)); } };
-window.__fbMock=()=>({db,auth});
+window.__fbMock=(c,e,p)=>{window.__onPending=p;return {db,auth};};
 window.CUADERNO_CONFIG={firebase:{},administradores:['luis@x.com']};
 // seed
 const put=(p,d)=>store.set(p,d);
