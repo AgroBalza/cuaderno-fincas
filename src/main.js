@@ -1,6 +1,6 @@
 
 import { initFb } from './fb.js';
-import { memDb, demoData } from './demo.js';
+import { memDb, demoData, ESCENARIOS } from './demo.js';
 // ---------- constants ----------
 const TABS = [
   ['resumen', 'Resumen'], ['registrar', 'Registrar'], ['lotes', 'Lotes y siembra'], ['labores', 'Labores'], ['libro', 'Libro'],
@@ -43,6 +43,8 @@ const CATS = [
   { id: 'sacos', n: 'Sacos y selección', g: 'venta' },
   { id: 'flete', n: 'Flete', g: 'venta' },
   { id: 'otros_venta', n: 'Otros de la venta', g: 'venta' },
+  { id: 'compra_papa', n: 'Papa comprada a vecinos', g: 'venta' },
+  { id: 'planta', n: 'Planta: obreros, bolsas, frío y energía', g: 'venta' },
   { id: 'sueldo', n: 'Sueldo del gerente', g: 'gestion' },
   { id: 'viajes', n: 'Viajes', g: 'gestion' },
   { id: 'admin', n: 'Contador, permisos y teléfono', g: 'gestion' },
@@ -78,6 +80,9 @@ function parseNum(s) {
 const isoOk = s => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ''));
 const sum = (arr, fn) => arr.reduce((a, x) => a + N(fn(x)), 0);
 const sacosCosecha = r => N(r.sacosPrimera) + N(r.sacosSegunda);
+// Bought-in potatoes ride on cosecha records with compra: true; they count as stock, not as our harvest.
+const esCosecha = r => r.tipo === 'cosecha' && !r.compra;
+const ventaTxt = r => r.bolsas ? `${nf(r.bolsas)} bolsas de papa cortada (${nf(r.kgCortada)} kg)` : `${sacosTxt(r.sacos)} a ${usd(r.precio, 2)}`;
 const catGroup = id => (CAT_BY[id] || {}).g || 'cultivo';
 const lsGet = k => { try { return localStorage.getItem(k); } catch { return null; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { } };
@@ -109,7 +114,7 @@ const tabOk = id => { const r = ROLE_TABS[S.rol]; return !r || r.includes(id); }
 function shareOf(f) {
   const n = S.fincas.length || 1;
   if (S.cfg.prorrateo === 'sacos') {
-    const cos = S.regs.filter(r => r.tipo === 'cosecha');
+    const cos = S.regs.filter(esCosecha);
     const tot = sum(cos, sacosCosecha);
     if (tot > 0) return sum(cos.filter(r => r.finca === f), sacosCosecha) / tot;
   }
@@ -123,15 +128,16 @@ function stats(f, monthFilter) {
   const g = own.filter(r => r.tipo === 'gasto');
   const byG = grp => sum(g.filter(r => catGroup(r.cat) === grp), r => r.monto) + sh * sum(gen.filter(r => catGroup(r.cat) === grp), r => r.monto);
   const cultivo = byG('cultivo'), venta = byG('venta'), gestion = byG('gestion');
-  const cos = own.filter(r => r.tipo === 'cosecha');
+  const cos = own.filter(esCosecha);
   const sacos = sum(cos, sacosCosecha), primera = sum(cos, r => r.sacosPrimera);
+  const comprados = sum(own.filter(r => r.tipo === 'cosecha' && r.compra), sacosCosecha);
   const vs = own.filter(r => r.tipo === 'venta');
   const ventas = sum(vs, r => r.monto), sacosV = sum(vs, r => r.sacos);
   const porCobrar = sum(vs.filter(r => !r.cobrado), r => r.monto);
   const gastos = cultivo + venta + gestion;
   return {
     cultivo, venta, gestion, gastos, sacos, primera, ventas, sacosV, porCobrar, utilidad: ventas - gastos, share: sh,
-    stock: sacos - sacosV, costoSaco: sacos ? cultivo / sacos : null, costoSacoTotal: sacos ? gastos / sacos : null,
+    stock: sacos + comprados - sacosV, comprados, costoSaco: sacos ? cultivo / sacos : null, costoSacoTotal: sacos ? gastos / sacos : null,
     precioProm: sacosV ? ventas / sacosV : null, nCos: cos.length, nVen: vs.length, nGas: g.length,
   };
 }
@@ -221,7 +227,15 @@ function renderHeader() {
   if (S.rol === 'encargado') S.finca = S.miFinca;
   else if (S.finca !== 'all' && S.fincas.length && !S.fincas.some(f => f.id === S.finca)) S.finca = 'all';
   const nt = $('#net'); if (nt) nt.hidden = S.online || !!S.demo;
-  const db = $('#demo-bar'); if (db) db.hidden = !S.demo;
+  const db = $('#demo-bar');
+  if (db) {
+    db.hidden = !S.demo;
+    const dk = S.demo ? S.demoEsc : '';
+    if (S.demo && db.dataset.k !== dk) {
+      db.innerHTML = `<b>Demostración</b><label class="demo-sel"><select id="demo-esc" aria-label="Escenario">${Object.entries(ESCENARIOS).map(([k, e]) => `<option value="${k}" ${k === S.demoEsc ? 'selected' : ''}>${esc(e.nombre)}</option>`).join('')}</select></label><button type="button" data-act="demo-salir">Salir</button>`;
+      db.dataset.k = dk;
+    }
+  }
   fsel.value = S.finca;
 }
 function syncLotes(root) {
@@ -270,7 +284,7 @@ VIEWS.resumen = () => {
   const titulo = f === 'all' ? 'Las tres fincas' : fincaName(f);
   const vacio = !S.regs.length;
   const pct = meta ? Math.min(100, st.sacos / meta * 100) : 0;
-  let out = `<section><div class="hero">
+  let out = `${S.demo ? demoPanel() : ""}<section><div class="hero">
       <div><div class="hl">Utilidad ${S.year} · ${esc(titulo)}</div><div class="hv">${usd(st.utilidad)}</div><div class="hs">Ventas menos todos los gastos, incluidos sueldo y viajes</div></div>
       <div style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between;gap:8px" class="hs"><span>${nf(st.sacos)} de ${nf(meta)} sacos de la meta</span><span class="num">${nf(pct)}%</span></div><div class="bar"><i style="width:${pct.toFixed(1)}%"></i></div></div>
       <div class="hero-row"><div><span>Ventas</span><b>${usd(st.ventas)}</b></div><div><span>Gastos</span><b>${usd(st.gastos)}</b></div><div><span>Sacos vendidos</span><b>${nf(st.sacosV)}</b></div></div>
@@ -518,7 +532,7 @@ VIEWS.libro = () => {
     .filter(r => L.tipo === 'all' || r.tipo === L.tipo || (L.tipo === 'cobrar' && r.tipo === 'venta' && !r.cobrado))
     .filter(r => L.mes === 'all' || +r.fecha.slice(5, 7) === +L.mes)
     .filter(r => !q || [r.desc, r.comprador, (CAT_BY[r.cat] || {}).n, loteName(r.lote), fincaName(r.finca)].join(' ').toLowerCase().includes(q));
-  const gastos = sum(rs.filter(r => r.tipo === 'gasto'), r => r.monto), ventas = sum(rs.filter(r => r.tipo === 'venta'), r => r.monto), sacos = sum(rs.filter(r => r.tipo === 'cosecha'), sacosCosecha);
+  const gastos = sum(rs.filter(r => r.tipo === 'gasto'), r => r.monto), ventas = sum(rs.filter(r => r.tipo === 'venta'), r => r.monto), sacos = sum(rs.filter(esCosecha), sacosCosecha);
   let out = `<section><div class="sec-head"><div><p class="eyebrow">${S.year}${f !== 'all' ? ' · ' + esc(fincaName(f)) : ''}</p><h2>Libro de registros</h2></div><div class="btns">${S.downloads ? `<button class="btn" data-act="csv">Descargar para Excel</button>` : ''}</div></div>
     <div class="grid">
       ${fld('lb-tipo', 'Mostrar', `<select id="lb-tipo" data-libro="tipo">${[['all', 'Todo'], ['gasto', 'Gastos'], ['cosecha', 'Cosechas'], ['venta', 'Ventas'], ['cobrar', 'Ventas por cobrar']].map(([k, n]) => opt(k, n, L.tipo)).join('')}</select>`)}
@@ -539,8 +553,8 @@ VIEWS.libro = () => {
 function itemHtml(r) {
   let t = '', a = '', chip = '';
   if (r.tipo === 'gasto') { t = (CAT_BY[r.cat] || {}).n || 'Gasto'; a = `<span class="neg">${usd(-N(r.monto))}</span>`; chip = '<span class="chip c-gasto">Gasto</span>'; }
-  if (r.tipo === 'cosecha') { t = `Cosecha · ${sacosTxt(sacosCosecha(r))}`; a = `${nf(sacosCosecha(r))}<small>sacos</small>`; chip = '<span class="chip c-cosecha">Cosecha</span>'; }
-  if (r.tipo === 'venta') { t = `Venta · ${sacosTxt(r.sacos)} a ${usd(r.precio, 2)}${r.comprador ? ' · ' + esc(r.comprador) : ''}`; a = `<span class="pos">${usd(r.monto)}</span>`; chip = `<span class="chip c-venta">Venta</span>${r.cobrado ? '' : ' <span class="chip c-warn">Por cobrar</span>'}`; }
+  if (r.tipo === 'cosecha') { t = `${r.compra ? 'Compra a vecinos' : 'Cosecha'} · ${sacosTxt(sacosCosecha(r))}`; a = `${nf(sacosCosecha(r))}<small>sacos</small>`; chip = '<span class="chip c-cosecha">Cosecha</span>'; }
+  if (r.tipo === 'venta') { t = `Venta · ${ventaTxt(r)}${r.comprador ? ' · ' + esc(r.comprador) : ''}`; a = `<span class="pos">${usd(r.monto)}</span>`; chip = `<span class="chip c-venta">Venta</span>${r.cobrado ? '' : ' <span class="chip c-warn">Por cobrar</span>'}`; }
   const sub = [fincaName(r.finca), r.lote ? loteName(r.lote) : '', r.tipo === 'cosecha' ? `${nf(r.sacosPrimera)} de primera, ${nf(r.sacosSegunda)} de segunda` : '', r.tipo === 'venta' ? (CANALES[r.canal] || '') : '', r.cantidad ? `${nf(r.cantidad, r.cantidad % 1 ? 1 : 0)} ${r.unidad || ''}` : '', r.desc].filter(Boolean).map(esc).join(' · ');
   const who = r.autor ? (S.names[r.autor] || '') : '';
   const conf = S.confirm === 'reg:' + r.id;
@@ -563,7 +577,7 @@ VIEWS.liquidacion = () => {
       <tr><td>Sacos cosechados</td>${L.map(x => `<td class="r num">${nf(x.q.sacos)}</td>`).join('')}${L.length > 1 ? `<td class="r num">${nf(tot('sacos'))}</td>` : ''}</tr>
       ${row('Ventas', 'ventas')}
       ${row('− Gastos del cultivo', 'cultivo', -1)}
-      ${row('− Venta y flete', 'venta', -1)}
+      ${row(S.regs.some(r => r.cat === 'planta' || r.cat === 'compra_papa') ? '− Venta, flete y planta' : '− Venta y flete', 'venta', -1)}
       ${row('− Gestión (sueldo, viajes, contador)', 'gestion', -1)}
       ${row('= Utilidad', 'utilidad', 1, 'total')}
       ${row(`Encargado (${nf(c.pctTrabajo, 1)}%)`, 'enc')}
@@ -801,10 +815,10 @@ VIEWS.cobros = () => {
   if (!clis.length) out += `<div class="empty"><p class="muted">No hay ventas por cobrar. Cuando registres una venta sin marcar "Ya se cobró", aparece aquí.</p></div>`;
   else out += `<section><h3>Quién debe</h3><div class="lotes">${clis.map((c, i) => {
     const venc = c.dias > lim;
-    const rec = [`Hola ${c.n === 'Sin nombre' ? '' : c.n.split(' ')[0]}, te escribo de Agropecuaria Los Granates.`, `Te paso el saldo pendiente: ${usd(c.tot, 2)}.`, ...c.rs.map(r => `- ${fdateY(r.fecha)}: ${sacosTxt(r.sacos)} a ${usd(r.precio, 2)} = ${usd(r.monto, 2)}`), 'Avísame cuándo puedes hacer el pago. ¡Gracias!'].join('\n');
+    const rec = [`Hola ${c.n === 'Sin nombre' ? '' : c.n.split(' ')[0]}, te escribo de Agropecuaria Los Granates.`, `Te paso el saldo pendiente: ${usd(c.tot, 2)}.`, ...c.rs.map(r => `- ${fdateY(r.fecha)}: ${ventaTxt(r)} = ${usd(r.monto, 2)}`), 'Avísame cuándo puedes hacer el pago. ¡Gracias!'].join('\n');
     return `<div class="lote"><div class="lote-h"><div><div class="t" style="font-weight:700">${esc(c.n)}</div><div class="s muted small">${c.rs.length} ${c.rs.length === 1 ? 'entrega' : 'entregas'} · la más vieja del ${fdate(c.rs[0].fecha)}</div></div>${venc ? `<span class="chip c-bad">Vencida ${c.dias} d</span>` : `<span class="chip c-warn">${c.dias} d</span>`}</div>
       <div class="cli-tot num">${usd(c.tot, 2)}</div>
-      <div class="list flat">${c.rs.map(r => `<div class="row"><span>${fdate(r.fecha)} · ${esc(fincaName(r.finca))}<small>${sacosTxt(r.sacos)} a ${usd(r.precio, 2)}</small></span><b class="num">${usd(r.monto, 2)}</b>${canWrite() ? `<button class="btn ghost ok" data-act="cobrar" data-id="${esc(r.id)}">Cobrada</button>` : ''}</div>`).join('')}</div>
+      <div class="list flat">${c.rs.map(r => `<div class="row"><span>${fdate(r.fecha)} · ${esc(fincaName(r.finca))}<small>${ventaTxt(r)}</small></span><b class="num">${usd(r.monto, 2)}</b>${canWrite() ? `<button class="btn ghost ok" data-act="cobrar" data-id="${esc(r.id)}">Cobrada</button>` : ''}</div>`).join('')}</div>
       <pre class="tpl" id="rec-${i}" hidden>${esc(rec)}</pre>
       <div class="btns"><button class="btn" data-act="copy" data-src="rec-${i}">Copiar recordatorio</button>${canWrite() && c.rs.length > 1 ? (S.confirm === 'cli:' + c.n ? `<button class="btn primary" data-act="cobrar-cli" data-k="${esc(c.n)}">Sí, todo cobrado</button><button class="btn ghost" data-act="confirm-no">No</button>` : `<button class="btn ghost" data-act="confirm" data-k="cli:${esc(c.n)}">Pagó todo</button>`) : ''}</div></div>`;
   }).join('')}</div></section>`;
@@ -835,7 +849,7 @@ function cierreData(m) {
   const lotesF = S.lotes.filter(l => f === 'all' || l.finca === f);
   const sembrados = lotesF.filter(l => l.estado !== 'plan' && String(l.siembra || '').startsWith(pref));
   const cl = {};
-  for (const r of S.regs.filter(r => r.tipo === 'cosecha' && r.fecha.startsWith(pref) && (f === 'all' || r.finca === f))) { const k = r.lote || 'sin-' + r.finca; const c = cl[k] = cl[k] || { lote: S.lotes.find(l => l.id === r.lote), finca: r.finca, sacos: 0, primera: 0 }; c.sacos += sacosCosecha(r); c.primera += N(r.sacosPrimera); }
+  for (const r of S.regs.filter(r => esCosecha(r) && r.fecha.startsWith(pref) && (f === 'all' || r.finca === f))) { const k = r.lote || 'sin-' + r.finca; const c = cl[k] = cl[k] || { lote: S.lotes.find(l => l.id === r.lote), finca: r.finca, sacos: 0, primera: 0 }; c.sacos += sacosCosecha(r); c.primera += N(r.sacosPrimera); }
   const cosechas = Object.values(cl).map(c => ({ ...c, rend: c.lote && N(c.lote.sacosSemilla) ? loteInfo(c.lote).cosechados / N(c.lote.sacosSemilla) : null }));
   const sobre = lotesF.filter(l => l.estado !== 'plan').map(l => ({ l, i: loteInfo(l) })).filter(x => x.i.presup && x.i.gasto > x.i.presup);
   const labs = labItems();
@@ -1002,6 +1016,7 @@ document.addEventListener('click', async ev => {
       case 'copy': await copyText(document.getElementById(b.dataset.src)); break;
       case 'logout': S.sheet = false; stopSubs(); await S.fb.auth.logout(); break;
       case 'demo': entrarDemo(); break;
+      case 'demo-esc': entrarDemo(b.dataset.v); break;
       case 'demo-salir': salirDemo(); break;
       case 'login-mode': S.loginMode = b.dataset.v; S.loginErr = ''; S.skipRestore = false; render(); break;
       case 'login-reset': { const e = val('lg-email').trim(); if (!e) { S.loginErr = 'Escribe tu correo y vuelve a tocar "Olvidé mi contraseña".'; render(); break; } try { await S.fb.auth.reset(e); S.loginErr = 'Te mandamos un correo para cambiar la contraseña.'; } catch (er) { S.loginErr = authMsg(er); } render(); break; }
@@ -1027,6 +1042,7 @@ document.addEventListener('click', async ev => {
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && S.sheet) { S.sheet = false; render(); } });
 document.addEventListener('change', ev => {
   const el = ev.target;
+  if (el.id === 'demo-esc') return entrarDemo(el.value);
   if (el.id === 'f-year') { S.year = +el.value; subscribeRegs(); S.skipRestore = true; return render(); }
   if (el.id === 'f-finca') { S.finca = el.value; lsSet('cf-finca', S.finca); S.skipRestore = true; return render(); }
   if (el.id === 'mb-rol') { const w = document.getElementById('mb-finca-w'); if (w) w.hidden = el.value !== 'encargado'; return; }
@@ -1386,13 +1402,23 @@ function arrancar() {
 }
 // Demonstration: swap the database for an in-memory one full of simulated data.
 // Real listeners stop; leaving reloads the page so the real session starts clean.
-function entrarDemo() {
+// The demo opens on last year, the most recent full year, so the totals read as a whole year.
+function entrarDemo(escenario = 'hoy') {
   stopSubs();
-  S.demo = true; S.sheet = false;
-  S.db = memDb(demoData(today()));
+  const first = !S.demo;
+  S.demo = true; S.demoEsc = ESCENARIOS[escenario] ? escenario : 'hoy'; S.sheet = false;
+  S.db = memDb(demoData(today(), S.demoEsc));
   S.auth = 'in'; S.rol = 'admin'; S.email = 'demostracion'; S.uid = 'demo'; S.names.demo = 'Demostración';
-  S.year = new Date().getFullYear(); S.finca = 'all'; S.view = 'resumen';
+  if (first) { S.year = new Date().getFullYear() - 1; S.finca = 'all'; S.view = 'resumen'; }
   arrancar(); window.scrollTo({ top: 0 });
+}
+function demoPanel() {
+  const e = ESCENARIOS[S.demoEsc];
+  const L = S.fincas.filter(f => S.finca === 'all' || f.id === S.finca).map(f => liquidar(f.id));
+  const util = sum(L, q => q.utilidad), fam = sum(L, q => q.tierra + q.dinero);
+  return `<div class="panel demo-panel"><p class="eyebrow">Demostración · números simulados</p><h3>${esc(e.largo)}</h3>
+    <div class="demo-res"><div><span>Utilidad ${S.year}</span><b>${usd(util)}</b></div><div><span>Para la familia (tierra y dinero)</span><b>${usd(fam)}</b></div><div><span>Para los encargados</span><b>${usd(util - fam)}</b></div></div><ul>${e.supuestos.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+    <div class="seg demo-seg" role="group" aria-label="Escenario">${Object.entries(ESCENARIOS).map(([k, x]) => `<button type="button" data-act="demo-esc" data-v="${k}" ${k === S.demoEsc ? 'aria-pressed="true"' : ''}>${esc(x.nombre)}</button>`).join('')}</div></div>`;
 }
 function salirDemo() {
   stopSubs();

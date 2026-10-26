@@ -42,17 +42,33 @@ export function memDb(seed) {
   return { collection: p => Q(p), doc: D };
 }
 
-// Plan assumptions (from the financial model, 2026-10-17):
-// 3 farms x 200 seed sacks a year, ~6 sacks harvested per seed sack (1,200 per farm),
-// four staggered plantings per farm so one farm harvests every month,
-// restaurants in Caracas take ~200 sacks a month at $40, the rest goes to the truck buyer at the farm,
-// freight $4 a sack to Caracas, cultivation target $15 a sack, manager pay + trips + admin $21,240 a year.
+// Three scenarios, all from the financial model (Modelo financiero, 2026-10-17):
+// - hoy: what the farms do today, Granola sold whole to the truck buyer at the farm, ~1,200 sacks per farm.
+// - freir: a frying variety, yield +10% from better seed and soil work, ~200 sacks a month to Caracas restaurants at $40.
+// - planta: yield +15%, a small plant washes, peels, cuts and vacuum-packs the potatoes (own plus ~400 sacks a month
+//   bought from neighbours at $27) and sells 2.5 kg bags to ~8 restaurant clients at $1.40/kg.
+// Every scenario carries cultivation at ~$4,500 per 50 seed sacks and manager pay + trips + admin of $21,240 a year.
+export const ESCENARIOS = {
+  hoy: {
+    nombre: 'Hoy', largo: 'Como trabajamos hoy',
+    supuestos: ['Papa Granola, unos 1.200 sacos por finca al año.', 'Todo se vende entero al camionero en la finca: primera a ~$27 y segunda a ~$14 (promedio $25).', 'Cultivo a $15 por saco; sueldo, viajes y contador $21.240 al año.'],
+  },
+  freir: {
+    nombre: 'Para freír', largo: 'Papa para freír a restaurantes de Caracas',
+    supuestos: ['Variedad para freír (Iniafrit), semilla y manejo de suelo mejorados: 10% más sacos.', 'Unos 200 sacos al mes de primera a restaurantes de Caracas a $40, con flete de $4 y selección de $1 por saco.', 'El resto (primera que sobra y segunda) al camionero en la finca.', 'El tercio del encargado se calcula a precio de finca; lo que se gana de más queda para tierra y dinero.'],
+  },
+  planta: {
+    nombre: 'Papa cortada', largo: 'El futuro: papa cortada en bolsas',
+    supuestos: ['Rendimiento 15% más alto. La primera se lava, pela, corta y empaca al vacío en bolsas de 2,5 kg.', 'Se compran ~400 sacos al mes de papa apta a vecinos a $27.', 'Se vende a ~8 clientes en Caracas a $1,40 el kilo ($3,50 la bolsa); de un saco de 50 kg salen 40 kg cortados.', 'Planta: 6 obreros ($1.500/mes), bolsas y energía $0,10/kg, flete refrigerado $0,12/kg.', 'Préstamo de $105.000 (máquinas, cuarto frío y galpón) a 4 años al 12%: cuota de $2.765 al mes.', 'No incluye impuesto sobre la renta.'],
+  },
+};
 const FINCAS = [['el-baho', 'El Baho', 1], ['el-mostrenco', 'El Mostrenco', 2], ['hoyo-el-barro', 'Hoyo El Barro', 3]];
 const RESTAURANTES = ['Parrilla El Llano', 'Restaurante La Casona', 'Hamburguesas Altamira', 'Cafetería El Ávila'];
+const CLIENTES_PLANTA = ['Hamburguesas Altamira', 'Parrilla El Llano', 'Pollos Los Próceres', 'Burger Las Mercedes', 'Restaurante La Casona', 'Arepera Sabana Grande', 'Comida Rápida Chacao', 'Club Social El Cafetal'];
 const CAMIONEROS = ['Camionero José Rangel', 'Camionero Ramón Peña'];
 const ENCARGADOS = ['Pedro Dávila', 'Juan Rivas', 'Carlos Uzcátegui'];
 
-export function demoData(hoy) {
+export function demoData(hoy, esc = 'hoy') {
   let s = 20261026;
   const rnd = () => { s = (s * 1103515245 + 12345) % 2147483648; return s / 2147483648; };
   const vary = (x, p) => x * (1 + (rnd() * 2 - 1) * p);
@@ -61,32 +77,32 @@ export function demoData(hoy) {
   const add = (date, n) => { const d = new Date(date + 'T12:00:00'); d.setDate(d.getDate() + n); return iso(d); };
   const ym = (y, m) => `${y}-${String(m).padStart(2, '0')}`;
   const cy = +hoy.slice(0, 4), y0 = cy - 1;
+  const P = { hoy: { rend: 6, variedad: 'Granola' }, freir: { rend: 6.6, variedad: 'Iniafrit (para freír)' }, planta: { rend: 6.9, variedad: 'Iniafrit (para freír)' } }[esc] || { rend: 6, variedad: 'Granola' };
   const out = {};
   let n = 0;
   const put = (p, d) => { out[p] = d; };
-  const reg = d => { if (d.fecha <= hoy) put('registros/sim' + (++n), { autor: 'demo', creado: d.fecha + 'T12:00:00', ...d }); };
+  const reg = d => { if (d.fecha <= hoy) put('registros/sim' + String(++n).padStart(5, '0'), { autor: 'demo', creado: d.fecha + 'T12:00:00', ...d }); };
 
   FINCAS.forEach(([id, nombre, orden], i) => put('fincas/' + id, { nombre, ha: 14, encargado: ENCARGADOS[i], orden }));
-  put('ajustes/general', { kgSaco: 50, metaSacosFinca: 1200, metaCostoSaco: 15, precioRef: 25, cicloDias: 150, pctTrabajo: 33.33, pctTierra: 33.33, pctDinero: 33.34, prorrateo: 'iguales', baseEncargado: 'utilidad', presupSemilla: 90, diasCredito: 15 });
+  put('ajustes/general', { kgSaco: 50, metaSacosFinca: 1200, metaCostoSaco: 15, precioRef: 25, cicloDias: 150, pctTrabajo: 33.33, pctTierra: 33.33, pctDinero: 33.34, prorrateo: 'iguales', baseEncargado: esc === 'hoy' ? 'utilidad' : 'precioFinca', presupSemilla: 90, diasCredito: 15 });
   FINCAS.forEach(([id], i) => put('miembros/encargado' + (i + 1) + '@ejemplo.com', { nombre: ENCARGADOS[i], rol: 'encargado', finca: id }));
   put('miembros/familia@ejemplo.com', { nombre: 'Papá', rol: 'familia', finca: '' });
 
   // Plantings: each farm sows 50 seed sacks every three months, offset by one month per farm,
-  // from August two years back so the first simulated year opens with harvests already coming in.
+  // from mid two years back so the first simulated year opens with harvests already coming in.
   const lotes = [];
   FINCAS.forEach(([fid], i) => {
     for (let m = -5 + i; m <= 24; m += 3) {
       const y = y0 + Math.floor((m - 1) / 12), mes = ((m - 1) % 12 + 12) % 12 + 1;
       const siembra = `${ym(y, mes)}-${String(3 + Math.floor(rnd() * 8)).padStart(2, '0')}`;
-      const cosecha = add(siembra, 150);
       const t = lotes.filter(l => l.finca === fid && l.siembra.startsWith(String(y))).length + 1;
-      lotes.push({ id: `sim-${fid}-${siembra}`, finca: fid, siembra, cosecha, nombre: `Tanda ${t} · ${y}`, rend: vary(6, 0.12), costo: vary(1, 0.1) });
+      lotes.push({ id: `sim-${fid}-${siembra}`, finca: fid, siembra, cosecha: add(siembra, 150), nombre: `Tanda ${t} · ${y}`, rend: vary(P.rend, 0.1), costo: vary(1, 0.1) });
     }
   });
   for (const l of lotes) {
     const estado = l.cosecha <= hoy ? 'cosechado' : l.siembra <= hoy ? 'sembrado' : 'plan';
-    put('lotes/' + l.id, { nombre: l.nombre, finca: l.finca, variedad: 'Granola', ha: 1.1, siembra: l.siembra, cicloDias: 150, sacosSemilla: 50, estado, notas: '' });
-    // Cultivation spend along the cycle, about $4,500 for 50 seed sacks (= $15 a harvested sack at plan yield).
+    put('lotes/' + l.id, { nombre: l.nombre, finca: l.finca, variedad: P.variedad, ha: 1.1, siembra: l.siembra, cicloDias: 150, sacosSemilla: 50, estado, notas: '' });
+    // Cultivation spend along the cycle, about $4,500 for 50 seed sacks.
     const g = (d, cat, monto, desc) => reg({ tipo: 'gasto', fecha: add(l.siembra, d), finca: l.finca, lote: l.id, cat, monto: Math.round(vary(monto, 0.06) * l.costo), desc });
     g(-12, 'maquinaria', 260, 'Arada y rastra');
     g(0, 'semilla', 1500, '50 sacos de semilla certificada');
@@ -102,52 +118,108 @@ export function demoData(hoy) {
     if (l.cosecha <= hoy) {
       const tot = Math.round(50 * l.rend), seg = Math.round(tot * vary(0.15, 0.25));
       reg({ tipo: 'cosecha', fecha: l.cosecha, finca: l.finca, lote: l.id, sacosPrimera: tot - seg, sacosSegunda: seg, kgSaco: 50 });
-      reg({ tipo: 'gasto', fecha: l.cosecha, finca: l.finca, lote: l.id, cat: 'sacos', monto: Math.round(tot * 0.5), desc: `${tot} sacos nuevos` });
       l.primera = tot - seg; l.segunda = seg;
     } else {
-      // Labor already done on the planting that is still in the ground, so the to-do list looks lived in.
+      // Labour already done on plantings still in the ground, so the to-do list looks lived in.
       [['prep', -15], ['siembra', 0], ['desyerbe', 25], ['aporque1', 35], ['fumi1', 45], ['aporque2', 60], ['fumi2', 65], ['fumi3', 85], ['fumi4', 105]].forEach(([k, d], j) => {
         const f = add(l.siembra, d);
         if (f < add(hoy, -3) && !(j === 6 && l.finca === 'hoyo-el-barro')) put(`labores/${l.id}_${k}`, { hecho: true, fechaHecho: add(f, Math.floor(rnd() * 3)) });
       });
     }
   }
+  const cosechados = lotes.filter(l => l.primera != null);
+  const camion = (l, fecha, sacos, precio, calidad) => { if (sacos > 0) reg({ tipo: 'venta', fecha, finca: l.finca, lote: l.id, sacos, precio, monto: sacos * precio, comprador: CAMIONEROS[Math.floor(rnd() * 2)], canal: 'camionero', calidad, cobrado: true, fechaCobro: fecha }); };
+  const credito = (fecha, cliente, tarde) => { const cobro = add(fecha, 8 + Math.floor(rnd() * 14)); const cobrado = cobro <= hoy && !(cliente === tarde && fecha > add(hoy, -40)); return { cobrado, ...(cobrado ? { fechaCobro: cobro } : {}) }; };
 
-  // Sales: each harvest goes out over the next five weeks, restaurants first (primera only), the truck buyer gets the rest.
-  let ri = 0;
-  for (const l of lotes.filter(l => l.primera)) {
-    let prim = l.primera;
-    for (let w = 0; w < 4; w++) {
-      const fecha = add(l.cosecha, 3 + w * 7);
-      if (fecha > hoy) { prim = 0; break; }
-      // ~200 sacks a month to restaurants: about 50 a week, split between two restaurants.
-      for (let k = 0; k < 2; k++) {
-        const sacos = Math.min(prim, Math.round(vary(25, 0.2)));
-        if (sacos <= 0) continue;
-        prim -= sacos;
-        const precio = 40, cliente = RESTAURANTES[ri++ % RESTAURANTES.length];
-        const cobro = add(fecha, 8 + Math.floor(rnd() * 14));
-        const cobrado = cobro <= hoy && !(cliente === 'Hamburguesas Altamira' && fecha > add(hoy, -40));
-        reg({ tipo: 'venta', fecha, finca: l.finca, lote: l.id, sacos, precio, monto: sacos * precio, comprador: cliente, canal: 'restaurante', calidad: 'primera', cobrado, ...(cobrado ? { fechaCobro: cobro } : {}) });
-        reg({ tipo: 'gasto', fecha, finca: l.finca, lote: l.id, cat: 'flete', monto: sacos * 4, desc: `Flete a Caracas, ${sacos} sacos (camión del tío)` });
-      }
+  if (esc === 'hoy') {
+    // Two truck loads per harvest, everything sold whole at the farm.
+    for (const l of cosechados) {
+      const a = Math.round(l.primera * 0.55);
+      camion(l, add(l.cosecha, 2), a, Math.round(vary(27, 0.06)), 'primera');
+      camion(l, add(l.cosecha, 9), l.primera - a, Math.round(vary(27, 0.06)), 'primera');
+      camion(l, add(l.cosecha, 9), l.segunda, Math.round(vary(14, 0.08)), 'segunda');
     }
-    const fecha = add(l.cosecha, 2);
-    if (fecha <= hoy) {
-      const cam = CAMIONEROS[Math.floor(rnd() * 2)];
-      const pP = Math.round(vary(25, 0.08));
-      if (prim > 0) reg({ tipo: 'venta', fecha, finca: l.finca, lote: l.id, sacos: prim, precio: pP, monto: prim * pP, comprador: cam, canal: 'camionero', calidad: 'primera', cobrado: true, fechaCobro: fecha });
-      const pS = Math.round(vary(15, 0.1));
-      reg({ tipo: 'venta', fecha, finca: l.finca, lote: l.id, sacos: l.segunda, precio: pS, monto: l.segunda * pS, comprador: cam, canal: 'camionero', calidad: 'segunda', cobrado: true, fechaCobro: fecha });
+  }
+
+  if (esc === 'freir') {
+    // ~200 sacks a month to restaurants: about 50 a week for four weeks after each harvest, split between two clients.
+    let ri = 0;
+    for (const l of cosechados) {
+      let prim = l.primera;
+      for (let w = 0; w < 4; w++) {
+        const fecha = add(l.cosecha, 3 + w * 7);
+        if (fecha > hoy) { prim = 0; break; }
+        for (let k = 0; k < 2; k++) {
+          const sacos = Math.min(prim, Math.round(vary(25, 0.2)));
+          if (sacos <= 0) continue;
+          prim -= sacos;
+          const cliente = RESTAURANTES[ri++ % RESTAURANTES.length];
+          reg({ tipo: 'venta', fecha, finca: l.finca, lote: l.id, sacos, precio: 40, monto: sacos * 40, comprador: cliente, canal: 'restaurante', calidad: 'primera', ...credito(fecha, cliente, 'Hamburguesas Altamira') });
+          reg({ tipo: 'gasto', fecha, finca: l.finca, lote: l.id, cat: 'flete', monto: sacos * 4, desc: `Flete a Caracas, ${sacos} sacos (camión del tío)` });
+          reg({ tipo: 'gasto', fecha, finca: l.finca, lote: l.id, cat: 'sacos', monto: sacos, desc: `Selección y sacos nuevos, ${sacos} sacos` });
+        }
+      }
+      camion(l, add(l.cosecha, 2), prim, Math.round(vary(26, 0.06)), 'primera');
+      camion(l, add(l.cosecha, 2), l.segunda, Math.round(vary(15, 0.08)), 'segunda');
+    }
+  }
+
+  if (esc === 'planta') {
+    // Stock per farm in sacks of whole potato waiting to be cut; each delivery draws on the farm holding the most.
+    const stock = Object.fromEntries(FINCAS.map(([f]) => [f, 0]));
+    const ev = [];
+    for (const l of cosechados) {
+      ev.push([l.cosecha, () => { stock[l.finca] += l.primera; }]);
+      ev.push([add(l.cosecha, 2), () => camion(l, add(l.cosecha, 2), l.segunda, Math.round(vary(15, 0.08)), 'segunda')]);
+    }
+    const start = `${y0 - 1}-12-01`;
+    for (let d = start; d <= hoy; d = add(d, 1)) {
+      const day = +d.slice(8, 10), dow = new Date(d + 'T12:00:00').getDay();
+      ev.filter(e => e[0] === d).forEach(e => e[1]());
+      if (day === 2) FINCAS.forEach(([f]) => {
+        // Neighbour purchases: ~133 sacks a month per farm.
+        const sacos = Math.round(vary(133, 0.12));
+        reg({ tipo: 'cosecha', compra: true, fecha: d, finca: f, sacosPrimera: sacos, sacosSegunda: 0, kgSaco: 50, desc: 'Papa apta comprada a productores vecinos' });
+        reg({ tipo: 'gasto', fecha: d, finca: f, cat: 'compra_papa', monto: sacos * 27, desc: `${sacos} sacos a $27` });
+        stock[f] += sacos;
+      });
+      if (dow === 1) {
+        // Monday deliveries: up to ~165 sacks a week of whole potato, cut into 2.5 kg bags.
+        const total = Object.values(stock).reduce((a, b) => a + b, 0);
+        let semana = Math.min(total, Math.round(vary(165, 0.08)));
+        let kgSemana = 0;
+        CLIENTES_PLANTA.forEach((cliente, k) => {
+          const share = Math.round(semana / (CLIENTES_PLANTA.length - k) * vary(1, 0.15));
+          const sacos = Math.min(semana, share);
+          if (sacos <= 0) return;
+          semana -= sacos;
+          const f = Object.keys(stock).sort((a, b) => stock[b] - stock[a])[0];
+          stock[f] -= sacos;
+          const kg = sacos * 40, bolsas = Math.round(kg / 2.5);
+          kgSemana += kg;
+          reg({ tipo: 'venta', fecha: d, finca: f, sacos, precio: 56, monto: r2(bolsas * 3.5), bolsas, kgCortada: bolsas * 2.5, producto: 'cortada', comprador: cliente, canal: 'restaurante', calidad: 'primera', desc: `${bolsas} bolsas de 2,5 kg a $3,50`, ...credito(d, cliente, 'Burger Las Mercedes') });
+          reg({ tipo: 'gasto', fecha: d, finca: f, cat: 'sacos', monto: sacos, desc: `Selección, ${sacos} sacos` });
+        });
+        if (kgSemana) {
+          reg({ tipo: 'gasto', fecha: d, finca: 'general', cat: 'flete', monto: Math.round(kgSemana * 0.12), desc: `Flete refrigerado a Caracas, ${Math.round(kgSemana).toLocaleString('es-VE')} kg` });
+          reg({ tipo: 'gasto', fecha: d, finca: 'general', cat: 'planta', monto: Math.round(kgSemana * 0.06), desc: 'Bolsas al vacío, antioxidante y etiquetas' });
+          reg({ tipo: 'gasto', fecha: d, finca: 'general', cat: 'planta', monto: Math.round(kgSemana * 0.04), desc: 'Electricidad, agua y gasoil del cuarto frío' });
+        }
+      }
+      if (day === 25) {
+        reg({ tipo: 'gasto', fecha: d, finca: 'general', cat: 'planta', monto: 1500, desc: 'Obreros de la planta (6)' });
+        reg({ tipo: 'gasto', fecha: d, finca: 'general', cat: 'planta', monto: 2765, desc: 'Cuota del préstamo de la planta ($105.000 a 4 años, 12%)' });
+      }
     }
   }
 
   // Management: $21,240 a year = $1,770 a month, shared by the three farms.
-  for (let y = y0; y <= cy; y++) for (let m = 1; m <= 12; m++) {
+  for (let y = y0 - 1; y <= cy; y++) for (let m = 1; m <= 12; m++) {
     const p = ym(y, m);
-    reg({ tipo: 'gasto', fecha: p + '-28', finca: 'general', cat: 'sueldo', monto: 1200, desc: 'Sueldo del gerente' });
-    reg({ tipo: 'gasto', fecha: p + '-15', finca: 'general', cat: 'viajes', monto: 420, desc: 'Viaje a las fincas y a Caracas' });
-    reg({ tipo: 'gasto', fecha: p + '-05', finca: 'general', cat: 'admin', monto: 150, desc: 'Contador y teléfono' });
+    reg({ tipo: 'gasto', fecha: p + '-28', finca: 'general', cat: 'sueldo', monto: 1000, desc: 'Sueldo del gerente' });
+    reg({ tipo: 'gasto', fecha: p + '-15', finca: 'general', cat: 'viajes', monto: 520, desc: 'Viaje Caracas–Mérida' });
+    reg({ tipo: 'gasto', fecha: p + '-05', finca: 'general', cat: 'admin', monto: 250, desc: 'Contador, permisos y teléfono' });
+    if (y < y0) continue;
     // Prices: Coche per 45 kg sack and the farm-gate price per 50 kg sack.
     const ola = Math.sin((m + y * 12) / 2.2);
     if (`${p}-10` <= hoy) {
