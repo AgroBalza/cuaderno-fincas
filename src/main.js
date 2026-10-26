@@ -194,7 +194,7 @@ function renderHeader() {
   const cur = S.view;
   const tabName = (TABS.find(t => t[0] === cur) || [])[1] || '';
   const tEl = $('#appbar-t'); if (tEl.textContent !== tabName) tEl.textContent = tabName;
-  const side = `<div class="side-brand"><span class="logo">${LOGO}</span><div><b>Agropecuaria Santo Domingo</b><small>Cuaderno de las fincas</small></div></div>
+  const side = `<div class="side-brand"><span class="logo">${LOGO}</span><div><b>Agropecuaria Los Granates</b><small>Cuaderno de las fincas</small></div></div>
     ${canWrite() ? `<button class="sn cta" data-tab="registrar">${icon('registrar')}Registrar</button>` : '<div style="height:8px"></div>'}
     ${TABS.filter(t => t[0] !== 'registrar' && tabOk(t[0])).map(([id, n]) => `<button class="sn" data-tab="${id}" ${cur === id ? 'aria-current="page"' : ''}>${icon(id)}${n}</button>`).join('')}
     <div class="side-foot">Santo Domingo, Mérida</div>`;
@@ -574,7 +574,7 @@ VIEWS.liquidacion = () => {
     <div class="panel"><h3>Texto para mandar a la familia</h3><pre class="tpl" id="liq-txt">${esc(txt)}</pre><div class="btns"><button class="btn" data-act="copy" data-src="liq-txt">Copiar</button></div></div></section>`;
 };
 function liqTexto(L) {
-  const lines = [`Liquidación ${S.year} · Agropecuaria Santo Domingo`, ''];
+  const lines = [`Liquidación ${S.year} · Agropecuaria Los Granates`, ''];
   for (const { f, q } of L) {
     lines.push(`${f.nombre}: ${nf(q.sacos)} sacos cosechados, ventas ${usd(q.ventas)}, gastos ${usd(q.gastos)}, utilidad ${usd(q.utilidad)}.`);
     lines.push(`  Encargado ${usd(q.enc)} · Tierra ${usd(q.tierra)} · Dinero ${usd(q.dinero)}`);
@@ -801,7 +801,7 @@ VIEWS.cobros = () => {
   if (!clis.length) out += `<div class="empty"><p class="muted">No hay ventas por cobrar. Cuando registres una venta sin marcar "Ya se cobró", aparece aquí.</p></div>`;
   else out += `<section><h3>Quién debe</h3><div class="lotes">${clis.map((c, i) => {
     const venc = c.dias > lim;
-    const rec = [`Hola ${c.n === 'Sin nombre' ? '' : c.n.split(' ')[0]}, te escribo de Agropecuaria Santo Domingo.`, `Te paso el saldo pendiente: ${usd(c.tot, 2)}.`, ...c.rs.map(r => `- ${fdateY(r.fecha)}: ${sacosTxt(r.sacos)} a ${usd(r.precio, 2)} = ${usd(r.monto, 2)}`), 'Avísame cuándo puedes hacer el pago. ¡Gracias!'].join('\n');
+    const rec = [`Hola ${c.n === 'Sin nombre' ? '' : c.n.split(' ')[0]}, te escribo de Agropecuaria Los Granates.`, `Te paso el saldo pendiente: ${usd(c.tot, 2)}.`, ...c.rs.map(r => `- ${fdateY(r.fecha)}: ${sacosTxt(r.sacos)} a ${usd(r.precio, 2)} = ${usd(r.monto, 2)}`), 'Avísame cuándo puedes hacer el pago. ¡Gracias!'].join('\n');
     return `<div class="lote"><div class="lote-h"><div><div class="t" style="font-weight:700">${esc(c.n)}</div><div class="s muted small">${c.rs.length} ${c.rs.length === 1 ? 'entrega' : 'entregas'} · la más vieja del ${fdate(c.rs[0].fecha)}</div></div>${venc ? `<span class="chip c-bad">Vencida ${c.dias} d</span>` : `<span class="chip c-warn">${c.dias} d</span>`}</div>
       <div class="cli-tot num">${usd(c.tot, 2)}</div>
       <div class="list flat">${c.rs.map(r => `<div class="row"><span>${fdate(r.fecha)} · ${esc(fincaName(r.finca))}<small>${sacosTxt(r.sacos)} a ${usd(r.precio, 2)}</small></span><b class="num">${usd(r.monto, 2)}</b>${canWrite() ? `<button class="btn ghost ok" data-act="cobrar" data-id="${esc(r.id)}">Cobrada</button>` : ''}</div>`).join('')}</div>
@@ -852,7 +852,7 @@ function cierreData(m) {
 function deltaTxt(cur, prev, m) { if (prev == null) return ''; const d = cur - prev; return `${d >= 0 ? '+' : '−'}${usd(Math.abs(d)).replace('−', '')} frente a ${MESES_L[m - 2].toLowerCase()}`; }
 function cierreTexto(D, nota) {
   const { st } = D, mes = `${MESES_L[D.m - 1]} ${D.y}`;
-  const L = [`Cierre de ${mes} · Agropecuaria Santo Domingo`, D.titulo, ''];
+  const L = [`Cierre de ${mes} · Agropecuaria Los Granates`, D.titulo, ''];
   L.push(`Ventas: ${usd(st.ventas)} (${sacosTxt(st.sacosV)}${st.precioProm ? `, promedio ${usd(st.precioProm, 2)} el saco` : ''})`);
   L.push(`Gastos: ${usd(st.gastos)} (cultivo ${usd(st.cultivo)}, venta y flete ${usd(st.venta)}, gestión ${usd(st.gestion)})`);
   L.push(`Utilidad del mes: ${usd(st.utilidad)}${D.prev ? ` (en ${MESES_L[D.m - 2].toLowerCase()}: ${usd(D.prev.utilidad)})` : ''}`);
@@ -932,7 +932,7 @@ async function redactarCierre() {
   const D = cierreData(S.cierreMes);
   S.cierreAi = { busy: true, error: '' }; render();
   try {
-    const r = await S.sample(`Eres el gerente de Agropecuaria Santo Domingo, tres fincas familiares de papa en Santo Domingo, Mérida, Venezuela. Escribe el comentario del gerente para el cierre del mes que se le manda a la familia por WhatsApp.
+    const r = await S.sample(`Eres el gerente de Agropecuaria Los Granates, tres fincas familiares de papa en Santo Domingo, Mérida, Venezuela. Escribe el comentario del gerente para el cierre del mes que se le manda a la familia por WhatsApp.
 Reglas: español de Venezuela, sobrio y claro, de 3 a 5 oraciones, sin saludo ni firma, sin emojis ni viñetas. Di qué salió bien, qué preocupa y en qué hay que enfocarse el mes que viene. Usa solo las cifras de abajo y no inventes datos. Si casi no hay registros, dilo y recomienda registrar todo.
 
 ${cierreTexto(D, '')}`, { cache: false });
@@ -951,9 +951,9 @@ function cierreHtmlDoc(D, nota) {
   const row = (a, b) => `<tr><td>${a}</td><td class="r">${b}</td></tr>`;
   const fincas = D.fincas.length > 1 ? `<h2>Por finca</h2><table><tr><th>Finca</th><th class="r">Sacos</th><th class="r">Ventas</th><th class="r">Gastos</th><th class="r">Utilidad</th></tr>${D.fincas.map(({ fc, s }) => `<tr><td>${e(fc.nombre)}</td><td class="r">${nf(s.sacos)}</td><td class="r">${usd(s.ventas)}</td><td class="r">${usd(s.gastos)}</td><td class="r">${usd(s.utilidad)}</td></tr>`).join('')}</table>` : '';
   const lotes = [...D.sembrados.map(l => `<li>Se sembró ${e(l.nombre)} en ${e(fincaName(l.finca))}${l.sacosSemilla ? ` (${sacosTxt(l.sacosSemilla)} de semilla)` : ''}.</li>`), ...D.cosechas.map(c => `<li>Se cosecharon ${sacosTxt(c.sacos)} de ${e(c.lote ? c.lote.nombre : 'un lote sin nombre')} en ${e(fincaName(c.finca))}${c.rend ? `, ${nf(c.rend, 1)} sacos por saco de semilla` : ''}.</li>`)].join('');
-  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cierre de ${mes} · Agropecuaria Santo Domingo</title>
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cierre de ${mes} · Agropecuaria Los Granates</title>
 <style>body{font:15px/1.5 -apple-system,'Segoe UI',Roboto,sans-serif;color:#17251C;background:#fff;max-width:760px;margin:0 auto;padding:32px 20px}h1{font-size:24px;margin:0}h2{font-size:16px;margin:28px 0 8px;color:#1F5A40}.sub{color:#5F6E63;margin:2px 0 20px}.hero{background:#173F2E;color:#F2F7F3;border-radius:14px;padding:18px 20px;display:flex;flex-wrap:wrap;gap:18px 36px}.hero div{display:flex;flex-direction:column}.hero span{font-size:12px;color:#A9C8B6;text-transform:uppercase;letter-spacing:.04em}.hero b{font-size:22px;font-weight:600}table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:7px 8px;border-bottom:1px solid #E0E6DE;text-align:left}th{font-size:12px;color:#5F6E63;text-transform:uppercase}.r{text-align:right;font-variant-numeric:tabular-nums}.nota{background:#F3F5F2;border-radius:12px;padding:14px 16px;white-space:pre-wrap}ul{padding-left:20px}footer{margin-top:32px;color:#5F6E63;font-size:12px}@media print{body{padding:0}.hero{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>
-<h1>Cierre de ${mes}</h1><p class="sub">Agropecuaria Santo Domingo · ${e(D.titulo)} · Santo Domingo, Mérida</p>
+<h1>Cierre de ${mes}</h1><p class="sub">Agropecuaria Los Granates · ${e(D.titulo)} · Santo Domingo, Mérida</p>
 <div class="hero"><div><span>Utilidad del mes</span><b>${usd(st.utilidad)}</b></div><div><span>Ventas</span><b>${usd(st.ventas)}</b></div><div><span>Gastos</span><b>${usd(st.gastos)}</b></div><div><span>Sacos cosechados</span><b>${nf(st.sacos)}</b></div></div>
 ${nota && nota.trim() ? `<h2>Comentario del gerente</h2><div class="nota">${e(nota.trim())}</div>` : ''}
 <h2>Las cifras del mes</h2><table>${row('Sacos vendidos', nf(st.sacosV))}${row('Precio promedio por saco', st.precioProm == null ? '—' : usd(st.precioProm, 2))}${row('Precio en Coche (50 kg)', D.coche == null ? '—' : usd(D.coche, 2))}${row('Gastos del cultivo', usd(st.cultivo))}${row('Venta y flete', usd(st.venta))}${row('Gestión (sueldo, viajes, contador)', usd(st.gestion))}${row('Costo del cultivo por saco', st.costoSaco == null ? '—' : usd(st.costoSaco, 2))}${D.prev ? row(`Utilidad de ${MESES_L[D.m - 2].toLowerCase()}`, usd(D.prev.utilidad)) : ''}</table>
@@ -1153,7 +1153,7 @@ function buildPrompt(txt, nImg) {
   const fincas = S.fincas.map(f => `- ${f.id}: ${f.nombre}${f.encargado ? ' (encargado: ' + f.encargado + ')' : ''}`).join('\n');
   const lotes = S.lotes.filter(l => l.estado !== 'cosechado' || (l.siembra || '') >= addDays(today(), -400)).slice(0, 60).map(l => `- ${l.id}: ${l.nombre} (${fincaName(l.finca)}, sembrado ${l.siembra || '?'})`).join('\n') || '(no hay lotes)';
   const cats = CATS.map(c => `${c.id} = ${c.n}`).join('; ');
-  return `Ayudas a llevar el cuaderno de campo de Agropecuaria Santo Domingo: tres fincas de papa en Santo Domingo, Mérida, Venezuela.
+  return `Ayudas a llevar el cuaderno de campo de Agropecuaria Los Granates: tres fincas de papa en Santo Domingo, Mérida, Venezuela.
 Convierte ${txt ? 'el mensaje' : ''}${txt && nImg ? ' y ' : ''}${nImg ? `las ${nImg} foto(s) adjuntas (facturas, notas o páginas del cuaderno)` : ''} en registros contables.
 
 Fecha de hoy: ${today()}. Si dicen "ayer", "el lunes" o "la semana pasada", calcula la fecha. Si no hay fecha, usa hoy.
@@ -1314,7 +1314,7 @@ function gateHtml() {
   if (S.auth === 'checking' || (S.auth === 'in' && !S.rol)) return `<div class="gate">${logo}<h1>Cuaderno de las Fincas</h1><p class="muted">Abriendo…</p></div>`;
   if (S.auth === 'in' && S.rol === 'none') return `<div class="gate">${logo}<h1>Todavía no tienes acceso</h1><p class="muted">Entraste como ${esc(S.email)}, pero ese correo no está en la lista de usuarios. Pídele a Luis que te agregue con este mismo correo.</p><div class="btns"><button class="btn" data-act="logout">Salir</button></div></div>`;
   const up = S.loginMode === 'up';
-  return `<div class="gate">${logo}<h1>Agropecuaria Santo Domingo</h1><p class="muted">Cuaderno de las fincas</p>
+  return `<div class="gate">${logo}<h1>Agropecuaria Los Granates</h1><p class="muted">Cuaderno de las fincas</p>
     <form class="panel" id="login-form">
       ${up ? fld('lg-nombre', 'Tu nombre', inp('lg-nombre', '', 'autocomplete="name"')) : ''}
       ${fld('lg-email', 'Correo', inp('lg-email', '', 'type="email" autocomplete="email" required'))}

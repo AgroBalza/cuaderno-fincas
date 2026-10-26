@@ -1,6 +1,6 @@
 # Cuaderno de las Fincas
 
-App de gestión de las fincas de papa de Agropecuaria Santo Domingo (El Baho, El Mostrenco y Hoyo El Barro, Santo Domingo, Mérida).
+App de gestión de las fincas de papa de Agropecuaria Los Granates (El Baho, El Mostrenco y Hoyo El Barro, Santo Domingo, Mérida).
 
 - Funciona sin señal: guarda en el teléfono y sincroniza con Firebase cuando vuelve el internet.
 - Se instala en el teléfono desde el navegador (Safari: Compartir > Agregar a pantalla de inicio).
