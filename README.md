@@ -10,7 +10,7 @@ App de gestión de las fincas de papa de Agropecuaria Santo Domingo (El Baho, El
 
 ```
 npm install
-npx esbuild src/main.js --bundle --format=esm --minify --target=es2020,safari15 --outfile=app.js
+./build.sh
 NODE_PATH=$(npm root -g) node test/run.js   # prueba con una base de datos simulada
 ```
 

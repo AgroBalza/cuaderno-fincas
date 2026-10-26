@@ -1,7 +1,7 @@
 const {chromium}=require('playwright');const fs=require('fs');const http=require('http');const path=require('path');
 const root=path.resolve(__dirname,'..');
 const srv=http.createServer((q,r)=>{let f=q.url.split('?')[0];if(f==='/')f='/index.html';const fp=path.join(root,f);if(!fs.existsSync(fp)){r.writeHead(404);return r.end();}
- let body=fs.readFileSync(fp); if(f==='/index.html') body=body.toString().replace('<script src="config.js"></script>','<script src="test/fbmock.js"></script>');
+ let body=fs.readFileSync(fp); if(f==='/index.html') body=body.toString().replace(/<script src="config\.js[^"]*"><\/script>/,'<script src="test/fbmock.js"></script>');
  r.writeHead(200,{'content-type':f.endsWith('.js')?'text/javascript':f.endsWith('.html')?'text/html':f.endsWith('.png')?'image/png':'application/octet-stream'});r.end(body);}).listen(8765);
 (async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium'});
 const errs=[];
