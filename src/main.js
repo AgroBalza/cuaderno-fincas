@@ -1,5 +1,6 @@
 
 import { initFb } from './fb.js';
+import { memDb, demoData } from './demo.js';
 // ---------- constants ----------
 const TABS = [
   ['resumen', 'Resumen'], ['registrar', 'Registrar'], ['lotes', 'Lotes y siembra'], ['labores', 'Labores'], ['libro', 'Libro'],
@@ -205,7 +206,7 @@ function renderHeader() {
   const bottom = `<div class="bottom-in">${bt('resumen', 'Inicio')}${S.rol === 'encargado' ? bt('labores', 'Labores') : bt('lotes', 'Lotes')}${canWrite() ? bt('registrar', 'Registrar', 'fab') : bt('cierre', 'Cierre')}${bt('libro', 'Libro')}${bt('mas', 'Más')}</div>`;
   const bm = $('#bottom'); if (bm.dataset.k !== hk) { bm.innerHTML = bottom; bm.dataset.k = hk; }
   const sr = $('#sheet-root');
-  const sheet = S.sheet ? `<div class="scrim" data-act="sheet-close"></div><div class="sheet" role="dialog" aria-label="Más secciones"><div class="grab"></div><div class="sheet-list">${more.map(id => `<button data-tab="${id}"><span class="ic">${icon(id)}</span><span>${(TABS.find(t => t[0] === id) || [])[1]}<small>${TAB_SUB[id] || ''}</small></span></button>`).join('')}<button data-act="logout"><span class="ic">${icon('salir')}</span><span>Cerrar sesión<small>${esc(S.email || '')}</small></span></button></div></div>` : '';
+  const sheet = S.sheet ? `<div class="scrim" data-act="sheet-close"></div><div class="sheet" role="dialog" aria-label="Más secciones"><div class="grab"></div><div class="sheet-list">${more.map(id => `<button data-tab="${id}"><span class="ic">${icon(id)}</span><span>${(TABS.find(t => t[0] === id) || [])[1]}<small>${TAB_SUB[id] || ''}</small></span></button>`).join('')}${S.demo ? `<button data-act="demo-salir"><span class="ic">${icon('salir')}</span><span>Salir de la demostración<small>Volver a tus datos reales</small></span></button>` : `<button data-act="logout"><span class="ic">${icon('salir')}</span><span>Cerrar sesión<small>${esc(S.email || '')}</small></span></button>`}</div></div>` : '';
   if (sr.dataset.k !== String(!!S.sheet)) { sr.innerHTML = sheet; sr.dataset.k = String(!!S.sheet); }
   const cy = new Date().getFullYear(), ys = new Set([S.year]);
   for (let y = Math.min(2024, cy - 2); y <= cy + 10; y++) ys.add(y);
@@ -219,7 +220,8 @@ function renderHeader() {
   if (fsel.dataset.k !== fopts) { fsel.innerHTML = fopts; fsel.dataset.k = fopts; }
   if (S.rol === 'encargado') S.finca = S.miFinca;
   else if (S.finca !== 'all' && S.fincas.length && !S.fincas.some(f => f.id === S.finca)) S.finca = 'all';
-  const nt = $('#net'); if (nt) nt.hidden = S.online;
+  const nt = $('#net'); if (nt) nt.hidden = S.online || !!S.demo;
+  const db = $('#demo-bar'); if (db) db.hidden = !S.demo;
   fsel.value = S.finca;
 }
 function syncLotes(root) {
@@ -230,7 +232,7 @@ function syncLotes(root) {
   });
 }
 let toastT = 0;
-function toast(msg) { if (!S.online && /guard|anot|agreg|hecha|cobrad|marcad|borrad|cambi|creand|creado/i.test(msg)) msg += '. Se sube cuando haya señal'; const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 3200); }
+function toast(msg) { if (!S.online && !S.demo && /guard|anot|agreg|hecha|cobrad|marcad|borrad|cambi|creand|creado/i.test(msg)) msg += '. Se sube cuando haya señal'; const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 3200); }
 async function resolveNames() {
   return;
   const ids = [...new Set(S.regs.map(r => r.autor).filter(Boolean))].filter(id => !(id in S.names));
@@ -655,7 +657,8 @@ VIEWS.ajustes = () => {
   const c = S.cfg, adm = S.canAdmin;
   const dis = adm ? '' : 'disabled';
   let out = `<section><div class="sec-head"><div><p class="eyebrow">Configuración</p><h2>Ajustes</h2></div></div>
-    <div class="panel"><h3>Tu cuenta</h3><p class="small">${esc(S.names[S.email] || '')} ${esc(S.email || '')}<br><span class="muted">${esc(ROLES[S.rol] || '')}${S.rol === 'encargado' ? ' · ' + esc(fincaName(S.miFinca)) : ''}</span></p><div class="btns"><button class="btn" data-act="logout">${icon('salir', 's')}Cerrar sesión</button></div></div>`;
+    ${S.demo ? `<div class="panel"><h3>Modo demostración</h3><p class="small">Estás viendo una operación simulada con los números del plan: tres fincas, cuatro siembras al año en cada una, unos 200 sacos al mes a restaurantes a $40 y el resto al camionero. Lo que anotes aquí no se guarda.</p><div class="btns"><button class="btn primary" data-act="demo-salir">Salir de la demostración</button></div></div>`
+    : `<div class="panel"><h3>Tu cuenta</h3><p class="small">${esc(S.names[S.email] || '')} ${esc(S.email || '')}<br><span class="muted">${esc(ROLES[S.rol] || '')}${S.rol === 'encargado' ? ' · ' + esc(fincaName(S.miFinca)) : ''}</span></p><div class="btns"><button class="btn" data-act="logout">${icon('salir', 's')}Cerrar sesión</button>${S.rol !== 'encargado' ? `<button class="btn" data-act="demo">Ver demostración</button>` : ''}</div><p class="hint">La demostración muestra la app llena con números simulados del plan, para presentarla. No toca tus datos.</p></div>`}`;
   if (!adm) return out + `<div class="notice"><p>Solo el administrador puede cambiar las metas, el reparto y los usuarios.</p></div></section>`;
   out += `<form class="panel" id="cfg-form"><h3>Fincas</h3>
       ${S.fincas.map(f => `<div class="grid">${fld('fc-n-' + f.id, 'Nombre', inp('fc-n-' + f.id, f.nombre, dis))}${fld('fc-ha-' + f.id, 'Hectáreas', numIn('fc-ha-' + f.id, f.ha).replace('<input', `<input ${dis}`))}${fld('fc-e-' + f.id, 'Encargado', inp('fc-e-' + f.id, f.encargado, dis + ' placeholder="Nombre"'))}</div>`).join('')}
@@ -998,6 +1001,8 @@ document.addEventListener('click', async ev => {
       case 'csv': await exportCsv(); break;
       case 'copy': await copyText(document.getElementById(b.dataset.src)); break;
       case 'logout': S.sheet = false; stopSubs(); await S.fb.auth.logout(); break;
+      case 'demo': entrarDemo(); break;
+      case 'demo-salir': salirDemo(); break;
       case 'login-mode': S.loginMode = b.dataset.v; S.loginErr = ''; S.skipRestore = false; render(); break;
       case 'login-reset': { const e = val('lg-email').trim(); if (!e) { S.loginErr = 'Escribe tu correo y vuelve a tocar "Olvidé mi contraseña".'; render(); break; } try { await S.fb.auth.reset(e); S.loginErr = 'Te mandamos un correo para cambiar la contraseña.'; } catch (er) { S.loginErr = authMsg(er); } render(); break; }
       case 'mb-del': S.confirm = null; await S.db.doc('miembros/' + id).delete(); toast('Usuario quitado'); break;
@@ -1305,7 +1310,7 @@ function authMsg(e) {
 }
 function gateHtml() {
   const logo = `<span class="logo big" aria-hidden="true">${LOGO}</span>`;
-  if (S.status === 'noconfig') return `<div class="gate">${logo}<h1>Cuaderno de las Fincas</h1>${notReady()}</div>`;
+  if (S.status === 'noconfig') return `<div class="gate">${logo}<h1>Cuaderno de las Fincas</h1>${notReady()}<button type="button" class="btn ghost" data-act="demo">Ver demostración con números simulados</button></div>`;
   if (S.auth === 'checking' || (S.auth === 'in' && !S.rol)) return `<div class="gate">${logo}<h1>Cuaderno de las Fincas</h1><p class="muted">Abriendo…</p></div>`;
   if (S.auth === 'in' && S.rol === 'none') return `<div class="gate">${logo}<h1>Todavía no tienes acceso</h1><p class="muted">Entraste como ${esc(S.email)}, pero ese correo no está en la lista de usuarios. Pídele a Luis que te agregue con este mismo correo.</p><div class="btns"><button class="btn" data-act="logout">Salir</button></div></div>`;
   const up = S.loginMode === 'up';
@@ -1318,7 +1323,8 @@ function gateHtml() {
       <button class="btn primary block" type="submit" ${S.loginBusy ? 'disabled' : ''}>${S.loginBusy ? 'Un momento…' : up ? 'Crear cuenta' : 'Entrar'}</button>
       <div class="btns" style="justify-content:space-between">${up ? `<button type="button" class="btn ghost" data-act="login-mode" data-v="in">Ya tengo cuenta</button>` : `<button type="button" class="btn ghost" data-act="login-mode" data-v="up">Primera vez: crear cuenta</button><button type="button" class="btn ghost" data-act="login-reset">Olvidé mi contraseña</button>`}</div>
     </form>
-    <p class="hint">Solo pueden entrar los correos que Luis haya agregado.</p></div>`;
+    <p class="hint">Solo pueden entrar los correos que Luis haya agregado.</p>
+    <button type="button" class="btn ghost" data-act="demo">Ver demostración con números simulados</button></div>`;
 }
 async function entrar() {
   const e = val('lg-email').trim().toLowerCase(), p = val('lg-pass');
@@ -1378,6 +1384,21 @@ function arrancar() {
   S.status = 'ok';
   subscribeStatic(); subscribeRegs(); render();
 }
+// Demonstration: swap the database for an in-memory one full of simulated data.
+// Real listeners stop; leaving reloads the page so the real session starts clean.
+function entrarDemo() {
+  stopSubs();
+  S.demo = true; S.sheet = false;
+  S.db = memDb(demoData(today()));
+  S.auth = 'in'; S.rol = 'admin'; S.email = 'demostracion'; S.uid = 'demo'; S.names.demo = 'Demostración';
+  S.year = new Date().getFullYear(); S.finca = 'all'; S.view = 'resumen';
+  arrancar(); window.scrollTo({ top: 0 });
+}
+function salirDemo() {
+  stopSubs();
+  try { history.replaceState(null, '', '#resumen'); } catch { }
+  location.reload();
+}
 function descargar({ filename, data }) {
   const type = filename.endsWith('.csv') ? 'text/csv;charset=utf-8' : filename.endsWith('.json') ? 'application/json' : 'text/html;charset=utf-8';
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type })); a.download = filename;
@@ -1401,6 +1422,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   const owners = (cfg.administradores || []).map(x => String(x).toLowerCase());
   let unsubMe = null;
   fb.auth.onChange(u => {
+    if (S.demo) return;
     if (unsubMe) { unsubMe(); unsubMe = null; }
     stopSubs();
     if (!u) { S.auth = 'out'; S.email = null; S.uid = null; S.rol = null; render(); return; }
@@ -1408,6 +1430,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     if (owners.includes(u.email)) { S.rol = 'admin'; arrancar(); return; }
     S.rol = null; render();
     unsubMe = S.db.doc('miembros/' + u.email).onSnapshot(s => {
+      if (S.demo) return;
       const m = s.exists ? s.data() : null;
       const rol = m && ROLES[m.rol] ? m.rol : 'none', finca = (m && m.finca) || '';
       if (m && m.nombre) S.names[u.email] = m.nombre;
