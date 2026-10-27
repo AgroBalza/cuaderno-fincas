@@ -1006,7 +1006,7 @@ VIEWS.guia = () => {
     ${paso('Al terminar una cosecha', ['En <b>Lotes y siembra</b>, toca <b>Ya se cosechó</b> en esa tanda.', 'Compara cuánto rindió por saco de semilla y cuánto costó frente a su presupuesto.'])}
     ${paso('Cada fin de año', ['Abre <b>Liquidación</b> y revisa la utilidad y el reparto de cada finca.', 'Toca <b>Copiar</b> y manda el texto a la familia.', 'En <b>Lotes y siembra</b>, con <b>Planificar la siembra</b>, crea las tandas del año siguiente.'])}
     ${paso('Comprar y entregar insumos', ['Cuando compres, abre <b>Almacén de insumos</b>, toca <b>Compra</b> y anota el producto, la cantidad y lo que costó.', 'Cuando lleves algo a una finca, toca <b>Entrega</b>, elige el producto, la cantidad, la finca y el lote.', 'La app pasa ese gasto a la finca y al lote al costo de compra, y descuenta lo que queda guardado.'], 'Así el encargado no tiene que anotar los insumos: solo los jornales y lo que pague él.')}
-    ${paso('Agregar a alguien', ['En <b>Ajustes</b>, baja a <b>Usuarios</b>.', 'Escribe su correo y su nombre, y elige el tipo: <b>Encargado</b> (anota en su finca), <b>Familia</b> (solo ve) o <b>Administrador</b>.', 'Toca <b>Agregar usuario</b> y dile que cree su cuenta con ese mismo correo.'])}
+    ${paso('Agregar a alguien', ['En <b>Ajustes</b>, baja a <b>Usuarios</b>.', 'Escribe su correo y su nombre, y elige el tipo: <b>Encargado</b> (anota en su finca), <b>Familia</b> (solo ve) o <b>Administrador</b>.', 'Toca <b>Agregar usuario</b>. Le llega un correo con un enlace para entrar de una vez.'])}
   </div></section>
   <section class="prose"><h3>Las cifras que hay que mirar</h3><ul>
     <li><strong>Costo del cultivo por saco.</strong> Meta: ${usd(S.cfg.metaCostoSaco)} o menos.</li>
@@ -1405,6 +1405,9 @@ document.addEventListener('click', async ev => {
       case 'demo-esc': entrarDemo(b.dataset.v); break;
       case 'demo-salir': salirDemo(); break;
       case 'login-mode': S.loginMode = b.dataset.v; S.loginErr = ''; S.skipRestore = false; render(); break;
+      case 'mb-invite': { const m = S.miembros.find(x => x.id === id); await avisarMiembro(id, m && m.nombre); break; }
+      case 'aviso-x': S.aviso = null; render(); break;
+      case 'login-link': { const e = val('lg-email').trim().toLowerCase(); if (!e) { S.loginErr = 'Escribe tu correo y vuelve a tocar "Mándame un enlace".'; render(); break; } try { await S.fb.auth.invite(e); S.loginErr = 'Listo: revisa tu correo (y la carpeta de spam) y toca el enlace.'; } catch (er) { S.loginErr = authMsg(er); } render(); break; }
       case 'login-reset': { const e = val('lg-email').trim(); if (!e) { S.loginErr = 'Escribe tu correo y vuelve a tocar "Olvidé mi contraseña".'; render(); break; } try { await S.fb.auth.reset(e); S.loginErr = 'Te mandamos un correo para cambiar la contraseña.'; } catch (er) { S.loginErr = authMsg(er); } render(); break; }
       case 'mb-del': S.confirm = null; await S.db.doc('miembros/' + id).delete(); toast('Usuario quitado'); break;
       case 'imp': await importar(); break;
@@ -1746,9 +1749,10 @@ async function guardarPropuestas() {
 function usuariosHtml() {
   const ms = [...S.miembros].sort((a, b) => (a.rol + a.id).localeCompare(b.rol + b.id));
   return `<div class="panel"><h3>Usuarios</h3>
-    <p class="small muted help">Agrega aquí el correo de cada persona. Después le mandas el link de la app y entra con "Crear cuenta" usando ese mismo correo. Los encargados solo ven y registran su finca; la familia y el analista solo pueden ver.</p>
-    ${ms.length ? `<div class="list">${ms.map(m => `<div class="item"><span class="av t-lab">${icon('usuario', 's')}</span><div><div class="t">${esc(m.nombre || m.id)}</div><div class="s">${esc(m.id)} · ${esc(ROLES[m.rol] || m.rol)}${m.rol === 'encargado' ? ' · ' + esc(fincaName(m.finca)) : ''}</div></div><div class="a"></div>
-      <div class="acts">${S.confirm === 'mb:' + m.id ? `<button class="btn danger" data-act="mb-del" data-id="${esc(m.id)}">Sí, quitar</button><button class="btn ghost" data-act="confirm-no">No</button>` : `<button class="btn ghost danger" data-act="confirm" data-k="mb:${esc(m.id)}">Quitar acceso</button>`}</div></div>`).join('')}</div>` : '<p class="muted small">Todavía no has agregado a nadie.</p>'}
+    <p class="small muted help">Agrega aquí el correo de cada persona. Le llega un correo con un enlace para entrar de una vez; después entra con ese mismo correo. Los encargados solo ven y registran su finca; la familia y el analista solo pueden ver.</p>
+    ${avisoHtml()}
+    ${ms.length ? `<div class="list">${ms.map(m => `<div class="item tapable${S.confirm === 'mb:' + m.id ? ' open' : ''}"><span class="av t-lab">${icon('usuario', 's')}</span><div><div class="t">${esc(m.nombre || m.id)}</div><div class="s">${esc(m.id)} · ${esc(ROLES[m.rol] || m.rol)}${m.rol === 'encargado' ? ' · ' + esc(fincaName(m.finca)) : ''}</div></div><div class="a">${m.avisado ? '<span class="chip">Avisado</span>' : ''}</div>
+      <div class="acts tap">${S.confirm === 'mb:' + m.id ? `<button class="btn danger" data-act="mb-del" data-id="${esc(m.id)}">Sí, quitar</button><button class="btn ghost" data-act="confirm-no">No</button>` : `<button class="btn ghost" data-act="mb-invite" data-id="${esc(m.id)}">Reenviar correo</button><button class="btn ghost danger" data-act="confirm" data-k="mb:${esc(m.id)}">Quitar acceso</button>`}</div></div>`).join('')}</div>` : '<p class="muted small">Todavía no has agregado a nadie.</p>'}
     <form id="mb-form" class="grid">
       ${fld('mb-email', 'Correo', inp('mb-email', '', 'type="email" autocomplete="off" required placeholder="nombre@gmail.com"'))}
       ${fld('mb-nombre', 'Nombre', inp('mb-nombre', '', 'placeholder="Ej.: Pedro"'))}
@@ -1763,7 +1767,30 @@ async function guardarMiembro() {
   const d = { nombre: val('mb-nombre').trim(), rol, finca: rol === 'encargado' ? val('mb-finca') : '', agregado: new Date().toISOString(), agregadoPor: S.email };
   await S.db.doc('miembros/' + email).set(d);
   ['mb-email', 'mb-nombre'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  toast('Usuario agregado'); render();
+  await avisarMiembro(email, d.nombre);
+}
+// The app link that opens the app; the invite email from Firebase carries a one-tap sign-in version of it.
+const appUrl = () => location.origin + location.pathname;
+function avisoTexto(nombre) {
+  return `Hola${nombre ? ' ' + nombre : ''}. Te agregué al Cuaderno de las Fincas de Agropecuaria Los Granates. Ábrelo aquí: ${appUrl()} . Entra con este mismo correo: toca "Primera vez: crear cuenta" o usa el enlace que te llegó al correo.`;
+}
+async function avisarMiembro(email, nombre) {
+  try {
+    await S.fb.auth.invite(email);
+    S.aviso = null; await S.db.doc('miembros/' + email).update({ avisado: new Date().toISOString() });
+    toast(`Listo. Le llegó un correo a ${email} para entrar.`);
+  } catch (e) {
+    console.warn('invite', e);
+    S.aviso = { email, nombre };
+    toast('Usuario agregado. El correo automático no salió; mándalo tú abajo.');
+  }
+  render();
+}
+function avisoHtml() {
+  const a = S.aviso; if (!a) return '';
+  const t = avisoTexto(a.nombre);
+  return `<div class="notice aviso"><b>Avísale a ${esc(a.nombre || a.email)}</b>
+    <div class="btns"><a class="btn" href="mailto:${esc(a.email)}?subject=${encodeURIComponent('Acceso al Cuaderno de las Fincas')}&body=${encodeURIComponent(t)}">Enviar correo</a><a class="btn" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(t)}">WhatsApp</a><button class="btn ghost" data-act="aviso-x">Listo</button></div></div>`;
 }
 function importHtml() {
   return `<details class="box"><summary>Pasar datos de un respaldo</summary><div class="in">
@@ -1808,6 +1835,7 @@ function gateHtml() {
       ${S.loginErr ? `<div class="notice">${esc(S.loginErr)}</div>` : ''}
       <button class="btn primary block" type="submit" ${S.loginBusy ? 'disabled' : ''}>${S.loginBusy ? 'Un momento…' : up ? 'Crear cuenta' : 'Entrar'}</button>
       <div class="btns" style="justify-content:space-between">${up ? `<button type="button" class="btn ghost" data-act="login-mode" data-v="in">Ya tengo cuenta</button>` : `<button type="button" class="btn ghost" data-act="login-mode" data-v="up">Primera vez: crear cuenta</button><button type="button" class="btn ghost" data-act="login-reset">Olvidé mi contraseña</button>`}</div>
+      ${up ? '' : `<button type="button" class="btn ghost block" data-act="login-link">Entrar sin contraseña: mándame un enlace</button>`}
     </form>
     <p class="hint">Solo pueden entrar los correos que Luis haya agregado.</p>
     <button type="button" class="btn ghost" data-act="demo">Ver demostración con números simulados</button></div>`;
@@ -1917,6 +1945,15 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   if (!window.__fbMock && !(cfg.firebase && cfg.firebase.apiKey)) { S.status = 'noconfig'; S.auth = 'out'; render(); return; }
   const fb = (window.__fbMock || initFb)(cfg.firebase, writeErr, n => { if (n !== S.porSubir) { S.porSubir = n; render(); } });
   S.fb = fb; S.db = fb.db; S.downloads = { save: descargar };
+  // Opened from the invite email: finish signing in and clean the address bar.
+  try {
+    if (fb.auth.isLink && fb.auth.isLink(location.href)) {
+      const e = new URLSearchParams(location.search).get('invite');
+      const href = location.href;
+      history.replaceState(null, '', location.pathname);
+      if (e) fb.auth.linkLogin(e.toLowerCase(), href).catch(er => { S.loginErr = er && er.code === 'auth/invalid-action-code' ? 'Ese enlace ya se usó o venció. Pide otro con "Mándame un enlace".' : authMsg(er); render(); });
+    }
+  } catch (e) { console.warn('link', e); }
   const owners = (cfg.administradores || []).map(x => String(x).toLowerCase());
   let unsubMe = null;
   fb.auth.onChange(u => {

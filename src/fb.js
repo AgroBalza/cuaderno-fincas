@@ -9,6 +9,7 @@ import {
 import {
   getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword,
   sendPasswordResetEmail, signOut, updateProfile,
+  sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink,
 } from 'firebase/auth';
 
 export function initFb(config, onWriteError, onPending) {
@@ -62,6 +63,10 @@ export function initFb(config, onWriteError, onPending) {
       login: (e, p) => signInWithEmailAndPassword(auth, e, p),
       register: async (e, p, name) => { const c = await createUserWithEmailAndPassword(auth, e, p); if (name) try { await updateProfile(c.user, { displayName: name }); } catch { } return c; },
       reset: e => sendPasswordResetEmail(auth, e),
+      // Firebase sends the email itself: a one-tap link that opens the app already signed in.
+      invite: e => sendSignInLinkToEmail(auth, e, { url: `${location.origin}${location.pathname}?invite=${encodeURIComponent(e)}`, handleCodeInApp: true }),
+      isLink: href => isSignInWithEmailLink(auth, href),
+      linkLogin: (e, href) => signInWithEmailLink(auth, e, href),
       logout: () => signOut(auth),
     },
   };
