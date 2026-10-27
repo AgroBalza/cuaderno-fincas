@@ -108,6 +108,14 @@ details[open].lote-more > summary::after, details[open].cat-more > summary::afte
 details.lotes-done { margin-top:12px; }
 .draft-bar { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:10px 0 0; padding:4px 4px 4px 12px; border-radius:var(--r-s); background:color-mix(in srgb, var(--papa) 14%, var(--surface)); font-size:0.85rem; font-weight:600; }
 .draft-bar span { display:flex; align-items:center; gap:8px; }
+.plan-h { margin:14px 0 6px; }
+.plan-rows { display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+.plan-row { display:grid; grid-template-columns:auto minmax(0, 1.2fr) minmax(0, 1fr) 92px; gap:6px 8px; align-items:center; padding:8px; border:1px solid var(--line); border-radius:var(--r-s); background:var(--surface); }
+.plan-row b { font-size:0.85rem; white-space:nowrap; }
+.plan-row input { min-height:40px; padding:8px 10px; }
+.plan-row .pr-s { display:flex; align-items:center; gap:4px; } .plan-row .pr-s small { color:var(--muted); }
+.plan-row > span { grid-column:2 / -1; }
+@media (max-width: 560px) { .plan-row { grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); } .plan-row b { grid-column:1 / -1; } .plan-row > span { grid-column:1 / -1; } }
 .amt { order:-2; }
 .medios { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
 .medios::-webkit-scrollbar { display:none; }
@@ -357,7 +365,7 @@ body.out .shell { margin-left:0; }
 <div id="sheet-root"></div>
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="config.js?v=bc9c35ff"></script>
-<script type="module" src="app.js?v=bc9c35ff"></script>
+<script src="config.js?v=5dabfa25"></script>
+<script type="module" src="app.js?v=5dabfa25"></script>
 </body>
 </html>

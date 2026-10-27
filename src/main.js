@@ -235,6 +235,8 @@ function restoreForm(root, k) {
 function doRender() {
   const v = $('#view');
   const keep = S.skipRestore ? null : snapForm(v);
+  // Folded sections stay open across live updates (not when changing screens).
+  const openDet = S.skipRestore ? null : new Set([...v.querySelectorAll('details[open] > summary')].map(sm => sm.textContent.trim()));
   S.skipRestore = false;
   document.body.classList.toggle('out', S.auth !== 'in' || !S.rol || S.rol === 'none');
   if (S.auth !== 'in' || !S.rol || S.rol === 'none') { S.sheet = false; const sr = $('#sheet-root'); if (sr) { sr.innerHTML = ''; sr.dataset.k = 'false'; } document.documentElement.classList.remove('lock'); v.innerHTML = gateHtml(); return; }
@@ -246,6 +248,8 @@ function doRender() {
   v.innerHTML = pendienteHtml() + html;
   syncLotes(v);
   if (keep) restoreForm(v, keep);
+  if ($('#plan-rows')) { planRows(); if (keep) restoreForm(v, keep); }
+  if (openDet) v.querySelectorAll('details > summary').forEach(sm => { if (openDet.has(sm.textContent.trim())) sm.parentElement.open = true; });
   if (!keep) restoreDraft(v);
   syncCats(); syncMedio();
   tidyTitle(v);
@@ -694,17 +698,35 @@ function loteForm() {
 
 function planForm() {
   const y = S.year + (new Date().getMonth() >= 9 && S.year === new Date().getFullYear() ? 1 : 0);
-  return `<section><details class="box"><summary>Generar el plan de siembra escalonada</summary><div class="in">
-    <p class="muted small help">Crea los lotes planificados de un año: cada finca siembra en tandas, una por mes, y las fincas arrancan en meses distintos para que salga papa todo el año. Con 4 tandas por finca y 4 meses de diferencia, siempre hay una finca cosechando.</p>
-    <form id="plan-form" class="grid">
+  const fdef = S.finca !== 'all' ? S.finca : (S.fincas.find(f => /baho/i.test(f.nombre)) || S.fincas[0] || {}).id || '';
+  return `<section><details class="box" ${S.planOpen ? 'open' : ''}><summary>Planificar la siembra de una finca</summary><div class="in">
+    <p class="muted small help">Crea las tandas de una finca para un año. Pones cuántas, cada cuánto y la semilla; abajo ves cada tanda y puedes cambiarle la fecha, la variedad o los sacos antes de crearlas.</p>
+    <form id="plan-form"><div class="grid">
+      ${fld('p-finca', 'Finca', `<select id="p-finca">${S.fincas.map(f => opt(f.id, f.nombre, fdef)).join('')}</select>`)}
       ${fld('p-anio', 'Año', numIn('p-anio', y))}
-      ${fld('p-tandas', 'Tandas por finca', numIn('p-tandas', 4))}
-      ${fld('p-semilla', 'Sacos de semilla por finca al año', numIn('p-semilla', 200))}
+      ${fld('p-mes', 'Primera siembra', `<select id="p-mes">${MESES_L.map((m, k) => opt(k + 1, m, new Date().getMonth() + 2 > 12 ? 1 : new Date().getMonth() + 2)).join('')}</select>`)}
+      ${fld('p-tandas', 'Cuántas tandas', numIn('p-tandas', 4))}
+      ${fld('p-cada', 'Cada cuántos meses', numIn('p-cada', 1))}
+      ${fld('p-semilla', 'Sacos de semilla por tanda', numIn('p-semilla', 50))}
+      ${fld('p-variedad', 'Variedad', inp('p-variedad', 'Granola', 'list="dl-var"') + `<datalist id="dl-var">${VARIEDADES.map(v => `<option value="${esc(v)}">`).join('')}</datalist>`)}
       ${fld('p-ciclo', 'Días hasta la cosecha', numIn('p-ciclo', S.cfg.cicloDias))}
-      ${fld('p-variedad', 'Variedad', inp('p-variedad', 'Granola'))}
-      ${S.fincas.map((fc, i) => fld('p-mes-' + fc.id, 'Mes en que empieza ' + esc(fc.nombre), `<select id="p-mes-${esc(fc.id)}">${MESES_L.map((m, k) => opt(k + 1, m, [1, 5, 9][i] || 1)).join('')}</select>`)).join('')}
-      <div class="field wide"><div class="btns"><button class="btn primary" type="submit">Crear los lotes planificados</button></div><span class="hint">Los lotes quedan como "Planificado". Cuando se siembren, márcalos con "Ya se sembró" y corrige la fecha si cambió.</span></div>
+    </div>
+    <h4 class="plan-h">Las tandas</h4><div id="plan-rows" class="plan-rows"></div>
+    <div class="btns"><button class="btn primary" type="submit">Crear estas tandas</button></div>
     </form></div></details></section>`;
+}
+const VARIEDADES = ['Granola', 'María Bonita', 'Iniafrit', 'Única', 'Andinita', 'Prueba de variedades'];
+// Builds the editable list of plantings from the plan's defaults. Each row can be changed before creating.
+function planRows() {
+  const box = $('#plan-rows'); if (!box) return;
+  const y = parseNum(val('p-anio')) || S.year, m0 = (+val('p-mes') || 1) - 1, T = Math.max(1, Math.min(12, Math.round(parseNum(val('p-tandas')) || 1)));
+  const cada = Math.max(1, Math.min(6, Math.round(parseNum(val('p-cada')) || 1))), sem = parseNum(val('p-semilla')) || 0, v = val('p-variedad').trim() || 'Granola', ciclo = parseNum(val('p-ciclo')) || S.cfg.cicloDias;
+  let h = '';
+  for (let k = 0; k < T; k++) {
+    const mm = m0 + k * cada, yy = y + Math.floor(mm / 12), mes = (mm % 12) + 1, f = `${yy}-${String(mes).padStart(2, '0')}-01`;
+    h += `<div class="plan-row"><b>Tanda ${k + 1}</b>${inp('pr-f-' + k, f, 'type="date" aria-label="Siembra"')}${inp('pr-v-' + k, v, 'list="dl-var" aria-label="Variedad"')}<label class="pr-s">${numIn('pr-s-' + k, sem)}<small>sacos</small></label><span class="muted small">cosecha ${fdate(addDays(f, ciclo))}</span></div>`;
+  }
+  box.innerHTML = h;
 }
 
 // ---------- insumos: almacén ----------
@@ -1397,6 +1419,7 @@ document.addEventListener('input', ev => {
   const el = ev.target;
   if (el.dataset.libro === 'q') { clearTimeout(qT); qT = setTimeout(() => { S.libro.q = el.value; render(); }, 250); }
   if (el.closest('.pago')) { syncMedio(); ventaTotal(); }
+  if (el.closest('#plan-form') && !/^pr-/.test(el.id)) planRows();
   if (el.closest('#reg-form') && S.regTipo === 'cosecha') { const t = $('#r-total'); if (t) t.textContent = cosechaResumen(); }
   if (el.id === 'r-sacos') ventaTotal();
 });
@@ -1503,21 +1526,20 @@ async function guardarLote() {
   S.editingLote = null; S.skipRestore = true; toast('Lote guardado'); render();
 }
 async function generarPlan() {
-  const y = parseNum(val('p-anio')), T = Math.max(1, Math.min(12, Math.round(parseNum(val('p-tandas')) || 4))), sem = parseNum(val('p-semilla')) || 0, ciclo = parseNum(val('p-ciclo')) || S.cfg.cicloDias, variedad = val('p-variedad').trim() || 'Granola';
+  const f = val('p-finca'), y = parseNum(val('p-anio')), ciclo = parseNum(val('p-ciclo')) || S.cfg.cicloDias;
+  if (!f) return toast('Elige la finca.');
   if (!y || y < 2000) return toast('Pon el año.');
-  const ya = S.lotes.filter(l => l.plan === y).length;
-  if (ya) return toast(`Ya hay ${ya} lotes del plan ${y}. Bórralos antes de generar otro.`);
+  const ya = S.lotes.filter(l => l.plan === y && l.finca === f).length;
+  if (ya) return toast(`${fincaName(f)} ya tiene ${ya} tandas del plan ${y}. Edítalas en la lista o bórralas antes de crear otras.`);
   const docs = [];
-  for (const f of S.fincas) {
-    const m0 = +val('p-mes-' + f.id) || 1;
-    for (let k = 0; k < T; k++) {
-      const mm = m0 - 1 + k, yy = y + Math.floor(mm / 12), mes = (mm % 12) + 1;
-      docs.push({ nombre: `Tanda ${k + 1} · ${y}`, finca: f.id, variedad, siembra: `${yy}-${String(mes).padStart(2, '0')}-01`, cicloDias: ciclo, sacosSemilla: Math.round(sem / T), estado: 'plan', plan: y, notas: '', creado: new Date().toISOString(), autor: S.uid || null });
-    }
+  for (let k = 0; has('pr-f-' + k); k++) {
+    const siembra = val('pr-f-' + k); if (!isoOk(siembra)) return toast(`Revisa la fecha de la tanda ${k + 1}.`);
+    docs.push({ nombre: `Tanda ${k + 1} · ${y}`, finca: f, variedad: val('pr-v-' + k).trim() || 'Granola', siembra, cicloDias: ciclo, sacosSemilla: parseNum(val('pr-s-' + k)) || 0, estado: 'plan', plan: y, notas: '', creado: new Date().toISOString(), autor: S.uid || null });
   }
-  S.saving = true; toast(`Creando ${docs.length} lotes…`);
+  if (!docs.length) return toast('Pon cuántas tandas.');
+  S.saving = true; toast(`Creando ${docs.length} tandas en ${fincaName(f)}…`);
   for (const d of docs) await S.db.collection('lotes').add(d);
-  S.saving = false; S.year = y; subscribeRegs(); toast(`Plan ${y} creado: ${docs.length} lotes`); render();
+  S.saving = false; S.planOpen = false; S.skipRestore = true; S.year = y; subscribeRegs(); toast(`Listo: ${docs.length} tandas planificadas en ${fincaName(f)}`); render();
 }
 async function guardarAjustes() {
   const c = { kgSaco: parseNum(val('c-kg')) || 50, metaSacosFinca: parseNum(val('c-meta')) || 0, metaCostoSaco: parseNum(val('c-costo')) || 0, precioRef: parseNum(val('c-pref')) || 0, cicloDias: parseNum(val('c-ciclo')) || 150, presupSemilla: parseNum(val('c-presup')) || 0, diasCredito: parseNum(val('c-cred')) || 15, pctTrabajo: parseNum(val('c-pt')) ?? 0, pctTierra: parseNum(val('c-pl')) ?? 0, pctDinero: parseNum(val('c-pd')) ?? 0, baseEncargado: val('c-base'), prorrateo: val('c-pror') };
