@@ -7,7 +7,7 @@ const tab=(p,v)=>p.evaluate(v=>{const b=document.createElement('button');b.datas
 (async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium'});const errs=[];
 const views=['resumen','lotes','labores','libro','cobros','cierre','liquidacion','precios','registrar','ajustes'];
 for(const w of [390,1280]){
- const ctx=await b.newContext({viewport:{width:w,height:900},serviceWorkers:'block'});const p=await ctx.newPage();
+ const ctx=await b.newContext({viewport:{width:w,height:900},serviceWorkers:'block'});await ctx.route('https://ve.dolarapi.com/**',r=>r.fulfill({status:200,headers:{'access-control-allow-origin':'*','content-type':'application/json'},body:'[{"fuente":"oficial","promedio":887.3},{"fuente":"paralelo","promedio":997.87}]'}));const p=await ctx.newPage();
  p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
  await p.goto('http://localhost:8766/');await p.waitForTimeout(400);
  await p.click('[data-act="demo"]');await p.waitForTimeout(600);

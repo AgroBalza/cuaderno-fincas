@@ -68,6 +68,12 @@ const CATS = [
 const CAT_BY = Object.fromEntries(CATS.map(c => [c.id, c]));
 // Short names and icons for the tap-to-choose grid on the expense form.
 const CAT_CORTO = { semilla: 'Semilla', fertilizante: 'Abono', agroquimicos: 'Fumigación', jornales: 'Jornales', riego: 'Riego', maquinaria: 'Gasoil y máquina', otros_cultivo: 'Otro del campo', sacos: 'Sacos', flete: 'Flete', otros_venta: 'Otro de venta', compra_papa: 'Papa comprada', planta: 'Planta', sueldo: 'Sueldo', viajes: 'Viajes', admin: 'Contador', otros_gestion: 'Otro de gestión' };
+// How an expense was paid. Bolívar payments keep the Bs amount and the rate; the dollar amount (monto) is what every total uses.
+const MEDIOS = [['efectivo', 'Efectivo $'], ['zelle', 'Zelle'], ['usdt', 'USDT'], ['bcv', 'Bs BCV'], ['paralelo', 'Bs paralelo']];
+const MEDIO_N = Object.fromEntries(MEDIOS);
+const esBs = m => m === 'bcv' || m === 'paralelo';
+const nfBs = x => N(x).toLocaleString('es-VE', { maximumFractionDigits: 2 });
+const medioTxt = r => !r.medio ? '' : esBs(r.medio) ? `Bs ${nfBs(r.montoBs)} a ${nfBs(r.tasa)} (${r.medio === 'bcv' ? 'BCV' : 'paralelo'})` : MEDIO_N[r.medio] || '';
 const CAT_PRINCIPALES = ['jornales', 'semilla', 'fertilizante', 'agroquimicos', 'riego', 'maquinaria', 'flete', 'sacos'];
 const catIcon = id => icon(ICONS['c_' + id] ? 'c_' + id : 'c_otros');
 function catGrid(sel, simple) {
@@ -131,6 +137,7 @@ const S = {
   year: new Date().getFullYear(), finca: lsGet('cf-finca') || 'all', view: 'resumen',
   fincas: [], lotes: [], regs: [], precios: [], cfg: { ...DEF }, labores: [], cierres: [], pend: [],
   almacen: [], almMode: 'compra',
+  tasas: (() => { try { return JSON.parse(lsGet('cf-tasas') || '{}'); } catch { return {}; } })(),
   loaded: { almacen: false, fincas: false, lotes: false, regs: false, precios: false, cfg: false, labores: false, cierres: false, pend: false },
   movLab: null, labNew: false, cierreMes: null, cierreAi: { busy: false, error: '' }, prefLote: '', prefFinca: '',
   names: {}, regTipo: 'gasto', editing: null, editingLote: null, proposals: [], ai: { busy: false, error: '' },
@@ -239,11 +246,36 @@ function doRender() {
   v.innerHTML = pendienteHtml() + html;
   syncLotes(v);
   if (keep) restoreForm(v, keep);
-  syncCats();
+  syncCats(); syncMedio();
   tidyTitle(v);
   resolveNames();
 }
 // Reminder while changes are saved on the phone but not uploaded yet: they only go up with the app open and signal.
+function tasaSrc(m) {
+  const t = S.tasas; if (!esBs(m)) return '';
+  return t[m] ? `Tasa ${m === 'bcv' ? 'BCV' : 'paralelo'} de ${t.fecha ? fdate(t.fecha) : 'la última vez'}${t.auto ? '' : ', anotada a mano'}. Si pagaste a otra, cámbiala.` : 'Escribe la tasa a la que se pagó.';
+}
+function syncMedio() {
+  const h = $('#r-medio'); if (!h) return;
+  const m = h.value, bs = esBs(m);
+  document.querySelectorAll('.medio').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.medio === m)));
+  const pre = $('#r-pre'); if (pre) pre.textContent = bs ? 'Bs' : '$';
+  const row = document.querySelector('.tasa-row'); if (row) row.hidden = !bs;
+  const src = $('#r-tasa-src'); if (src) src.textContent = tasaSrc(m);
+  const cv = $('#r-conv'); if (cv) { const a = parseNum(val('r-monto')), t = parseNum(val('r-tasa')); cv.textContent = bs && a && t ? `= ${usd(a / t, 2)}` : ''; }
+}
+// Today's BCV and parallel rates to prefill Bolívar payments. If there is no signal, the last ones are kept.
+async function cargarTasas() {
+  if (!navigator.onLine) return;
+  const hoy = today(); if (S.tasas.auto && S.tasas.fecha === hoy && Date.now() - N(S.tasas.ts) < 3 * 3600e3) return;
+  try {
+    const ctl = new AbortController(); setTimeout(() => ctl.abort(), 6000);
+    const js = await (await fetch('https://ve.dolarapi.com/v1/dolares', { signal: ctl.signal })).json();
+    const g = f => N((js.find(x => x.fuente === f) || {}).promedio);
+    const bcv = Math.round(g('oficial') * 100) / 100, paralelo = Math.round(g('paralelo') * 100) / 100;
+    if (bcv > 0 && paralelo > 0) { S.tasas = { bcv, paralelo, fecha: hoy, auto: true, ts: Date.now() }; lsSet('cf-tasas', JSON.stringify(S.tasas)); syncMedio(); }
+  } catch { /* no signal or service down: keep last rates */ }
+}
 function syncCats() { const h = $('#r-cat'); if (!h) return; document.querySelectorAll('.cat').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.cat === h.value))); }
 // The bar already names the screen; drop a first heading that only repeats it.
 function tidyTitle(v) {
@@ -470,7 +502,12 @@ VIEWS.registrar = () => {
     out += fld('r-finca', 'Finca', `<select id="r-finca" data-act-change="finca">${fincaOptions(df, t === 'gasto')}</select>`)
       + fld('r-lote', !simple ? 'Lote' : t === 'cosecha' ? 'Lote (la tanda que se sacó)' : 'Lote (si sabes cuál)', `<select id="r-lote" data-lote-for="r-finca">${loteOptions(e.lote || S.prefLote || '')}</select>`);
     if (t === 'gasto') {
-      out += `<div class="field wide amt"><label for="r-monto">¿Cuánto?</label><div class="amt-in"><span>$</span>${numIn('r-monto', e.monto, '0')}</div></div>`
+      const md = e.medio || lsGet('cf-medio') || 'efectivo', bs = esBs(md);
+      out += `<div class="field wide amt"><label for="r-monto">¿Cuánto y cómo se pagó?</label><input type="hidden" id="r-medio" value="${esc(md)}">
+        <div class="medios">${MEDIOS.map(([k, n]) => `<button type="button" class="medio" data-medio="${k}" aria-pressed="${k === md}">${n}</button>`).join('')}</div>
+        <div class="amt-in"><span id="r-pre">${bs ? 'Bs' : '$'}</span>${numIn('r-monto', bs ? e.montoBs : e.monto, '0')}</div>
+        <div class="tasa-row" ${bs ? '' : 'hidden'}><label for="r-tasa">Tasa</label>${numIn('r-tasa', e.tasa || S.tasas[md] || '', 'Bs por $')}<span id="r-conv" class="conv"></span></div>
+        <span class="hint" id="r-tasa-src">${tasaSrc(md)}</span></div>`
         + `<div class="field wide catf"><label>¿En qué?</label>${catGrid(e.cat || 'jornales', simple)}</div>`
         + fld('r-desc', 'Detalle (opcional)', inp('r-desc', e.desc, 'placeholder="Ej.: 4 jornales de aporque"'), 'wide')
         + (simple ? '' : `<details class="field wide extra" ${e.cantidad ? 'open' : ''}><summary>Cantidad y unidad</summary><div class="grid">${fld('r-cant', 'Cantidad', numIn('r-cant', e.cantidad, 'Ej.: 4')) + fld('r-unidad', 'Unidad', inp('r-unidad', e.unidad, 'placeholder="jornales, sacos, litros…"'))}</div></details>`);
@@ -728,7 +765,7 @@ function itemHtml(r) {
   if (r.tipo === 'cosecha') { t = `${r.compra ? 'Compra a vecinos' : 'Cosecha'} · ${sacosTxt(sacosCosecha(r))}`; a = `${nf(sacosCosecha(r))}<small>sacos</small>`; chip = '<span class="chip c-cosecha">Cosecha</span>'; }
   if (r.tipo === 'insumo') { t = `Compra para el almacén · ${esc(r.producto || '')}`; a = `<span class="neg">${usd(-N(r.monto))}</span>`; chip = '<span class="chip c-plan">Almacén</span>'; }
   if (r.tipo === 'venta') { t = `Venta · ${ventaTxt(r)}${r.comprador ? ' · ' + esc(r.comprador) : ''}`; a = `<span class="pos">${usd(r.monto)}</span>`; chip = `<span class="chip c-venta">Venta</span>${r.cobrado ? '' : ' <span class="chip c-warn">Por cobrar</span>'}`; }
-  const sub = [S.finca === 'all' ? fincaName(r.finca) : '', r.lote ? loteName(r.lote) : '', r.tipo === 'cosecha' ? cosechaDet(r) : '', r.tipo === 'venta' ? (CANALES[r.canal] || '') : '', r.cantidad ? `${nf(r.cantidad, r.cantidad % 1 ? 1 : 0)} ${r.unidad || ''}` : '', r.desc].filter(Boolean).map(esc).join(' · ');
+  const sub = [S.finca === 'all' ? fincaName(r.finca) : '', r.lote ? loteName(r.lote) : '', r.tipo === 'cosecha' ? cosechaDet(r) : '', r.tipo === 'venta' ? (CANALES[r.canal] || '') : '', r.tipo === 'gasto' ? medioTxt(r) : '', r.cantidad ? `${nf(r.cantidad, r.cantidad % 1 ? 1 : 0)} ${r.unidad || ''}` : '', r.desc].filter(Boolean).map(esc).join(' · ');
   const who = r.autor && r.autor !== S.uid ? (S.names[r.autor] || '') : '';
   const conf = S.confirm === 'reg:' + r.id;
   const mine = S.canAdmin || r.autor === S.uid;
@@ -1196,6 +1233,7 @@ document.addEventListener('click', async ev => {
   if (b.dataset.tab) { S.sheet = false; return go(b.dataset.tab); }
   if (b.dataset.go) { if (b.dataset.nt) { S.regTipo = b.dataset.nt; S.editing = null; } return go(b.dataset.go); }
   if (b.dataset.tipo) { S.regTipo = b.dataset.tipo; S.editing = null; return render(); }
+  if (b.dataset.medio) { const h = $('#r-medio'); if (h) h.value = b.dataset.medio; const t = $('#r-tasa'); if (t && esBs(b.dataset.medio) && S.tasas[b.dataset.medio]) t.value = String(S.tasas[b.dataset.medio]).replace('.', ','); syncMedio(); return; }
   if (b.dataset.cat) { const h = $('#r-cat'); if (h) h.value = b.dataset.cat; syncCats(); return; }
   const act = b.dataset.act; if (!act) return;
   const id = b.dataset.id;
@@ -1282,6 +1320,7 @@ document.addEventListener('gesturestart', e => e.preventDefault()); // iOS ignor
 document.addEventListener('input', ev => {
   const el = ev.target;
   if (el.dataset.libro === 'q') { clearTimeout(qT); qT = setTimeout(() => { S.libro.q = el.value; render(); }, 250); }
+  if (el.id === 'r-monto' || el.id === 'r-tasa') syncMedio();
   if (el.closest('#reg-form') && S.regTipo === 'cosecha') { const t = $('#r-total'); if (t) t.textContent = cosechaResumen(); }
   if (el.closest('#reg-form') && (el.id === 'r-sacos' || el.id === 'r-precio')) { const t = $('#r-total'); const s = parseNum($('#r-sacos')?.value), p = parseNum($('#r-precio')?.value); if (t) t.textContent = s && p && S.regTipo === 'venta' ? `Total: ${usd(s * p)}` : ''; }
 });
@@ -1358,7 +1397,9 @@ async function guardarRegistro() {
   } else {
     r = { tipo: t, fecha, finca: val('r-finca'), lote: val('r-lote'), desc: val('r-desc').trim() };
     if (!r.finca) return toast('Elige la finca.');
-    if (t === 'gasto') { r.cat = val('r-cat'); r.monto = parseNum(val('r-monto')); if (has('r-cant')) { r.cantidad = parseNum(val('r-cant')); r.unidad = val('r-unidad').trim(); } if (!r.monto) return toast('Pon el monto del gasto.'); }
+    if (t === 'gasto') { r.cat = val('r-cat'); r.monto = parseNum(val('r-monto'));
+      if (has('r-medio')) { r.medio = val('r-medio') || 'efectivo'; lsSet('cf-medio', r.medio); r.montoBs = null; r.tasa = null;
+        if (esBs(r.medio)) { const tasa = parseNum(val('r-tasa')); if (!r.monto) return toast('Pon el monto en bolívares.'); if (!(tasa > 0)) return toast('Pon la tasa del día.'); r.montoBs = r.monto; r.tasa = tasa; if (S.tasas[r.medio] !== tasa) { S.tasas = { ...S.tasas, [r.medio]: tasa, fecha: r.fecha, auto: false }; lsSet('cf-tasas', JSON.stringify(S.tasas)); } r.monto = Math.round(r.montoBs / tasa * 100) / 100; } } if (has('r-cant')) { r.cantidad = parseNum(val('r-cant')); r.unidad = val('r-unidad').trim(); } if (!r.monto) return toast('Pon el monto del gasto.'); }
     if (t === 'cosecha') { const err = leerCosecha(r); if (err) return toast(err); }
     if (t === 'venta') { r.comprador = val('r-comprador').trim(); r.canal = val('r-canal'); r.calidad = val('r-calidad'); r.sacos = parseNum(val('r-sacos')); r.precio = parseNum(val('r-precio')); r.kgSaco = parseNum(val('r-kg')) || (S.editing && (S.regs.find(x => x.id === S.editing) || {}).kgSaco) || S.cfg.kgSaco; r.cobrado = !!document.getElementById('r-cobrado')?.checked; if (!r.sacos || !r.precio) return toast('Pon los sacos y el precio por saco.'); r.monto = Math.round(r.sacos * r.precio * 100) / 100; }
   }
@@ -1419,10 +1460,10 @@ async function copyText(el) {
   catch { const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast('Texto seleccionado: cópialo con el menú del teléfono'); }
 }
 async function exportCsv() {
-  const cols = ['fecha', 'tipo', 'finca', 'lote', 'categoria', 'detalle', 'cantidad', 'unidad', 'codigo', 'sacos_primera', 'sacos_segunda', 'sacos_tercera', 'sacos_descarte', 'papas_malas_de_20', 'gravedad', 'sacos_vendidos', 'precio_saco', 'kg_saco', 'monto_usd', 'comprador', 'canal', 'calidad', 'cobrado'];
+  const cols = ['fecha', 'tipo', 'finca', 'lote', 'categoria', 'detalle', 'cantidad', 'unidad', 'codigo', 'sacos_primera', 'sacos_segunda', 'sacos_tercera', 'sacos_descarte', 'papas_malas_de_20', 'gravedad', 'sacos_vendidos', 'precio_saco', 'kg_saco', 'monto_usd', 'pago', 'monto_bs', 'tasa', 'comprador', 'canal', 'calidad', 'cobrado'];
   const n = v => v === null || v === undefined || v === '' ? '' : String(v).replace('.', ',');
   const q = v => { const s = String(v ?? ''); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-  const rows = [...S.regs].sort((a, b) => a.fecha.localeCompare(b.fecha)).map(r => [r.fecha, r.tipo, fincaName(r.finca), loteName(r.lote), (CAT_BY[r.cat] || {}).n || '', r.desc, n(r.cantidad), r.unidad, esCosecha(r) ? codigoCosecha(r) : '', n(r.sacosPrimera), n(r.sacosSegunda), n(r.sacosTercera), n(r.sacosDescarte), r.muestra ? n(muestraMalas(r.muestra)) : '', n(r.gs), n(r.sacos), n(r.precio), n(r.kgSaco), n(r.tipo === 'gasto' || r.tipo === 'insumo' ? -N(r.monto) : r.monto), r.comprador, CANALES[r.canal] || '', CALIDADES[r.calidad] || '', r.tipo === 'venta' ? (r.cobrado ? 'sí' : 'no') : ''].map(q).join(';'));
+  const rows = [...S.regs].sort((a, b) => a.fecha.localeCompare(b.fecha)).map(r => [r.fecha, r.tipo, fincaName(r.finca), loteName(r.lote), (CAT_BY[r.cat] || {}).n || '', r.desc, n(r.cantidad), r.unidad, esCosecha(r) ? codigoCosecha(r) : '', n(r.sacosPrimera), n(r.sacosSegunda), n(r.sacosTercera), n(r.sacosDescarte), r.muestra ? n(muestraMalas(r.muestra)) : '', n(r.gs), n(r.sacos), n(r.precio), n(r.kgSaco), n(r.tipo === 'gasto' || r.tipo === 'insumo' ? -N(r.monto) : r.monto), MEDIO_N[r.medio] || '', n(r.montoBs), n(r.tasa), r.comprador, CANALES[r.canal] || '', CALIDADES[r.calidad] || '', r.tipo === 'venta' ? (r.cobrado ? 'sí' : 'no') : ''].map(q).join(';'));
   const csv = '﻿' + cols.join(';') + '\n' + rows.join('\n');
   try { await S.downloads.save({ filename: `cuaderno-fincas-${S.year}.csv`, data: csv }); toast('Archivo listo'); }
   catch (e) { if (e && e.code !== 'declined') toast('No se pudo descargar en esta vista.'); }
@@ -1658,6 +1699,7 @@ function sembrarInicio() {
   S.db.doc('precios/coche-2026-01-13').set({ fecha: '2026-01-13', mercado: 'coche', producto: 'Papa', precio: 35, kgSaco: 45, desc: '2001online, 13-ene-2026' });
 }
 function arrancar() {
+  cargarTasas();
   stopSubs();
   S.loaded = { fincas: false, lotes: false, regs: false, precios: false, cfg: false, labores: false, cierres: false, pend: false };
   S.canAdmin = S.rol === 'admin';
@@ -1696,7 +1738,7 @@ function descargar({ filename, data }) {
   document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
   return Promise.resolve({ status: 'saved' });
 }
-window.addEventListener('online', () => { S.online = true; render(); });
+window.addEventListener('online', () => { S.online = true; cargarTasas(); render(); });
 window.addEventListener('offline', () => { S.online = false; render(); });
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   // When a new version takes over, reload once so the phone shows it right away.

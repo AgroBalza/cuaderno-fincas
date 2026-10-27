@@ -7,7 +7,7 @@ const srv=http.createServer((q,r)=>{let f=q.url.split('?')[0];if(f==='/')f='/ind
 const errs=[];
 const views=['resumen','registrar','lotes','labores','libro','almacen','cobros','cierre','liquidacion','precios','guia','ajustes'];
 async function session(w,dark,email,tag){
- const ctx=await b.newContext({viewport:{width:w,height:900},colorScheme:dark?'dark':'light',serviceWorkers:'block'});const p=await ctx.newPage();
+ const ctx=await b.newContext({viewport:{width:w,height:900},colorScheme:dark?'dark':'light',serviceWorkers:'block'});await ctx.route('https://ve.dolarapi.com/**',r=>r.fulfill({status:200,headers:{'access-control-allow-origin':'*','content-type':'application/json'},body:'[{"fuente":"oficial","promedio":887.3},{"fuente":"paralelo","promedio":997.87}]'}));const p=await ctx.newPage();
  p.on('pageerror',e=>errs.push(tag+' '+e.message));p.on('console',m=>{if(m.type()==='error')errs.push(tag+' '+m.text())});
  await p.goto('http://localhost:8765/');await p.waitForTimeout(400);
  await p.screenshot({path:`test/login-${tag}.png`});

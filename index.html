@@ -107,6 +107,15 @@ details[open].lote-more > summary::after, details[open].cat-more > summary::afte
 .lote:not(:has(details.lote-more[open])) .btns .btn.ghost { display:none; }
 details.lotes-done { margin-top:12px; }
 .amt { order:-2; }
+.medios { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+.medios::-webkit-scrollbar { display:none; }
+.medio { appearance:none; flex:none; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); border-radius:20px; padding:7px 12px; font:600 0.82rem var(--f-body); cursor:pointer; white-space:nowrap; }
+.medio[aria-pressed="true"] { background:var(--paramo); border-color:var(--paramo); color:var(--surface); }
+.tasa-row { display:grid; grid-template-columns:auto minmax(0, 1fr) auto; align-items:center; gap:10px; margin-top:8px; }
+.tasa-row label { font-size:0.85rem; color:var(--muted); font-weight:600; }
+.tasa-row input { min-height:40px; }
+.conv { font-family:var(--f-num); font-weight:700; font-size:1.05rem; color:var(--paramo); white-space:nowrap; }
+.amt-in span#r-pre { min-width:1.4em; }
 .catf { order:-1; }
 .amt-in { display:flex; align-items:center; gap:6px; background:var(--sunk); border-radius:var(--r-s); padding:0 14px; }
 .amt-in span { font-family:var(--f-num); font-size:1.8rem; color:var(--muted); }
@@ -341,7 +350,7 @@ body.out .shell { margin-left:0; }
 <div id="sheet-root"></div>
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="config.js?v=6b6529cc"></script>
-<script type="module" src="app.js?v=6b6529cc"></script>
+<script src="config.js?v=32bc96af"></script>
+<script type="module" src="app.js?v=32bc96af"></script>
 </body>
 </html>
