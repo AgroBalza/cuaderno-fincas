@@ -4,7 +4,7 @@ import { memDb, demoData, ESCENARIOS } from './demo.js';
 // ---------- constants ----------
 const TABS = [
   ['resumen', 'Resumen'], ['registrar', 'Registrar'], ['lotes', 'Lotes y siembra'], ['labores', 'Labores'], ['libro', 'Libro'],
-  ['cobros', 'Por cobrar'], ['cierre', 'Cierre del mes'], ['liquidacion', 'Liquidación'], ['precios', 'Precios'], ['guia', 'Rutina'], ['ajustes', 'Ajustes'],
+  ['cobros', 'Por cobrar'], ['cierre', 'Cierre del mes'], ['liquidacion', 'Liquidación'], ['precios', 'Precios'], ['guia', 'Instrucciones'], ['ajustes', 'Ajustes'],
 ];
 const ICONS = {
   resumen: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
@@ -31,7 +31,7 @@ const ICONS = {
 };
 const LOGO = `<svg viewBox="-13.3 25.9 216.9 108.1" class="mono" aria-hidden="true"><defs><mask id="lb-m" maskUnits="userSpaceOnUse" x="-13.3" y="25.9" width="216.9" height="108.1"><rect x="-13.3" y="25.9" width="216.9" height="108.1" fill="#fff"/><rect x="101.1" y="28.6" width="38.1" height="45.5" fill="#000"/></mask></defs><path d="M-9.3 91.1L-9.3 86.5L19.2 46.5L26.6 46.5L26.6 86.2Q29.4 86.2 31.2 85.8Q33.0 85.4 34 84.6Q35.0 83.8 35.4 82.4Q35.8 81.0 35.8 78.7L35.8 78.7L38.7 78.7L38.7 97.7L35.8 97.7Q35.8 95.6 35.4 94.3Q35.0 92.9 34 92.2Q33.0 91.5 31.2 91.2Q29.4 90.9 26.6 90.8L26.6 90.8L26.6 93.2Q26.6 96.0 26.9 98.0Q27.1 100.0 27.9 101.4Q28.7 102.8 30.1 103.5Q31.6 104.2 33.8 104.2L33.8 104.2L33.8 107.4L7.1 107.4L7.1 104.2Q9.8 104.2 11.5 103.4Q13.2 102.7 14.1 101.4Q15.0 100.0 15.3 98.2Q15.6 96.3 15.6 93.8L15.6 93.8L15.6 91.1L-9.3 91.1ZM15.6 86.2L15.6 61.0L15.3 61.0L-2.7 86.2L15.6 86.2Z" fill="currentColor"/><path d="M91.1 124.8L91.1 130L44.7 130L44.7 124.8Q49.1 124.7 51.8 124.0Q54.4 123.2 55.9 121.3Q57.3 119.3 57.8 115.8Q58.3 112.2 58.3 106.1L58.3 106.1L58.3 53.8Q58.3 48.4 57.9 44.8Q57.4 41.2 56.1 39.1Q54.8 37.0 52.4 36.2Q50.0 35.4 46.0 35.1L46.0 35.1L46.0 29.9L89.8 29.9L89.8 35.1Q85.8 35.4 83.4 36.2Q81.0 37.0 79.7 39.1Q78.3 41.2 77.9 44.8Q77.4 48.4 77.4 53.8L77.4 53.8L77.4 106.1Q77.4 112.2 77.9 115.8Q78.3 119.3 79.8 121.3Q81.3 123.2 84.0 124.0Q86.7 124.7 91.1 124.8L91.1 124.8Z" fill="currentColor"/><path d="M155.4 130L105.4 130L105.4 124.8Q109.8 124.7 112.5 124.0Q115.1 123.4 116.6 121.8Q118.1 120.3 118.6 117.4Q119.2 114.5 119.2 110.0L119.2 110.0L119.2 49.9Q119.2 45.4 118.8 42.6Q118.4 39.8 117.1 38.2Q115.9 36.5 113.8 35.9Q111.6 35.4 108.1 35.1L108.1 35.1L108.1 29.9L149.8 29.9Q169.5 29.9 180.1 36.2Q190.7 42.5 190.7 54.2L190.7 54.2Q190.7 69.7 168.4 76.0L168.4 76.0L168.4 76.6Q175.6 76.6 181.4 78.6Q187.2 80.6 191.2 84.2Q195.2 87.9 197.4 92.8Q199.6 97.8 199.6 103.6L199.6 103.6Q199.6 110.2 196.4 115.2Q193.3 120.1 187.3 123.5L187.3 123.5Q175.7 130 155.4 130L155.4 130ZM156.3 122.1L156.3 122.1Q177.3 122.1 177.3 103.2L177.3 103.2Q177.3 91.7 169.7 86.3L169.7 86.3Q165.8 83.6 159.7 82.4Q153.5 81.3 144.5 81.3L144.5 81.3L138.3 81.3L138.3 107.3Q138.3 115.3 142.4 118.7Q146.6 122.1 156.3 122.1ZM138.3 73.4L145.9 73.4Q151.8 73.4 156.1 72.3Q160.4 71.2 163.4 69.2L163.4 69.2Q169.6 64.9 169.6 55.8L169.6 55.8Q169.6 46.3 164.9 42.1Q160.2 37.8 149.8 37.8L149.8 37.8L140.6 37.8Q138.3 37.8 138.3 40.0L138.3 40.0L138.3 73.4Z" fill="currentColor" mask="url(#lb-m)"/><path d="M108.9 29.9 H140.1 V38.5 H108.9 Z M107.6 73.3 H140.1 V81.1 H107.6 Z" fill="currentColor"/></svg>`;
 const icon = (n, cls = '') => `<svg viewBox="0 0 24 24" class="ico ${cls}" aria-hidden="true">${ICONS[n] || ''}</svg>`;
-const TAB_SUB = { labores: 'Qué toca hacer en cada lote', cobros: 'Quién debe y desde cuándo', cierre: 'Reporte mensual para la familia', liquidacion: 'Utilidad y reparto en tercios', precios: 'Coche y precio en finca', guia: 'Quién anota qué y cada cuánto', ajustes: 'Fincas, metas y reparto' };
+const TAB_SUB = { labores: 'Qué toca hacer en cada lote', cobros: 'Quién debe y desde cuándo', cierre: 'Reporte mensual para la familia', liquidacion: 'Utilidad y reparto en tercios', precios: 'Coche y precio en finca', guia: 'Cómo usar la app, paso a paso', ajustes: 'Fincas, metas y reparto' };
 const CATS = [
   { id: 'semilla', n: 'Semilla', g: 'cultivo' },
   { id: 'fertilizante', n: 'Fertilizante y abono', g: 'cultivo' },
@@ -218,7 +218,7 @@ function renderHeader() {
   const bottom = `<div class="bottom-in">${bt('resumen', 'Inicio')}${S.rol === 'encargado' ? bt('labores', 'Labores') : bt('lotes', 'Lotes')}${canWrite() ? bt('registrar', 'Registrar', 'fab') : bt('cierre', 'Cierre')}${bt('libro', 'Libro')}${bt('mas', 'Más')}</div>`;
   const bm = $('#bottom'); if (bm.dataset.k !== hk) { bm.innerHTML = bottom; bm.dataset.k = hk; }
   const sr = $('#sheet-root');
-  const sheet = S.sheet ? `<div class="scrim" data-act="sheet-close"></div><div class="sheet" role="dialog" aria-label="Más secciones"><div class="grab"></div><div class="sheet-list">${more.map(id => `<button data-tab="${id}"><span class="ic">${icon(id)}</span><span>${(TABS.find(t => t[0] === id) || [])[1]}<small>${TAB_SUB[id] || ''}</small></span></button>`).join('')}${S.demo ? `<button data-act="demo-salir"><span class="ic">${icon('salir')}</span><span>Salir de la demostración<small>Volver a tus datos reales</small></span></button>` : `<button data-act="logout"><span class="ic">${icon('salir')}</span><span>Cerrar sesión<small>${esc(S.email || '')}</small></span></button>`}</div></div>` : '';
+  const sheet = S.sheet ? `<div class="scrim" data-act="sheet-close"></div><div class="sheet" role="dialog" aria-label="Más secciones"><div class="grab"></div><div class="sheet-list">${more.map(id => `<button data-tab="${id}"><span class="ic">${icon(id)}</span><span>${(TABS.find(t => t[0] === id) || [])[1]}<small>${TAB_SUB[id] || ''}</small></span></button>`).join('')}<a href="${sugerenciaUrl()}" target="_blank" rel="noopener"><span class="ic">${icon('guia')}</span><span>Enviar una idea o un error<small>Por WhatsApp a Luis</small></span></a>${S.demo ? `<button data-act="demo-salir"><span class="ic">${icon('salir')}</span><span>Salir de la demostración<small>Volver a tus datos reales</small></span></button>` : `<button data-act="logout"><span class="ic">${icon('salir')}</span><span>Cerrar sesión<small>${esc(S.email || '')}</small></span></button>`}</div></div>` : '';
   if (sr.dataset.k !== String(!!S.sheet)) { sr.innerHTML = sheet; sr.dataset.k = String(!!S.sheet); }
   const cy = new Date().getFullYear(), ys = new Set([S.year]);
   for (let y = Math.min(2024, cy - 2); y <= cy + 10; y++) ys.add(y);
@@ -299,7 +299,7 @@ VIEWS.resumen = () => {
   if (vacio) {
     out += `<div class="empty"><h3>Todavía no hay registros de ${S.year}.</h3>
       <p class="muted">Empieza por un gasto, una cosecha o una venta. Cada encargado registra lo de su finca desde su teléfono, aunque no tenga señal.</p>
-      <div class="btns">${canWrite() ? '<button class="btn primary" data-go="registrar">Registrar el primero</button>' : ''}${S.canAdmin ? '<button class="btn" data-go="lotes">Planificar la siembra</button>' : ''}<button class="btn" data-go="guia">Ver la rutina</button></div></div>`;
+      <div class="btns">${canWrite() ? '<button class="btn primary" data-go="registrar">Registrar el primero</button>' : ''}${S.canAdmin ? '<button class="btn" data-go="lotes">Planificar la siembra</button>' : ''}<button class="btn" data-go="guia">Ver las instrucciones</button></div></div>`;
   }
   const costoCls = st.costoSaco == null ? '' : (st.costoSaco <= N(c.metaCostoSaco) ? 'good' : 'bad');
   out += `<div class="kpis">
@@ -635,37 +635,59 @@ function priceChart(ps, per50) {
   return s + '</svg>';
 }
 
-VIEWS.guia = () => `<section class="prose"><p class="eyebrow">Cómo llevar las fincas</p><h2>La rutina de gestión</h2>
-  <p>El cuaderno solo sirve si se llena siempre igual. Esta es la rutina que convierte lo que pasa en las fincas en números confiables, para la familia, para un banco o para un inversionista.</p></section>
-  <section class="prose"><h3>Quién anota qué</h3><ul>
-    <li><strong>Encargado de cada finca:</strong> registra en la app, desde su teléfono, los jornales, compras, cosecha y ventas de su finca, y marca las labores que va haciendo. Funciona sin señal.</li>
-    <li><strong>Luis:</strong> revisa lo que registran los encargados, anota sueldo, viajes, contador y el precio de Coche de la semana, y hace el cierre de cada mes.</li>
-    <li><strong>Papá y la familia:</strong> entran con su usuario de solo ver y revisan el Resumen, el Cierre del mes y la Liquidación.</li></ul></section>
-  <section class="prose"><h3>Cada cuánto</h3><ol>
-    <li><strong>Cada día:</strong> toda compra con factura o nota, aunque sea en una hoja del cuaderno con foto. Ningún pago sin anotar.</li>
-    <li><strong>Cada lunes:</strong> Luis revisa lo registrado la semana anterior, anota el precio de Coche y le manda a cada encargado sus labores de la semana desde "Labores".</li>
-    <li><strong>Cada viernes:</strong> revisar "Por cobrar" y mandar el recordatorio a quien tenga una venta vencida.</li>
-    <li><strong>Cada fin de mes:</strong> hacer el "Cierre del mes": revisar las cifras, escribir el comentario del gerente y mandar el reporte a la familia.</li>
-    <li><strong>Al cerrar cada cosecha:</strong> registrar los sacos de primera y de segunda del lote. Así se sabe qué tanda rindió mejor.</li>
-    <li><strong>Cada fin de año:</strong> Liquidación y reparto, mandar el texto a la familia, comparar con las metas y generar el plan de siembra del año siguiente.</li></ol></section>
-  <section class="prose"><h3>Las cinco cifras que miramos</h3><ul>
-    <li><strong>Costo del cultivo por saco.</strong> Meta: ${usd(S.cfg.metaCostoSaco)} o menos. Es la cifra que más preguntará un inversionista.</li>
-    <li><strong>Sacos por saco de semilla.</strong> Hoy cerca de 6 (1.200 de 200). Con mejor semilla y suelo, la meta es 7 a 8.</li>
-    <li><strong>Precio promedio de venta.</strong> Frente a ${usd(S.cfg.precioRef)} en finca y al precio de Coche de esa semana.</li>
-    <li><strong>Utilidad por finca.</strong> Cuál finca y cuál encargado rinden más, con datos y no con impresiones.</li>
-    <li><strong>Ventas por cobrar.</strong> Cuando se venda a restaurantes, cobrar a tiempo importa tanto como vender.</li></ul></section>
-  <section class="prose"><h3>Reglas sencillas</h3><ul>
-    <li>Cada gasto va a una finca. Si es de todas (sueldo, viajes, contador), va como gasto general y el cuaderno lo reparte.</li>
-    <li>Si un gasto es de una tanda, se elige el lote. Así se sabe el costo de cada tanda.</li>
-    <li>Siempre anotar los kilos del saco. Hay sacos de 45, 50 y 60 kg.</li>
-    <li>Un error se corrige con "Editar". No se anota dos veces.</li></ul></section>
-  <section class="panel"><h3>Plantilla para un encargado sin la app</h3><p class="muted small">Si algún encargado prefiere mandar su reporte por WhatsApp, que use este orden. Tú lo registras en la app.</p>
-  <pre class="tpl" id="tpl-enc">${esc(PLANTILLA)}</pre><div class="btns"><button class="btn" data-act="copy" data-src="tpl-enc">Copiar plantilla</button></div></section>
-  <section class="prose"><h3>Lo que sigue</h3><ol>
-    <li><strong>Ahora:</strong> registros, costos por lote, liquidación y plan de siembra.</li>
-    <li><strong>Con los primeros meses de datos:</strong> comparar el costo real con el modelo financiero y ajustar el plan.</li>
-    <li><strong>Al vender a restaurantes:</strong> cada venta queda ligada a su lote. Eso es trazabilidad: decirle al cliente de qué finca y qué tanda viene su papa.</li>
-    <li><strong>Más adelante:</strong> inventario de abono y semilla, y un pluviómetro por finca para anotar la lluvia.</li></ol></section>`;
+// Instructions, written as step-by-step how-tos; each person sees the ones for what they can do.
+const SUGERENCIAS_WA = '34672323220';
+function sugerenciaUrl() {
+  const tab = (TABS.find(t => t[0] === S.view) || [])[1] || S.view;
+  const quien = S.names[S.email] || S.email || '';
+  const txt = `Idea o error en el Cuaderno de las Fincas\nPantalla: ${tab}${S.finca && S.finca !== 'all' ? ' · ' + fincaName(S.finca) : ''}\nDe: ${quien}\n\nQué pasó o qué se puede mejorar:\n`;
+  return `https://wa.me/${SUGERENCIAS_WA}?text=${encodeURIComponent(txt)}`;
+}
+const paso = (titulo, pasos, nota = '') => `<details class="how"><summary>${titulo}</summary><div class="how-b"><ol>${pasos.map(x => `<li>${x}</li>`).join('')}</ol>${nota ? `<p class="hint">${nota}</p>` : ''}</div></details>`;
+VIEWS.guia = () => {
+  const esc_ = S.canAdmin, anota = canWrite();
+  let out = `<section class="prose"><p class="eyebrow">Cómo usar la app</p><h2>Instrucciones</h2>
+    <p>Toca cada tema para ver los pasos. Si algo no funciona o se te ocurre una mejora, usa el botón de abajo para mandarlo por WhatsApp.</p>
+    <div class="btns"><a class="btn primary" href="${sugerenciaUrl()}" target="_blank" rel="noopener">${icon('guia', 's')}Enviar una idea o un error</a></div></section>
+  <section><h3>Para empezar</h3><div class="how-list">
+    ${paso('Instalar la app en el iPhone', ['Abre el link de la app en <b>Safari</b> (tiene que ser Safari).', 'Toca el botón <b>Compartir</b>, el cuadrito con la flecha hacia arriba.', 'Baja y toca <b>Agregar a pantalla de inicio</b> y luego <b>Agregar</b>.', 'Desde ahora ábrela con el ícono 4IB, como cualquier app.'], 'En Android: abre el link en Chrome, toca los tres puntos y elige "Instalar app".')}
+    ${paso('Entrar por primera vez', ['Pídele a Luis que te agregue con tu correo.', 'En la pantalla de entrada toca <b>Primera vez: crear cuenta</b>.', 'Escribe tu nombre, el mismo correo y una contraseña de 6 o más letras.', 'Toca <b>Crear cuenta</b>. Las próximas veces solo tocas <b>Entrar</b>.'], 'Si se te olvida la contraseña, toca "Olvidé mi contraseña" y te llega un correo para cambiarla.')}
+    ${paso('Usarla sin señal', ['Anota normal, aunque no haya señal. Todo queda guardado en tu teléfono.', 'Arriba aparece <b>Sin señal · 3 por subir</b> con lo que falta por subir.', 'Cuando llegues a donde hay señal, <b>abre la app unos segundos</b>. Se sube sola.', 'Cuando el aviso desaparece, ya todos lo pueden ver.'], 'Si no abres la app con señal, los demás no ven lo que anotaste. No se pierde, solo llega tarde.')}
+    ${paso('Probar sin dañar nada', ['En Ajustes toca <b>Ver demostración</b>, o en la pantalla de entrada <b>Ver demostración con números simulados</b>.', 'Toca y anota lo que quieras: nada de eso se guarda.', 'Arriba puedes cambiar entre los tres escenarios.', 'Toca <b>Salir</b> en la franja de arriba para volver a tus datos.'])}
+  </div></section>`;
+  if (anota) out += `<section><h3>Lo de todos los días</h3><div class="how-list">
+    ${paso('Anotar un gasto', ['Toca <b>Registrar</b> (el botón del centro) y elige <b>Gasto</b>.', 'Revisa la fecha y elige la <b>finca</b>. Si el gasto es de una tanda, elige también el <b>lote</b>.', 'Elige la <b>categoría</b>: jornales, semilla, fertilizante, agroquímicos, flete…', 'Escribe el <b>monto</b> en dólares y, en <b>Detalle</b>, qué fue. Por ejemplo: "4 jornales de aporque".', 'Toca <b>Guardar gasto</b>.'], 'Todo pago se anota el mismo día, aunque sea pequeño. Si hay factura o nota, guarda la foto.')}
+    ${paso('Anotar una cosecha', ['Toca <b>Registrar</b> y elige <b>Cosecha</b>.', 'Elige la finca y el <b>lote</b> (la tanda que se cosechó).', 'Escribe los <b>sacos de primera</b> y los <b>sacos de segunda</b>.', 'Revisa los <b>kilos del saco</b> (45, 50 o 60).', 'Toca <b>Guardar cosecha</b>.'], 'También puedes hacerlo desde Labores, con el botón "Registrar cosecha" de esa tanda.')}
+    ${paso('Anotar una venta', ['Toca <b>Registrar</b> y elige <b>Venta</b>.', 'Escribe los <b>sacos vendidos</b> y el <b>precio por saco</b>. El total sale solo.', 'Escribe el <b>comprador</b> y elige <b>a quién se vendió</b>: camionero, Coche o restaurante.', 'Si ya pagó, déjalo como cobrado. Si queda debiendo, márcalo como <b>por cobrar</b>.', 'Toca <b>Guardar venta</b>.'])}
+    ${paso('Marcar las labores del campo', ['Abre <b>Labores</b>. Ahí está lo que toca esta semana y lo atrasado.', 'Cuando la hagas, toca <b>Hecha</b>.', 'Si se tiene que mover, toca <b>Cambiar fecha</b>. Si no hace falta, toca <b>No aplica</b>.', 'Para una labor que no está en la lista, agrégala con <b>Guardar labor</b>.'])}
+    ${paso('Corregir un error', ['Abre el <b>Libro</b> y busca el registro (puedes filtrar por mes o escribir en Buscar).', 'Toca <b>Editar</b>, corrige y guarda.', 'Si sobra, toca <b>Borrar</b> y confirma.'], 'Nunca anotes lo mismo dos veces para corregir: se duplican los números.')}
+  </div></section>`;
+  if (esc_) out += `<section><h3>Lo del gerente</h3><div class="how-list">
+    ${paso('Cada lunes', ['Revisa en el <b>Libro</b> lo que anotaron los encargados la semana pasada.', 'En <b>Precios</b>, anota el precio de Coche y el de la finca de esa semana.', 'En <b>Labores</b>, toca <b>Copiar para WhatsApp</b> y mándale a cada encargado lo que le toca.'])}
+    ${paso('Cada viernes: cobrar', ['Abre <b>Por cobrar</b>. Arriba ves cuánto está vencido.', 'En cada cliente con deuda toca <b>Copiar recordatorio</b> y pégalo en WhatsApp.', 'Cuando pague, toca <b>Cobrada</b> en esa venta, o <b>Pagó todo</b>.'])}
+    ${paso('Cada fin de mes: el cierre', ['Abre <b>Cierre del mes</b> y revisa las cifras del mes.', 'Escribe el comentario del gerente: qué pasó, qué salió bien y qué hay que mejorar.', 'Toca <b>Guardar y cerrar el mes</b>.', 'Toca <b>Copiar para WhatsApp</b> o <b>Descargar reporte</b> y mándalo a la familia.'])}
+    ${paso('Al terminar una cosecha', ['En <b>Lotes y siembra</b>, toca <b>Ya se cosechó</b> en esa tanda.', 'Compara cuánto rindió por saco de semilla y cuánto costó frente a su presupuesto.'])}
+    ${paso('Cada fin de año', ['Abre <b>Liquidación</b> y revisa la utilidad y el reparto de cada finca.', 'Toca <b>Copiar</b> y manda el texto a la familia.', 'En <b>Lotes y siembra</b>, con <b>Planificar la siembra</b>, crea las tandas del año siguiente.'])}
+    ${paso('Agregar a alguien', ['En <b>Ajustes</b>, baja a <b>Usuarios</b>.', 'Escribe su correo y su nombre, y elige el tipo: <b>Encargado</b> (anota en su finca), <b>Familia</b> (solo ve) o <b>Administrador</b>.', 'Toca <b>Agregar usuario</b> y dile que cree su cuenta con ese mismo correo.'])}
+  </div></section>
+  <section class="prose"><h3>Las cifras que hay que mirar</h3><ul>
+    <li><strong>Costo del cultivo por saco.</strong> Meta: ${usd(S.cfg.metaCostoSaco)} o menos.</li>
+    <li><strong>Sacos por saco de semilla.</strong> Hoy cerca de 6; la meta es 7 a 8.</li>
+    <li><strong>Precio promedio de venta</strong> frente a ${usd(S.cfg.precioRef)} en finca y al precio de Coche.</li>
+    <li><strong>Utilidad por finca</strong>, con datos y no con impresiones.</li>
+    <li><strong>Ventas por cobrar</strong>: cobrar a tiempo importa tanto como vender.</li></ul></section>`;
+  if (!anota) out += `<section><h3>Para ver cómo van las fincas</h3><div class="how-list">
+    ${paso('Ver los números', ['<b>Resumen</b>: la utilidad del año, las ventas, los gastos y cada finca.', '<b>Cierre del mes</b>: el reporte de cada mes con el comentario del gerente.', '<b>Liquidación</b>: cuánto dejó cada finca y cómo se reparte.', 'Arriba puedes cambiar el <b>año</b> y elegir <b>una finca</b> o las tres.'])}
+  </div></section>`;
+  out += `<section class="prose"><h3>Reglas sencillas</h3><ul>
+    <li>Cada gasto va a una finca. Si es de todas (sueldo, viajes, contador), va como gasto general y la app lo reparte.</li>
+    <li>Si un gasto es de una tanda, elige el lote. Así se sabe cuánto costó cada tanda.</li>
+    <li>Siempre anota los kilos del saco.</li>
+    <li>Un error se corrige con "Editar", no anotándolo dos veces.</li></ul></section>`;
+  if (esc_) out += `<section class="panel"><h3>Plantilla para un encargado sin la app</h3><p class="muted small">Si algún encargado prefiere mandar su reporte por WhatsApp, que use este orden. Tú lo anotas en la app.</p>
+  <pre class="tpl" id="tpl-enc">${esc(PLANTILLA)}</pre><div class="btns"><button class="btn" data-act="copy" data-src="tpl-enc">Copiar plantilla</button></div></section>`;
+  return out;
+};
 const PLANTILLA = `REPORTE · [finca] · semana del [fecha]
 Jornales: [cuántos] a $[pago] (lote: [tanda])
 Compras: [qué] [cantidad] $[monto]
