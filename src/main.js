@@ -228,7 +228,7 @@ function renderHeader() {
   const cur = S.view;
   const tabName = tabLabel(cur);
   const tEl = $('#appbar-t'); if (tEl.textContent !== tabName) tEl.textContent = tabName;
-  const side = `<div class="side-brand"><span class="logo">${LOGO}</span><div><b>Agropecuaria Los Granates</b><small>Cuaderno de las fincas</small></div></div>
+  const side = `<div class="side-brand" data-go="resumen" title="Ir al inicio"><span class="logo">${LOGO}</span><div><b>Agropecuaria Los Granates</b><small>Cuaderno de las fincas</small></div></div>
     ${canWrite() ? `<button class="sn cta" data-tab="registrar">${icon('registrar')}Registrar</button>` : '<div style="height:8px"></div>'}
     ${TABS.filter(t => t[0] !== 'registrar' && tabOk(t[0])).map(([id]) => `<button class="sn" data-tab="${id}" ${cur === id ? 'aria-current="page"' : ''}>${icon(id)}${tabLabel(id)}</button>`).join('')}
     <div class="side-foot">Santo Domingo, Mérida</div>`;
@@ -241,7 +241,7 @@ function renderHeader() {
   const bm = $('#bottom'); if (bm.dataset.k !== hk) { bm.innerHTML = bottom; bm.dataset.k = hk; }
   const sr = $('#sheet-root');
   const sheet = S.sheet ? `<div class="scrim" data-act="sheet-close"></div><div class="sheet" role="dialog" aria-label="Más secciones"><div class="grab"></div><div class="sheet-list">${more.map(id => `<button data-tab="${id}"><span class="ic">${icon(id)}</span><span>${tabLabel(id)}<small>${TAB_SUB[id] || ''}</small></span></button>`).join('')}<a href="${sugerenciaUrl()}" target="_blank" rel="noopener"><span class="ic">${icon('guia')}</span><span>Enviar una idea o un error<small>Por WhatsApp a Luis</small></span></a>${S.demo ? `<button data-act="demo-salir"><span class="ic">${icon('salir')}</span><span>Salir de la demostración<small>Volver a tus datos reales</small></span></button>` : `<button data-act="logout"><span class="ic">${icon('salir')}</span><span>Cerrar sesión<small>${esc(S.email || '')}</small></span></button>`}</div></div>` : '';
-  if (sr.dataset.k !== String(!!S.sheet)) { sr.innerHTML = sheet; sr.dataset.k = String(!!S.sheet); }
+  if (sr.dataset.k !== String(!!S.sheet)) { sr.innerHTML = sheet; sr.dataset.k = String(!!S.sheet); document.documentElement.classList.toggle('lock', !!S.sheet); }
   const cy = new Date().getFullYear(), ys = new Set([S.year]);
   for (let y = Math.min(2024, cy - 2); y <= cy + 10; y++) ys.add(y);
   S.lotes.forEach(l => { const y = +String(l.siembra || '').slice(0, 4); if (y > 1999 && y < 2200) ys.add(y); });
@@ -421,8 +421,9 @@ VIEWS.registrar = () => {
   const e = ed || {};
   const df = e.finca || S.prefFinca || defaultFinca(), simple = S.rol === 'encargado';
   out += `<section><div class="sec-head"><div><p class="eyebrow">${ed ? 'Corrigiendo un registro' : simple ? esc(fincaName(S.miFinca)) : 'A mano'}</p><h2>${ed ? 'Editar registro' : 'Nuevo registro'}</h2></div>${ed ? `<button class="btn" data-act="cancel-edit">Cancelar</button>` : ''}</div>
-    ${ed ? '' : `<div class="seg" role="group" aria-label="Tipo de registro" ${S.canAdmin ? '' : 'style="grid-template-columns:repeat(3,minmax(0,1fr))"'}>${[['gasto', 'Gasto'], ['cosecha', 'Cosecha'], ['venta', 'Venta'], ['precio', 'Precio']].filter(x => x[0] !== 'precio' || S.canAdmin).map(([k, n]) => `<button data-tipo="${k}" aria-pressed="${t === k}"><span class="tile t-${k}">${icon(k)}</span>${n}</button>`).join('')}</div>`}
-    <form class="panel" id="reg-form" data-tipo="${t}"><div class="grid">
+    ${ed ? '' : `<div class="seg" role="group" aria-label="Tipo de registro" style="grid-template-columns:repeat(${S.canAdmin ? 5 : 3},minmax(0,1fr))">${[['gasto', 'Gasto'], ['cosecha', 'Cosecha'], ['venta', 'Venta'], ['insumo', 'Insumo'], ['precio', 'Precio']].filter(x => (x[0] !== 'precio' && x[0] !== 'insumo') || S.canAdmin).map(([k, n]) => `<button data-tipo="${k}" aria-pressed="${t === k}"><span class="tile t-${k}">${icon(k)}</span>${n}</button>`).join('')}</div>`}`;
+  if (t === 'insumo' && !ed) return out + (S.loaded.almacen ? almForm() + `<div class="btns"><button class="btn ghost" data-go="almacen">Ver lo que hay en el almacén →</button></div>` : notReady()) + '</section>';
+  out += `<form class="panel" id="reg-form" data-tipo="${t}"><div class="grid">
     ${fld('r-fecha', 'Fecha', inp('r-fecha', e.fecha || today(), 'type="date" required'))}`;
   if (t === 'precio') {
     out += fld('r-mercado', 'Mercado', `<select id="r-mercado">${Object.entries(MERCADOS).map(([k, n]) => opt(k, n, e.mercado || 'coche')).join('')}</select>`)
@@ -591,14 +592,9 @@ function inventario() {
   return Object.values(m).map(p => ({ ...p, stock: Math.round((p.comprado - p.entregado) * 1000) / 1000, costo: p.comprado ? p.monto / p.comprado : 0 })).sort((a, b) => a.producto.localeCompare(b.producto));
 }
 const cantTxt = (n, u) => `${nf(n, n % 1 ? 1 : 0)} ${u || ''}`.trim();
-VIEWS.almacen = () => {
-  if (!ready() || !S.loaded.almacen) return notReady();
-  const inv = inventario(), hay = inv.filter(p => p.stock > 0), valor = sum(hay, p => p.stock * p.costo);
-  const modo = S.almMode, hoy = today();
-  let out = `<section><p class="eyebrow">Insumos</p><h2>Almacén</h2>
-    <p class="muted small">Se compra todo junto, se guarda y se entrega a cada finca. Al entregar, el gasto pasa a esa finca y a su lote al costo de compra. Los encargados no ven esta parte.</p>
-    <div class="kpis">${kpi('Valor guardado', usd(valor), 'al costo de compra')}${kpi('Productos con existencia', nf(hay.length), inv.length > hay.length ? `${inv.length - hay.length} agotados` : '')}</div></section>
-  <section><div class="seg" role="group" aria-label="Movimiento" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+function almForm() {
+  const inv = inventario(), hay = inv.filter(p => p.stock > 0), modo = S.almMode, hoy = today();
+  let out = `<div class="seg" role="group" aria-label="Movimiento" style="grid-template-columns:repeat(2,minmax(0,1fr))">
     <button data-act="alm-mode" data-v="compra" aria-pressed="${modo === 'compra'}"><span class="tile t-gasto">${icon('gasto')}</span>Compra</button>
     <button data-act="alm-mode" data-v="entrega" aria-pressed="${modo === 'entrega'}"><span class="tile t-venta">${icon('venta')}</span>Entrega a finca</button></div>
   <form class="panel" id="alm-form" data-modo="${modo}"><div class="grid">${fld('a-fecha', 'Fecha', inp('a-fecha', hoy, 'type="date" required'))}`;
@@ -617,7 +613,16 @@ VIEWS.almacen = () => {
       + fld('a-finca', 'Finca', `<select id="a-finca">${fincaOptions(S.finca !== 'all' ? S.finca : '', false)}</select>`)
       + fld('a-lote', 'Lote', `<select id="a-lote" data-lote-for="a-finca">${loteOptions('')}</select>`);
   }
-  out += `</div><span class="hint" id="a-total"></span><button class="btn primary block" type="submit" ${S.saving || (modo === 'entrega' && !hay.length) ? 'disabled' : ''}>${modo === 'compra' ? 'Guardar compra' : 'Guardar entrega'}</button></form></section>`;
+  out += `</div><span class="hint" id="a-total"></span><button class="btn primary block" type="submit" ${S.saving || (modo === 'entrega' && !hay.length) ? 'disabled' : ''}>${modo === 'compra' ? 'Guardar compra' : 'Guardar entrega'}</button></form>`;
+  return out;
+}
+VIEWS.almacen = () => {
+  if (!ready() || !S.loaded.almacen) return notReady();
+  const inv = inventario(), hay = inv.filter(p => p.stock > 0), valor = sum(hay, p => p.stock * p.costo);
+  let out = `<section><p class="eyebrow">Insumos</p><h2>Almacén</h2>
+    <p class="muted small">Se compra todo junto, se guarda y se entrega a cada finca. Al entregar, el gasto pasa a esa finca y a su lote al costo de compra. Los encargados no ven esta parte.</p>
+    <div class="kpis">${kpi('Valor guardado', usd(valor), 'al costo de compra')}${kpi('Productos con existencia', nf(hay.length), inv.length > hay.length ? `${inv.length - hay.length} agotados` : '')}</div></section>
+  <section>${almForm()}</section>`;
   out += `<section><h3>Lo que hay guardado</h3>${inv.length ? `<div class="tbl"><table><thead><tr><th>Producto</th><th class="r">Hay</th><th class="r">Costo c/u</th><th class="r">Valor</th></tr></thead><tbody>${inv.map(p => `<tr${p.stock > 0 ? '' : ' class="muted"'}><td>${esc(p.producto)}</td><td class="r num">${p.stock > 0 ? esc(cantTxt(p.stock, p.unidad)) : 'Agotado'}</td><td class="r num">${usd(p.costo, 2)}</td><td class="r num">${p.stock > 0 ? usd(p.stock * p.costo) : '—'}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">Todavía no hay compras anotadas.</p>'}</section>`;
   const movs = [...S.almacen].sort((a, b) => b.fecha.localeCompare(a.fecha) || String(b.creado || '').localeCompare(String(a.creado || ''))).slice(0, 20);
   if (movs.length) out += `<section><h3>Últimos movimientos</h3><div class="list">${movs.map(r => {
@@ -823,6 +828,7 @@ VIEWS.ajustes = () => {
   const c = S.cfg, adm = S.canAdmin;
   const dis = adm ? '' : 'disabled';
   let out = `<section><div class="sec-head"><div><p class="eyebrow">Configuración</p><h2>Ajustes</h2></div></div>
+    <div class="panel"><h3>Tamaño de la letra</h3><p class="small muted">También puedes abrir o cerrar dos dedos sobre la pantalla. Solo crece el contenido; los botones de abajo quedan igual.</p><div class="btns">${[[1, 'Normal'], [1.15, 'Grande'], [1.3, 'Muy grande']].map(([z, n]) => `<button class="btn ${Math.abs(zoomV - z) < 0.05 ? 'primary' : ''}" data-act="zoom" data-v="${z}">${n}</button>`).join('')}</div></div>
     ${S.demo ? `<div class="panel"><h3>Modo demostración</h3><p class="small">Estás viendo una operación simulada con los números del plan: tres fincas, cuatro siembras al año en cada una, unos 200 sacos al mes a restaurantes a $40 y el resto al camionero. Lo que anotes aquí no se guarda.</p><div class="btns"><button class="btn primary" data-act="demo-salir">Salir de la demostración</button></div></div>`
     : `<div class="panel"><h3>Tu cuenta</h3><p class="small">${esc(S.names[S.email] || '')} ${esc(S.email || '')}<br><span class="muted">${esc(ROLES[S.rol] || '')}${S.rol === 'encargado' ? ' · ' + esc(fincaName(S.miFinca)) : ''}</span></p><div class="btns"><button class="btn" data-act="logout">${icon('salir', 's')}Cerrar sesión</button>${S.rol !== 'encargado' ? `<button class="btn" data-act="demo">Ver demostración</button>` : ''}</div><p class="hint">La demostración muestra la app llena con números simulados del plan, para presentarla. No toca tus datos.</p></div>`}`;
   if (!adm) return out + `<div class="notice"><p>Solo el administrador puede cambiar las metas, el reparto y los usuarios.</p></div></section>`;
@@ -1148,6 +1154,7 @@ document.addEventListener('click', async ev => {
   try {
     switch (act) {
       case 'confirm': S.confirm = b.dataset.k; render(); break;
+      case 'zoom': setZoom(+b.dataset.v); render(); break;
       case 'alm-mode': S.almMode = b.dataset.v; S.skipRestore = true; render(); break;
       case 'confirm-no': S.confirm = null; render(); break;
       case 'del': S.confirm = null; await S.db.doc('registros/' + id).delete(); toast('Registro borrado'); break;
@@ -1206,6 +1213,21 @@ document.addEventListener('change', ev => {
 });
 let rzT = 0; window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { if (S.view === 'resumen' || S.view === 'precios') render(); }, 200); });
 let qT = 0;
+// Pinch zooms only the content (#view); the bars and buttons stay the same size. Remembered on this phone.
+let zoomV = 1, pinch = null, zoomT;
+function setZoom(z, show) {
+  zoomV = Math.round(Math.min(1.35, Math.max(1, z || 1)) * 100) / 100;
+  document.documentElement.style.setProperty('--zoom', zoomV); lsSet('cf-zoom', String(zoomV));
+  if (!show) return;
+  let el = $('#zoom-pill'); if (!el) { el = document.createElement('div'); el.id = 'zoom-pill'; el.className = 'zoom-pill'; document.body.appendChild(el); }
+  el.textContent = `Letra ${Math.round(zoomV * 100)}%`; el.hidden = false; clearTimeout(zoomT); zoomT = setTimeout(() => { el.hidden = true; }, 900);
+}
+setZoom(Number(lsGet('cf-zoom')) || 1);
+const dist2 = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+document.addEventListener('touchstart', e => { if (e.touches.length === 2 && e.target.closest('#view')) pinch = { d: dist2(e.touches) || 1, z: zoomV }; }, { passive: true });
+document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); if (pinch && e.touches.length === 2) setZoom(pinch.z * dist2(e.touches) / pinch.d, true); }, { passive: false });
+document.addEventListener('touchend', e => { if (e.touches.length < 2 && pinch) { pinch = null; } });
+document.addEventListener('gesturestart', e => e.preventDefault()); // iOS ignores user-scalable=no without this
 document.addEventListener('input', ev => {
   const el = ev.target;
   if (el.dataset.libro === 'q') { clearTimeout(qT); qT = setTimeout(() => { S.libro.q = el.value; render(); }, 250); }
