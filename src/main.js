@@ -88,7 +88,7 @@ const CALIDADES = { primera: 'Primera', segunda: 'Segunda', tercera: 'Tercera', 
 const MERCADOS = { finca: 'En finca', coche: 'Coche (Caracas)', otro: 'Otro' };
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const MESES_L = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-const DEF = { kgSaco: 50, metaSacosFinca: 1200, metaCostoSaco: 15, precioRef: 25, cicloDias: 150, pctTrabajo: 33.33, pctTierra: 33.33, pctDinero: 33.34, prorrateo: 'iguales', baseEncargado: 'utilidad', presupSemilla: 90, diasCredito: 15 };
+const DEF = { kgSaco: 50, metaSacosFinca: 1200, metaCostoSaco: 15, precioRef: 25, cicloDias: 120, pctTrabajo: 33.33, pctTierra: 33.33, pctDinero: 33.34, prorrateo: 'iguales', baseEncargado: 'utilidad', presupSemilla: 90, diasCredito: 15 };
 
 // ---------- helpers ----------
 const $ = s => document.querySelector(s);
@@ -700,6 +700,7 @@ function loteForm() {
 
 function planDef() {
   if (!S.planF || !S.fincas.some(f => f.id === S.planF)) S.planF = S.finca !== 'all' ? S.finca : (S.fincas.find(f => /baho/i.test(f.nombre)) || S.fincas[0] || {}).id || '';
+  if (!S.planPre) S.planPre = 'lluvias';
   if (!S.planY) S.planY = S.year + (new Date().getMonth() >= 9 && S.year === new Date().getFullYear() ? 1 : 0);
 }
 const planLotes = () => S.lotes.filter(l => l.finca === S.planF && (l.siembra || '').startsWith(String(S.planY))).sort((a, b) => (a.siembra || '').localeCompare(b.siembra || ''));
@@ -718,16 +719,17 @@ function planForm() {
       ${canWrite() ? `<details class="plan-all"><summary>Misma semilla para toda la finca</summary><div class="tasa-row">${inp('pa-var', vs.length === 1 ? vs[0] : '', 'list="dl-var" placeholder="Ej.: María Bonita" aria-label="Semilla"')}<button class="btn" data-act="plan-var-all">Poner en las tandas por sembrar</button></div></details>` : ''}
       <div class="plan-sum muted small">${ls.length} tandas · ${sacosTxt(sum(ls, l => N(l.sacosSemilla)))} de semilla${vs.length ? ' · ' + vs.map(esc).join(', ') : ''}</div></div>`;
   } else if (canWrite()) {
-    out += `<form id="plan-form" class="panel"><input type="hidden" id="p-finca" value="${esc(f)}"><input type="hidden" id="p-anio" value="${y}">
-      <p class="muted small">${esc(fincaName(f))} no tiene tandas en ${y}. Ponle un patrón y ajusta cada una abajo.</p>
+    const pre = PLAN_PRE[S.planPre] || PLAN_PRE.lluvias, meses = S.planMeses || pre.meses;
+    out += `<form id="plan-form" class="panel"><input type="hidden" id="p-finca" value="${esc(f)}"><input type="hidden" id="p-anio" value="${y}"><input type="hidden" id="p-meses" value="${meses.join(',')}">
+      <p class="muted small">${esc(fincaName(f))} no tiene tandas en ${y}. Elige una referencia, ajusta y crea.</p>
+      <div class="medios">${Object.entries(PLAN_PRE).map(([k, x]) => `<button type="button" class="medio" data-act="plan-pre" data-v="${k}" aria-pressed="${!S.planMeses && S.planPre === k}">${esc(x.n)}</button>`).join('')}</div>
+      <p class="muted small help">${PLAN_FUENTE}</p>
+      <div class="mes-grid" role="group" aria-label="Meses de siembra">${MESES.map((m, k) => `<button type="button" class="mes" data-act="plan-mes" data-v="${k + 1}" aria-pressed="${meses.includes(k + 1)}">${esc(m)}</button>`).join('')}</div>
       <div class="grid">
-      ${fld('p-mes', 'Primera siembra', `<select id="p-mes">${MESES_L.map((m, k) => opt(k + 1, m, y > new Date().getFullYear() ? 1 : Math.min(12, new Date().getMonth() + 2))).join('')}</select>`)}
-      ${fld('p-tandas', 'Cuántas tandas', numIn('p-tandas', 4))}
-      ${fld('p-cada', 'Cada cuántos meses', numIn('p-cada', 1))}
-      ${fld('p-semilla', 'Sacos de semilla por tanda', numIn('p-semilla', 50))}
       ${fld('p-variedad', 'Semilla de la finca', inp('p-variedad', 'Granola', 'list="dl-var"'))}
-      ${fld('p-ciclo', 'Días hasta la cosecha', numIn('p-ciclo', S.cfg.cicloDias))}
-    </div><div id="plan-rows" class="plan-rows"></div>
+      ${fld('p-anual', 'Sacos de semilla en el año', numIn('p-anual', PLAN_REF.sacosAnio))}
+      ${fld('p-ciclo', 'Días hasta la cosecha', numIn('p-ciclo', PLAN_REF.ciclo))}
+    </div><div id="plan-rows" class="plan-rows"></div><p id="plan-tot" class="plan-sum"></p>
     <div class="btns"><button class="btn primary" type="submit" ${S.saving ? 'disabled' : ''}>Crear estas tandas</button></div></form>`;
   } else out += `<p class="muted">Sin tandas en ${y}.</p>`;
   return out + `<datalist id="dl-var">${VARIEDADES.map(v => `<option value="${esc(v)}">`).join('')}</datalist></section>`;
@@ -755,17 +757,29 @@ async function planCampo(el) {
   await S.db.doc('lotes/' + id).update({ [k]: v }); toast('Guardado');
 }
 const VARIEDADES = ['Granola', 'María Bonita', 'Iniafrit', 'Única', 'Andinita', 'Prueba de variedades'];
-// Builds the editable list of plantings from the plan's defaults. Each row can be changed before creating.
+// Reference values for Santo Domingo (≈2.200–2.400 m). Sources in PLAN_FUENTE; every value stays editable before creating.
+const PLAN_REF = { ciclo: 120, sacosAnio: 200, sacosHa: 36, rinde: 6 };
+const PLAN_PRE = {
+  lluvias: { n: 'Lluvias · abr a jul', meses: [4, 5, 6, 7] },
+  dos: { n: 'Dos temporadas · feb-mar y ago-sep', meses: [2, 3, 8, 9] },
+  riego: { n: 'Todo el año con riego', meses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+};
+const PLAN_FUENTE = 'Referencias: en Pueblo Llano (2.230 m, vecino de Santo Domingo) se siembra en feb-mar y ago, y el balance de agua aconseja abr a jul (Ramos, Revista Latinoamericana de la Papa). A 2.100-2.350 m la papa madura en 111-120 días; a 3.000 m, en 150 (INIA Mérida). Se usan unos 1.800 kg de semilla por hectárea, o sea unos 36 sacos de 50 kg. 200 sacos de semilla al año por finca y 6 sacos cosechados por saco sembrado son los números de hoy de la familia. Fuera de las lluvias hace falta riego.';
+// Builds the editable list of plantings from the chosen months. Each row can be changed before creating.
 function planRows() {
   const box = $('#plan-rows'); if (!box) return;
-  const y = parseNum(val('p-anio')) || S.year, m0 = (+val('p-mes') || 1) - 1, T = Math.max(1, Math.min(12, Math.round(parseNum(val('p-tandas')) || 1)));
-  const cada = Math.max(1, Math.min(6, Math.round(parseNum(val('p-cada')) || 1))), sem = parseNum(val('p-semilla')) || 0, v = val('p-variedad').trim() || 'Granola', ciclo = parseNum(val('p-ciclo')) || S.cfg.cicloDias;
-  let h = '';
-  for (let k = 0; k < T; k++) {
-    const mm = m0 + k * cada, yy = y + Math.floor(mm / 12), mes = (mm % 12) + 1, f = `${yy}-${String(mes).padStart(2, '0')}-01`;
-    h += `<div class="plan-row"><b>Tanda ${k + 1}</b>${inp('pr-f-' + k, f, 'type="date" aria-label="Siembra"')}${inp('pr-v-' + k, v, 'list="dl-var" aria-label="Variedad"')}<label class="pr-s">${numIn('pr-s-' + k, sem)}<small>sacos</small></label><span class="muted small">cosecha ${fdate(addDays(f, ciclo))}</span></div>`;
-  }
-  box.innerHTML = h;
+  const y = parseNum(val('p-anio')) || S.year, meses = val('p-meses').split(',').map(Number).filter(Boolean).sort((a, b) => a - b);
+  const anual = parseNum(val('p-anual')) || 0, sem = meses.length ? Math.round(anual / meses.length) : 0, v = val('p-variedad').trim() || 'Granola', ciclo = parseNum(val('p-ciclo')) || PLAN_REF.ciclo;
+  box.innerHTML = meses.map((mes, k) => {
+    const f = `${y}-${String(mes).padStart(2, '0')}-01`;
+    return `<div class="plan-row"><b>Tanda ${k + 1}</b>${inp('pr-f-' + k, f, 'type="date" aria-label="Siembra"')}${inp('pr-v-' + k, v, 'list="dl-var" aria-label="Variedad"')}<label class="pr-s">${numIn('pr-s-' + k, sem)}<small>sacos</small></label><span class="muted small">cosecha ${fdate(addDays(f, ciclo))}</span></div>`;
+  }).join('') || '<p class="muted small">Toca los meses en que se siembra.</p>';
+  planTot();
+}
+function planTot() {
+  const t = $('#plan-tot'); if (!t) return;
+  let s = 0; for (let k = 0; has('pr-s-' + k); k++) s += parseNum(val('pr-s-' + k)) || 0;
+  t.textContent = s ? `${nf(s)} sacos de semilla · unas ${nf(s / PLAN_REF.sacosHa, 1)} ha · cosecha esperada de unos ${nf(s * PLAN_REF.rinde)} sacos` : '';
 }
 
 // ---------- insumos: almacén ----------
@@ -1373,6 +1387,8 @@ document.addEventListener('click', async ev => {
       case 'plan-f': S.planF = b.dataset.v; S.skipRestore = true; render(); break;
       case 'plan-y': S.planY = (S.planY || S.year) + +b.dataset.v; S.skipRestore = true; render(); break;
       case 'plan-add': await planAgregar(); break;
+      case 'plan-pre': S.planPre = b.dataset.v; S.planMeses = null; { const h = $('#p-meses'); if (h) h.value = PLAN_PRE[S.planPre].meses.join(','); } document.querySelectorAll('[data-act=plan-pre]').forEach(x => x.setAttribute('aria-pressed', x === b)); document.querySelectorAll('[data-act=plan-mes]').forEach(x => x.setAttribute('aria-pressed', PLAN_PRE[S.planPre].meses.includes(+x.dataset.v))); planRows(); break;
+      case 'plan-mes': { const h = $('#p-meses'), m = new Set(h.value.split(',').map(Number).filter(Boolean)), k = +b.dataset.v; m.has(k) ? m.delete(k) : m.add(k); S.planMeses = [...m].sort((a, c) => a - c); h.value = S.planMeses.join(','); b.setAttribute('aria-pressed', m.has(k)); document.querySelectorAll('[data-act=plan-pre]').forEach(x => x.setAttribute('aria-pressed', 'false')); planRows(); break; }
       case 'plan-var-all': { const v = val('pa-var').trim(); if (!v) { toast('Escribe la semilla.'); break; } const ls = planLotes().filter(l => (l.estado || 'plan') === 'plan'); if (!ls.length) { toast('No hay tandas por sembrar.'); break; } for (const l of ls) await S.db.doc('lotes/' + l.id).update({ variedad: v }); toast(`${v} en ${ls.length} tandas`); break; }
       case 'lote-new': S.editingLote = 'new'; S.skipRestore = true; render(); break;
       case 'lote-edit': S.editingLote = id; S.skipRestore = true; render(); window.scrollTo({ top: 0 }); break;
@@ -1463,7 +1479,7 @@ document.addEventListener('input', ev => {
   const el = ev.target;
   if (el.dataset.libro === 'q') { clearTimeout(qT); qT = setTimeout(() => { S.libro.q = el.value; render(); }, 250); }
   if (el.closest('.pago')) { syncMedio(); ventaTotal(); }
-  if (el.closest('#plan-form') && !/^pr-/.test(el.id)) planRows();
+  if (el.closest('#plan-form')) { if (/^pr-/.test(el.id)) planTot(); else planRows(); }
   if (el.closest('#reg-form') && S.regTipo === 'cosecha') { const t = $('#r-total'); if (t) t.textContent = cosechaResumen(); }
   if (el.id === 'r-sacos') ventaTotal();
 });
@@ -1590,7 +1606,7 @@ async function generarPlan() {
   if (!docs.length) return toast('Pon cuántas tandas.');
   S.saving = true; toast(`Creando ${docs.length} tandas en ${fincaName(f)}…`);
   for (const d of docs) await S.db.collection('lotes').add(d);
-  S.saving = false; S.skipRestore = true; toast(`Listo: ${docs.length} tandas planificadas en ${fincaName(f)}`); render();
+  S.saving = false; S.skipRestore = true; S.planMeses = null; toast(`Listo: ${docs.length} tandas planificadas en ${fincaName(f)}`); render();
 }
 async function guardarAjustes() {
   const c = { kgSaco: parseNum(val('c-kg')) || 50, metaSacosFinca: parseNum(val('c-meta')) || 0, metaCostoSaco: parseNum(val('c-costo')) || 0, precioRef: parseNum(val('c-pref')) || 0, cicloDias: parseNum(val('c-ciclo')) || 150, presupSemilla: parseNum(val('c-presup')) || 0, diasCredito: parseNum(val('c-cred')) || 15, pctTrabajo: parseNum(val('c-pt')) ?? 0, pctTierra: parseNum(val('c-pl')) ?? 0, pctDinero: parseNum(val('c-pd')) ?? 0, baseEncargado: val('c-base'), prorrateo: val('c-pror') };

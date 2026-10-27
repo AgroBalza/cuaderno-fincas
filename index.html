@@ -122,6 +122,10 @@ details.lotes-done { margin-top:12px; }
 .plan-row.pe input:not(:focus), .plan-row.pe select:not(:focus) { border-color:transparent; background:var(--sunk); }
 .plan-all { margin-top:10px; } .plan-all summary { cursor:pointer; font-weight:600; font-size:.88rem; } .plan-all .tasa-row { margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; } .plan-all input { flex:1 1 160px; }
 .plan-sum { margin-top:10px; }
+.mes-grid { display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:6px; margin:4px 0 14px; }
+.mes { appearance:none; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); border-radius:10px; padding:9px 0; font:600 0.82rem var(--f-body); cursor:pointer; text-transform:capitalize; }
+.mes[aria-pressed="true"] { background:var(--paramo); border-color:var(--paramo); color:var(--surface); }
+#plan-tot { font-weight:600; }
 .btn.sm { min-height:36px; padding:6px 10px; font-size:.85rem; }
 .yr { display:flex; align-items:center; gap:4px; } .yr b { min-width:3.2em; text-align:center; }
 @media (max-width: 560px) { .plan-row { grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); } .plan-row b { grid-column:1 / -1; } .plan-row > span { grid-column:1 / -1; } }
@@ -375,7 +379,7 @@ body.out .shell { margin-left:0; }
 <div id="sheet-root"></div>
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="config.js?v=e1fa3209"></script>
-<script type="module" src="app.js?v=e1fa3209"></script>
+<script src="config.js?v=efeca4cb"></script>
+<script type="module" src="app.js?v=efeca4cb"></script>
 </body>
 </html>
