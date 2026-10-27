@@ -219,6 +219,7 @@ function snapForm(root) {
   const m = {};
   root.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
     if (el.type === 'file') return;
+    if (/^pe-/.test(el.id) && el !== document.activeElement) return;
     m[el.id] = el.type === 'checkbox' ? el.checked : el.value;
   });
   const a = document.activeElement;
@@ -630,8 +631,10 @@ VIEWS.lotes = () => {
   let out = `<section><div class="sec-head"><div><p class="eyebrow">${y}</p><h2>Lotes y siembra escalonada</h2></div>${canWrite() ? `<div class="btns"><button class="btn primary" data-act="lote-new">Nuevo lote</button></div>` : ''}</div>
     <p class="muted small help">Cada lote es una tanda de siembra. El cuaderno calcula cuándo se cosecha cada una y cuánto rindió.</p>`;
   if (S.editingLote) out += loteForm();
-  out += `<div class="panel">${ls.length ? timeline(ls) : `<p class="muted">No hay lotes en ${y}${f === 'all' ? '' : ' para ' + esc(fincaName(f))}. Crea uno o genera el plan de siembra escalonada abajo.</p>`}
-    <div class="legend"><span><i style="background:var(--sunk);border:1px dashed var(--muted)"></i>Planificado</span><span><i style="background:var(--paramo)"></i>Sembrado</span><span><i style="background:var(--papa)"></i>Cosechado</span><span><i style="background:var(--bad);width:2px"></i>Hoy</span></div></div>`;
+  out += `<div class="panel">${ls.length ? timeline(ls) : `<p class="muted">No hay lotes en ${y}${f === 'all' ? '' : ' para ' + esc(fincaName(f))}.</p>`}
+    <div class="legend"><span><i style="background:var(--sunk);border:1px dashed var(--muted)"></i>Planificado</span><span><i style="background:var(--paramo)"></i>Sembrado</span><span><i style="background:var(--papa)"></i>Cosechado</span><span><i style="background:var(--bad);width:2px"></i>Hoy</span></div></div></section>`;
+  if (S.canAdmin) out += planForm();
+  out += `<section>`;
   if (ls.length) {
     const card = l => {
       const i = loteInfo(l), d = i.est ? daysBetween(hoy, i.est) : null;
@@ -655,7 +658,6 @@ VIEWS.lotes = () => {
     ${pr.map(({ l, i }) => `<tr><td>${esc(l.nombre)}</td><td>${esc(fincaName(l.finca))}</td><td class="r num">${usd(i.presup)}</td><td class="r num">${usd(i.gasto)}</td><td class="r num ${i.presup - i.gasto < 0 ? 'neg' : ''}">${usd(i.presup - i.gasto)}</td><td class="r num ${i.pctPres > 1 ? 'neg' : ''}">${nf(i.pctPres * 100)}%</td></tr>`).join('')}
     <tr class="total"><td>Total</td><td></td><td class="r num">${usd(sum(pr, x => x.i.presup))}</td><td class="r num">${usd(sum(pr, x => x.i.gasto))}</td><td class="r num">${usd(sum(pr, x => x.i.presup - x.i.gasto))}</td><td class="r num">${nf(sum(pr, x => x.i.gasto) / sum(pr, x => x.i.presup) * 100)}%</td></tr></tbody></table></div>
     <p class="hint help">Solo cuenta los gastos anotados con ese lote. Si el lote no tiene presupuesto propio, se calcula con ${usd(S.cfg.presupSemilla)} por saco de semilla (se cambia en Ajustes).</p></div></details></section>`;
-  if (S.canAdmin) out += planForm();
   return out;
 };
 
@@ -685,7 +687,7 @@ function loteForm() {
   return `<form class="panel" id="lote-form"><h3>${S.editingLote === 'new' ? 'Nuevo lote' : 'Editar ' + esc(l.nombre)}</h3><div class="grid">
     ${fld('l-nombre', 'Nombre', inp('l-nombre', l.nombre, 'required placeholder="Ej.: Tanda 3 · 2027"'))}
     ${fld('l-finca', 'Finca', `<select id="l-finca">${fincaOptions(l.finca || defaultFinca(), false)}</select>`)}
-    ${fld('l-variedad', 'Variedad', inp('l-variedad', l.variedad || 'Granola', 'list="dl-var"') + '<datalist id="dl-var"><option value="Granola"><option value="María Bonita"><option value="Andina blanca"></datalist>')}
+    ${fld('l-variedad', 'Variedad', inp('l-variedad', l.variedad || 'Granola', 'list="dl-var-l"') + `<datalist id="dl-var-l">${VARIEDADES.map(v => `<option value="${esc(v)}">`).join('')}</datalist>`)}
     ${fld('l-ha', 'Hectáreas', numIn('l-ha', l.ha, 'Ej.: 0,7'))}
     ${fld('l-siembra', 'Fecha de siembra', inp('l-siembra', l.siembra || today(), 'type="date" required'))}
     ${fld('l-ciclo', 'Días hasta la cosecha', numIn('l-ciclo', l.cicloDias ?? S.cfg.cicloDias))}
@@ -696,24 +698,61 @@ function loteForm() {
   </div><div class="btns"><button class="btn primary" type="submit">Guardar lote</button><button class="btn" type="button" data-act="lote-cancel">Cancelar</button></div></form>`;
 }
 
+function planDef() {
+  if (!S.planF || !S.fincas.some(f => f.id === S.planF)) S.planF = S.finca !== 'all' ? S.finca : (S.fincas.find(f => /baho/i.test(f.nombre)) || S.fincas[0] || {}).id || '';
+  if (!S.planY) S.planY = S.year + (new Date().getMonth() >= 9 && S.year === new Date().getFullYear() ? 1 : 0);
+}
+const planLotes = () => S.lotes.filter(l => l.finca === S.planF && (l.siembra || '').startsWith(String(S.planY))).sort((a, b) => (a.siembra || '').localeCompare(b.siembra || ''));
+// One list per farm and year: every planting is edited right there (saves on change), or created from a quick pattern when empty.
 function planForm() {
-  const y = S.year + (new Date().getMonth() >= 9 && S.year === new Date().getFullYear() ? 1 : 0);
-  const fdef = S.finca !== 'all' ? S.finca : (S.fincas.find(f => /baho/i.test(f.nombre)) || S.fincas[0] || {}).id || '';
-  return `<section><details class="box" ${S.planOpen ? 'open' : ''}><summary>Planificar la siembra de una finca</summary><div class="in">
-    <p class="muted small help">Crea las tandas de una finca para un año. Pones cuántas, cada cuánto y la semilla; abajo ves cada tanda y puedes cambiarle la fecha, la variedad o los sacos antes de crearlas.</p>
-    <form id="plan-form"><div class="grid">
-      ${fld('p-finca', 'Finca', `<select id="p-finca">${S.fincas.map(f => opt(f.id, f.nombre, fdef)).join('')}</select>`)}
-      ${fld('p-anio', 'Año', numIn('p-anio', y))}
-      ${fld('p-mes', 'Primera siembra', `<select id="p-mes">${MESES_L.map((m, k) => opt(k + 1, m, new Date().getMonth() + 2 > 12 ? 1 : new Date().getMonth() + 2)).join('')}</select>`)}
+  planDef();
+  const f = S.planF, y = S.planY, ls = planLotes();
+  let out = `<section id="plan"><div class="sec-head"><div><p class="eyebrow">Plan de siembra</p><h2>${esc(fincaName(f))} · ${y}</h2></div>
+    <div class="yr"><button class="btn ghost sm" data-act="plan-y" data-v="-1" aria-label="Año anterior">‹</button><b>${y}</b><button class="btn ghost sm" data-act="plan-y" data-v="1" aria-label="Año siguiente">›</button></div></div>
+    <div class="medios">${S.fincas.map(x => `<button type="button" class="medio" data-act="plan-f" data-v="${esc(x.id)}" aria-pressed="${x.id === f}">${esc(x.nombre)}</button>`).join('')}</div>
+    <p class="muted small help">Cada fila es una tanda. Cambia la fecha, la semilla o los sacos y se guarda solo.</p>`;
+  if (ls.length) {
+    const vs = [...new Set(ls.map(l => l.variedad).filter(Boolean))];
+    out += `<div class="panel"><div class="plan-rows">${ls.map(planEditRow).join('')}</div>
+      <div class="btns">${canWrite() ? `<button class="btn" data-act="plan-add">+ Agregar tanda</button>` : ''}</div>
+      ${canWrite() ? `<details class="plan-all"><summary>Misma semilla para toda la finca</summary><div class="tasa-row">${inp('pa-var', vs.length === 1 ? vs[0] : '', 'list="dl-var" placeholder="Ej.: María Bonita" aria-label="Semilla"')}<button class="btn" data-act="plan-var-all">Poner en las tandas por sembrar</button></div></details>` : ''}
+      <div class="plan-sum muted small">${ls.length} tandas · ${sacosTxt(sum(ls, l => N(l.sacosSemilla)))} de semilla${vs.length ? ' · ' + vs.map(esc).join(', ') : ''}</div></div>`;
+  } else if (canWrite()) {
+    out += `<form id="plan-form" class="panel"><input type="hidden" id="p-finca" value="${esc(f)}"><input type="hidden" id="p-anio" value="${y}">
+      <p class="muted small">${esc(fincaName(f))} no tiene tandas en ${y}. Ponle un patrón y ajusta cada una abajo.</p>
+      <div class="grid">
+      ${fld('p-mes', 'Primera siembra', `<select id="p-mes">${MESES_L.map((m, k) => opt(k + 1, m, y > new Date().getFullYear() ? 1 : Math.min(12, new Date().getMonth() + 2))).join('')}</select>`)}
       ${fld('p-tandas', 'Cuántas tandas', numIn('p-tandas', 4))}
       ${fld('p-cada', 'Cada cuántos meses', numIn('p-cada', 1))}
       ${fld('p-semilla', 'Sacos de semilla por tanda', numIn('p-semilla', 50))}
-      ${fld('p-variedad', 'Variedad', inp('p-variedad', 'Granola', 'list="dl-var"') + `<datalist id="dl-var">${VARIEDADES.map(v => `<option value="${esc(v)}">`).join('')}</datalist>`)}
+      ${fld('p-variedad', 'Semilla de la finca', inp('p-variedad', 'Granola', 'list="dl-var"'))}
       ${fld('p-ciclo', 'Días hasta la cosecha', numIn('p-ciclo', S.cfg.cicloDias))}
-    </div>
-    <h4 class="plan-h">Las tandas</h4><div id="plan-rows" class="plan-rows"></div>
-    <div class="btns"><button class="btn primary" type="submit">Crear estas tandas</button></div>
-    </form></div></details></section>`;
+    </div><div id="plan-rows" class="plan-rows"></div>
+    <div class="btns"><button class="btn primary" type="submit" ${S.saving ? 'disabled' : ''}>Crear estas tandas</button></div></form>`;
+  } else out += `<p class="muted">Sin tandas en ${y}.</p>`;
+  return out + `<datalist id="dl-var">${VARIEDADES.map(v => `<option value="${esc(v)}">`).join('')}</datalist></section>`;
+}
+function planEditRow(l) {
+  const i = loteInfo(l), id = esc(l.id), ro = canWrite() ? '' : ' disabled', conf = S.confirm === 'lote:' + l.id;
+  const est = l.estado || 'plan';
+  return `<div class="plan-row pe st-${esc(est)}" data-lid="${id}">
+    ${inp('pe-n-' + l.id, l.nombre, `data-pe="nombre" class="pe-name" aria-label="Nombre"${ro}`)}
+    ${inp('pe-f-' + l.id, l.siembra, `type="date" data-pe="siembra" aria-label="Siembra"${ro}`)}
+    ${inp('pe-v-' + l.id, l.variedad, `list="dl-var" data-pe="variedad" placeholder="Semilla" aria-label="Semilla"${ro}`)}
+    <label class="pr-s">${numIn('pe-s-' + l.id, l.sacosSemilla ?? '').replace('<input', `<input data-pe="sacosSemilla" aria-label="Sacos de semilla"${ro}`)}<small>sacos</small></label>
+    <select id="pe-e-${id}" data-pe="estado" aria-label="Estado"${ro}>${[['plan', 'Por sembrar'], ['sembrado', 'Sembrado'], ['cosechado', 'Cosechado']].map(([k, n]) => opt(k, n, est)).join('')}</select>
+    <span class="muted small">cosecha ${i.est ? fdate(i.est) : '—'}</span>
+    ${canWrite() ? (conf ? `<span class="pe-del"><button class="btn danger sm" data-act="lote-del" data-id="${id}">Borrar</button><button class="btn ghost sm" data-act="confirm-no">No</button></span>` : `<button class="btn ghost sm pe-x" data-act="confirm" data-k="lote:${id}" aria-label="Borrar tanda">✕</button>`) : ''}
+  </div>`;
+}
+async function planCampo(el) {
+  const id = el.closest('[data-lid]').dataset.lid, k = el.dataset.pe, l = S.lotes.find(x => x.id === id); if (!l) return;
+  let v = el.value.trim();
+  if (k === 'siembra' && !isoOk(v)) { el.value = l.siembra || ''; return toast('Pon una fecha válida.'); }
+  if (k === 'nombre' && !v) { el.value = l.nombre || ''; return; }
+  if (k === 'sacosSemilla') v = parseNum(v) || 0;
+  if ((l[k] ?? '') === v) return;
+  await S.db.doc('lotes/' + id).update({ [k]: v }); toast('Guardado');
 }
 const VARIEDADES = ['Granola', 'María Bonita', 'Iniafrit', 'Única', 'Andinita', 'Prueba de variedades'];
 // Builds the editable list of plantings from the plan's defaults. Each row can be changed before creating.
@@ -1331,6 +1370,10 @@ document.addEventListener('click', async ev => {
       case 'edit': { const r = S.regs.find(x => x.id === id); if (!r) break; S.editing = id; S.regTipo = r.tipo; S.skipRestore = true; go('registrar'); break; }
       case 'cancel-edit': S.editing = null; S.skipRestore = true; render(); break;
       case 'new-precio': S.regTipo = 'precio'; S.editing = null; go('registrar'); break;
+      case 'plan-f': S.planF = b.dataset.v; S.skipRestore = true; render(); break;
+      case 'plan-y': S.planY = (S.planY || S.year) + +b.dataset.v; S.skipRestore = true; render(); break;
+      case 'plan-add': await planAgregar(); break;
+      case 'plan-var-all': { const v = val('pa-var').trim(); if (!v) { toast('Escribe la semilla.'); break; } const ls = planLotes().filter(l => (l.estado || 'plan') === 'plan'); if (!ls.length) { toast('No hay tandas por sembrar.'); break; } for (const l of ls) await S.db.doc('lotes/' + l.id).update({ variedad: v }); toast(`${v} en ${ls.length} tandas`); break; }
       case 'lote-new': S.editingLote = 'new'; S.skipRestore = true; render(); break;
       case 'lote-edit': S.editingLote = id; S.skipRestore = true; render(); window.scrollTo({ top: 0 }); break;
       case 'lote-cancel': S.editingLote = null; render(); break;
@@ -1370,6 +1413,7 @@ document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && S.sheet)
 document.addEventListener('change', ev => {
   const el = ev.target;
   if (el.id === 'demo-esc') return entrarDemo(el.value);
+  if (el.dataset.pe) return planCampo(el).catch(writeErr);
   if (el.id === 'f-year') { S.year = +el.value; subscribeRegs(); S.skipRestore = true; return render(); }
   if (el.id === 'f-finca') { S.finca = el.value; lsSet('cf-finca', S.finca); S.skipRestore = true; return render(); }
   if (el.id === 'mb-rol') { const w = document.getElementById('mb-finca-w'); if (w) w.hidden = el.value !== 'encargado'; return; }
@@ -1525,11 +1569,18 @@ async function guardarLote() {
   else { const old = S.lotes.find(x => x.id === S.editingLote) || {}; const { id: _i, ...rest } = old; await S.db.doc('lotes/' + S.editingLote).set({ ...rest, ...l }); }
   S.editingLote = null; S.skipRestore = true; toast('Lote guardado'); render();
 }
+async function planAgregar() {
+  const ls = planLotes(), last = ls[ls.length - 1], y = S.planY;
+  let siembra = `${y}-01-01`;
+  if (last && last.siembra) { const d = new Date(last.siembra + 'T12:00:00'); d.setMonth(d.getMonth() + 1); siembra = d.toLocaleDateString('en-CA'); if (!siembra.startsWith(String(y))) siembra = `${y}-12-28`; }
+  await S.db.collection('lotes').add({ nombre: `Tanda ${ls.length + 1} · ${y}`, finca: S.planF, variedad: last ? last.variedad || '' : 'Granola', siembra, cicloDias: last ? N(last.cicloDias) || S.cfg.cicloDias : S.cfg.cicloDias, sacosSemilla: last ? N(last.sacosSemilla) : 0, estado: 'plan', plan: y, notas: '', creado: new Date().toISOString(), autor: S.uid || null });
+  toast('Tanda agregada');
+}
 async function generarPlan() {
   const f = val('p-finca'), y = parseNum(val('p-anio')), ciclo = parseNum(val('p-ciclo')) || S.cfg.cicloDias;
   if (!f) return toast('Elige la finca.');
   if (!y || y < 2000) return toast('Pon el año.');
-  const ya = S.lotes.filter(l => l.plan === y && l.finca === f).length;
+  const ya = S.lotes.filter(l => l.finca === f && (l.siembra || '').startsWith(String(y))).length;
   if (ya) return toast(`${fincaName(f)} ya tiene ${ya} tandas del plan ${y}. Edítalas en la lista o bórralas antes de crear otras.`);
   const docs = [];
   for (let k = 0; has('pr-f-' + k); k++) {
@@ -1539,7 +1590,7 @@ async function generarPlan() {
   if (!docs.length) return toast('Pon cuántas tandas.');
   S.saving = true; toast(`Creando ${docs.length} tandas en ${fincaName(f)}…`);
   for (const d of docs) await S.db.collection('lotes').add(d);
-  S.saving = false; S.planOpen = false; S.skipRestore = true; S.year = y; subscribeRegs(); toast(`Listo: ${docs.length} tandas planificadas en ${fincaName(f)}`); render();
+  S.saving = false; S.skipRestore = true; toast(`Listo: ${docs.length} tandas planificadas en ${fincaName(f)}`); render();
 }
 async function guardarAjustes() {
   const c = { kgSaco: parseNum(val('c-kg')) || 50, metaSacosFinca: parseNum(val('c-meta')) || 0, metaCostoSaco: parseNum(val('c-costo')) || 0, precioRef: parseNum(val('c-pref')) || 0, cicloDias: parseNum(val('c-ciclo')) || 150, presupSemilla: parseNum(val('c-presup')) || 0, diasCredito: parseNum(val('c-cred')) || 15, pctTrabajo: parseNum(val('c-pt')) ?? 0, pctTierra: parseNum(val('c-pl')) ?? 0, pctDinero: parseNum(val('c-pd')) ?? 0, baseEncargado: val('c-base'), prorrateo: val('c-pror') };
