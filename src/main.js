@@ -237,7 +237,7 @@ function doRender() {
   const keep = S.skipRestore ? null : snapForm(v);
   S.skipRestore = false;
   document.body.classList.toggle('out', S.auth !== 'in' || !S.rol || S.rol === 'none');
-  if (S.auth !== 'in' || !S.rol || S.rol === 'none') { v.innerHTML = gateHtml(); return; }
+  if (S.auth !== 'in' || !S.rol || S.rol === 'none') { S.sheet = false; const sr = $('#sheet-root'); if (sr) { sr.innerHTML = ''; sr.dataset.k = 'false'; } document.documentElement.classList.remove('lock'); v.innerHTML = gateHtml(); return; }
   if (!tabOk(S.view)) S.view = 'resumen';
   document.body.classList.toggle('enc', S.rol === 'encargado');
   renderHeader();
@@ -1326,6 +1326,24 @@ document.addEventListener('change', ev => {
 });
 let rzT = 0; window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { if (S.view === 'resumen' || S.view === 'precios') render(); }, 200); });
 let qT = 0;
+// The Más sheet closes by dragging it down from its top (or the grab bar), like a native sheet.
+let sheetDrag = null;
+document.addEventListener('touchstart', e => {
+  const sh = e.target.closest('.sheet'); if (!sh || e.touches.length !== 1) return;
+  if (sh.scrollTop > 0 && !e.target.closest('.grab')) return;
+  sheetDrag = { sh, y0: e.touches[0].clientY, dy: 0 };
+}, { passive: true });
+document.addEventListener('touchmove', e => {
+  if (!sheetDrag || e.touches.length !== 1) return;
+  const dy = e.touches[0].clientY - sheetDrag.y0;
+  if (dy <= 0) { sheetDrag.sh.style.transform = ''; sheetDrag.dy = 0; return; }
+  e.preventDefault(); sheetDrag.dy = dy; sheetDrag.sh.style.transition = 'none'; sheetDrag.sh.style.transform = `translateY(${dy}px)`;
+}, { passive: false });
+document.addEventListener('touchend', () => {
+  if (!sheetDrag) return; const { sh, dy } = sheetDrag; sheetDrag = null;
+  sh.style.transition = 'transform .18s ease';
+  if (dy > 70) { sh.style.transform = 'translateY(100%)'; setTimeout(() => { S.sheet = false; render(); }, 170); } else sh.style.transform = '';
+});
 // Pinch zooms only the content (#view); the bars and buttons stay the same size. Remembered on this phone.
 let zoomV = 1, pinch = null, zoomT;
 function setZoom(z, show) {
