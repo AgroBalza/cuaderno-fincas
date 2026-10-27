@@ -73,7 +73,7 @@ const MEDIOS = [['efectivo', 'Efectivo $'], ['zelle', 'Zelle'], ['usdt', 'USDT']
 const MEDIO_N = Object.fromEntries(MEDIOS);
 const esBs = m => m === 'bcv' || m === 'paralelo';
 const nfBs = x => N(x).toLocaleString('es-VE', { maximumFractionDigits: 2 });
-const medioTxt = r => !r.medio ? '' : esBs(r.medio) ? `Bs ${nfBs(r.montoBs)} a ${nfBs(r.tasa)} (${r.medio === 'bcv' ? 'BCV' : 'paralelo'})` : MEDIO_N[r.medio] || '';
+const medioTxt = r => !r.medio ? '' : esBs(r.medio) ? `Bs ${nfBs(r.precioBs || r.montoBs)}${r.precioBs ? ' el saco' : ''} a ${nfBs(r.tasa)} (${r.medio === 'bcv' ? 'BCV' : 'paralelo'})` : MEDIO_N[r.medio] || '';
 const CAT_PRINCIPALES = ['jornales', 'semilla', 'fertilizante', 'agroquimicos', 'riego', 'maquinaria', 'flete', 'sacos'];
 const catIcon = id => icon(ICONS['c_' + id] ? 'c_' + id : 'c_otros');
 function catGrid(sel, simple) {
@@ -251,18 +251,47 @@ function doRender() {
   resolveNames();
 }
 // Reminder while changes are saved on the phone but not uploaded yet: they only go up with the app open and signal.
+function ventaTotal() {
+  const t = $('#r-total'); if (!t || S.regTipo !== 'venta') return;
+  const s = parseNum(val('r-sacos')), p = parseNum(val('r-precio')), m = val('rv-medio'), tasa = parseNum(val('rv-tasa'));
+  const pu = esBs(m) ? (tasa ? p / tasa : 0) : p;
+  t.textContent = s && pu ? `Total: ${usd(s * pu)}${esBs(m) ? ` (Bs ${nfBs(s * p)})` : ''}` : '';
+}
 function tasaSrc(m) {
   const t = S.tasas; if (!esBs(m)) return '';
   return t[m] ? `Tasa ${m === 'bcv' ? 'BCV' : 'paralelo'} de ${t.fecha ? fdate(t.fecha) : 'la última vez'}${t.auto ? '' : ', anotada a mano'}. Si pagaste a otra, cámbiala.` : 'Escribe la tasa a la que se pagó.';
 }
+// One block for every money field: how it was paid (or received) and, in bolívares, at what rate.
+// p prefixes the ids (p-medio, p-tasa…); amtId is the amount input, in Bs or $ depending on the choice.
+function pagoBox(p, amtId, label, medio, amt, tasa, opts = {}) {
+  const md = medio || lsGet('cf-medio-' + p) || (p === 'r' ? lsGet('cf-medio') : '') || 'efectivo', bs = esBs(md);
+  return `<div class="field wide pago ${opts.big ? 'amt' : ''}" data-p="${p}" data-amt="${amtId}"><label for="${amtId}">${label}</label><input type="hidden" id="${p}-medio" value="${esc(md)}">
+    <div class="medios">${MEDIOS.map(([k, n]) => `<button type="button" class="medio" data-medio="${k}" aria-pressed="${k === md}">${n}</button>`).join('')}</div>
+    <div class="amt-in ${opts.big ? '' : 'sm'}"><span id="${p}-pre" class="pre">${bs ? 'Bs' : '$'}</span>${numIn(amtId, amt, opts.ph || '0')}${opts.suf ? `<small class="suf">${opts.suf}</small>` : ''}</div>
+    <div class="tasa-row" ${bs ? '' : 'hidden'}><label for="${p}-tasa">Tasa</label>${numIn(p + '-tasa', tasa || S.tasas[md] || '', 'Bs por $')}<span id="${p}-conv" class="conv"></span></div>
+    <span class="hint" id="${p}-src">${tasaSrc(md)}</span></div>`;
+}
+// Reads a payment block. Returns { medio, valor (as typed), usd, bs, tasa } or { err }.
+function leerPago(p, amtId, what) {
+  const valor = parseNum(val(amtId)), medio = val(p + '-medio') || 'efectivo';
+  lsSet('cf-medio-' + p, medio);
+  if (!esBs(medio)) return { medio, valor, usd: valor, bs: null, tasa: null };
+  const tasa = parseNum(val(p + '-tasa'));
+  if (!valor) return { err: `Pon ${what} en bolívares.` };
+  if (!(tasa > 0)) return { err: 'Pon la tasa a la que se pagó.' };
+  if (S.tasas[medio] !== tasa) { S.tasas = { ...S.tasas, [medio]: tasa, fecha: val('r-fecha') || val('a-fecha') || today(), auto: false }; lsSet('cf-tasas', JSON.stringify(S.tasas)); }
+  return { medio, valor, usd: Math.round(valor / tasa * 100) / 100, bs: valor, tasa };
+}
 function syncMedio() {
-  const h = $('#r-medio'); if (!h) return;
-  const m = h.value, bs = esBs(m);
-  document.querySelectorAll('.medio').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.medio === m)));
-  const pre = $('#r-pre'); if (pre) pre.textContent = bs ? 'Bs' : '$';
-  const row = document.querySelector('.tasa-row'); if (row) row.hidden = !bs;
-  const src = $('#r-tasa-src'); if (src) src.textContent = tasaSrc(m);
-  const cv = $('#r-conv'); if (cv) { const a = parseNum(val('r-monto')), t = parseNum(val('r-tasa')); cv.textContent = bs && a && t ? `= ${usd(a / t, 2)}` : ''; }
+  document.querySelectorAll('.pago').forEach(box => {
+    const p = box.dataset.p, h = document.getElementById(p + '-medio'); if (!h) return;
+    const m = h.value, bs = esBs(m);
+    box.querySelectorAll('.medio').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.medio === m)));
+    const pre = document.getElementById(p + '-pre'); if (pre) pre.textContent = bs ? 'Bs' : '$';
+    const row = box.querySelector('.tasa-row'); if (row) row.hidden = !bs;
+    const src = document.getElementById(p + '-src'); if (src) src.textContent = tasaSrc(m);
+    const cv = document.getElementById(p + '-conv'); if (cv) { const a = parseNum(val(box.dataset.amt)), t = parseNum(val(p + '-tasa')); cv.textContent = bs && a && t ? `= ${usd(a / t, 2)}` : ''; }
+  });
 }
 // Today's BCV and parallel rates to prefill Bolívar payments. If there is no signal, the last ones are kept.
 async function cargarTasas() {
@@ -495,19 +524,14 @@ VIEWS.registrar = () => {
   if (t === 'precio') {
     out += fld('r-mercado', 'Mercado', `<select id="r-mercado">${Object.entries(MERCADOS).map(([k, n]) => opt(k, n, e.mercado || 'coche')).join('')}</select>`)
       + fld('r-producto', 'Producto', inp('r-producto', e.producto || 'Papa andina blanca', 'list="dl-prod"') + `<datalist id="dl-prod"><option value="Papa andina blanca"><option value="Papa Granola"><option value="Papa María Bonita"><option value="Papa amarilla"></datalist>`)
-      + fld('r-precio', 'Precio por saco ($)', numIn('r-precio', e.precio, '35'))
+      + pagoBox('rp', 'r-precio', 'Precio por saco', e.medio || (ed ? 'efectivo' : ''), esBs(e.medio) ? e.precioBs : e.precio, e.tasa, { ph: '35', suf: 'por saco' })
       + fld('r-kg', 'Kilos del saco', numIn('r-kg', e.kgSaco ?? 45, '45'))
       + fld('r-desc', 'Fuente', inp('r-desc', e.desc, 'placeholder="Ej.: llamada a un mayorista, 2001online"'), 'wide');
   } else {
     out += fld('r-finca', 'Finca', `<select id="r-finca" data-act-change="finca">${fincaOptions(df, t === 'gasto')}</select>`)
       + fld('r-lote', !simple ? 'Lote' : t === 'cosecha' ? 'Lote (la tanda que se sacó)' : 'Lote (si sabes cuál)', `<select id="r-lote" data-lote-for="r-finca">${loteOptions(e.lote || S.prefLote || '')}</select>`);
     if (t === 'gasto') {
-      const md = e.medio || lsGet('cf-medio') || 'efectivo', bs = esBs(md);
-      out += `<div class="field wide amt"><label for="r-monto">¿Cuánto y cómo se pagó?</label><input type="hidden" id="r-medio" value="${esc(md)}">
-        <div class="medios">${MEDIOS.map(([k, n]) => `<button type="button" class="medio" data-medio="${k}" aria-pressed="${k === md}">${n}</button>`).join('')}</div>
-        <div class="amt-in"><span id="r-pre">${bs ? 'Bs' : '$'}</span>${numIn('r-monto', bs ? e.montoBs : e.monto, '0')}</div>
-        <div class="tasa-row" ${bs ? '' : 'hidden'}><label for="r-tasa">Tasa</label>${numIn('r-tasa', e.tasa || S.tasas[md] || '', 'Bs por $')}<span id="r-conv" class="conv"></span></div>
-        <span class="hint" id="r-tasa-src">${tasaSrc(md)}</span></div>`
+      out += pagoBox('r', 'r-monto', '¿Cuánto y cómo se pagó?', e.medio || (ed ? 'efectivo' : ''), esBs(e.medio) ? e.montoBs : e.monto, e.tasa, { big: true })
         + `<div class="field wide catf"><label>¿En qué?</label>${catGrid(e.cat || 'jornales', simple)}</div>`
         + fld('r-desc', 'Detalle (opcional)', inp('r-desc', e.desc, 'placeholder="Ej.: 4 jornales de aporque"'), 'wide')
         + (simple ? '' : `<details class="field wide extra" ${e.cantidad ? 'open' : ''}><summary>Cantidad y unidad</summary><div class="grid">${fld('r-cant', 'Cantidad', numIn('r-cant', e.cantidad, 'Ej.: 4')) + fld('r-unidad', 'Unidad', inp('r-unidad', e.unidad, 'placeholder="jornales, sacos, litros…"'))}</div></details>`);
@@ -527,7 +551,7 @@ VIEWS.registrar = () => {
         + fld('r-canal', 'A quién se vendió', `<select id="r-canal">${Object.entries(CANALES).map(([k, n]) => opt(k, n, e.canal || 'camionero')).join('')}</select>`)
         + fld('r-calidad', 'Calidad', `<select id="r-calidad">${Object.entries(CALIDADES).map(([k, n]) => opt(k, n, e.calidad || 'mezclada')).join('')}</select>`)
         + fld('r-sacos', 'Sacos vendidos', numIn('r-sacos', e.sacos, '0'))
-        + fld('r-precio', 'Precio por saco ($)', numIn('r-precio', e.precio, String(S.cfg.precioRef)))
+        + pagoBox('rv', 'r-precio', 'Precio por saco y cómo se cobró', e.medio || (ed ? 'efectivo' : ''), esBs(e.medio) ? e.precioBs : e.precio, e.tasa, { ph: String(S.cfg.precioRef), suf: 'por saco' })
         + (simple ? '' : fld('r-kg', 'Kilos por saco', numIn('r-kg', e.kgSaco ?? S.cfg.kgSaco)))
         + `<div class="field"><span class="hint">&nbsp;</span><label class="check"><input type="checkbox" id="r-cobrado" ${e.cobrado === false ? '' : 'checked'}> Ya se cobró</label></div>`
         + fld('r-desc', 'Notas', inp('r-desc', e.desc), 'wide');
@@ -679,7 +703,7 @@ function almForm() {
       + fld('a-cat', 'Tipo', `<select id="a-cat">${CATS.filter(c => CATS_ALM.includes(c.id)).map(c => opt(c.id, c.n, 'agroquimicos')).join('')}</select>`)
       + fld('a-cant', 'Cantidad', numIn('a-cant', '', 'Ej.: 8'))
       + fld('a-unidad', 'Unidad', inp('a-unidad', '', 'list="dl-unid" placeholder="sacos, litros, kg…"') + '<datalist id="dl-unid"><option value="sacos"><option value="litros"><option value="kg"><option value="unidades"><option value="bultos"></datalist>')
-      + fld('a-monto', 'Costo total ($)', numIn('a-monto', '', '0'))
+      + pagoBox('a', 'a-monto', 'Costo total y cómo se pagó', '', '', '')
       + fld('a-prov', 'Proveedor', inp('a-prov', '', 'list="dl-prov" placeholder="Ej.: Semillas Andinas"') + `<datalist id="dl-prov">${provs.map(x => `<option value="${esc(x)}">`).join('')}</datalist>`)
       + fld('a-fact', 'Factura (opcional)', inp('a-fact', '', 'placeholder="Nro."'));
   } else {
@@ -714,13 +738,14 @@ async function guardarAlmacen() {
   if (!(cant > 0)) return toast('Pon la cantidad.');
   let d;
   if (S.almMode === 'compra') {
-    const producto = val('a-prod').trim().replace(/\s+/g, ' '), monto = parseNum(val('a-monto'));
+    const pg = leerPago('a', 'a-monto', 'el costo'); if (pg.err) return toast(pg.err);
+    const producto = val('a-prod').trim().replace(/\s+/g, ' '), monto = pg.usd;
     if (!producto) return toast('Escribe el producto.');
     if (!(monto > 0)) return toast('Pon cuánto costó en total.');
     const prev = inventario().find(p => p.key === prodKey(producto));
     const unidad = val('a-unidad').trim() || (prev ? prev.unidad : '');
     if (prev && prev.unidad && unidad && prodKey(prev.unidad) !== prodKey(unidad)) return toast(`${prev.producto} se lleva en ${prev.unidad}. Usa la misma unidad para que cuadre el inventario.`);
-    d = { tipo: 'insumo', almacen: true, fecha, finca: 'almacen', producto: prev ? prev.producto : producto, cat: val('a-cat'), cantidad: cant, unidad, monto, proveedor: val('a-prov').trim(), factura: val('a-fact').trim(), desc: `Compra: ${producto}` };
+    d = { tipo: 'insumo', almacen: true, fecha, finca: 'almacen', producto: prev ? prev.producto : producto, cat: val('a-cat'), cantidad: cant, unidad, monto, medio: pg.medio, montoBs: pg.bs, tasa: pg.tasa, proveedor: val('a-prov').trim(), factura: val('a-fact').trim(), desc: `Compra: ${producto}` };
   } else {
     const p = inventario().find(x => x.key === val('a-item'));
     if (!p) return toast('Elige el producto.');
@@ -765,7 +790,7 @@ function itemHtml(r) {
   if (r.tipo === 'cosecha') { t = `${r.compra ? 'Compra a vecinos' : 'Cosecha'} · ${sacosTxt(sacosCosecha(r))}`; a = `${nf(sacosCosecha(r))}<small>sacos</small>`; chip = '<span class="chip c-cosecha">Cosecha</span>'; }
   if (r.tipo === 'insumo') { t = `Compra para el almacén · ${esc(r.producto || '')}`; a = `<span class="neg">${usd(-N(r.monto))}</span>`; chip = '<span class="chip c-plan">Almacén</span>'; }
   if (r.tipo === 'venta') { t = `Venta · ${ventaTxt(r)}${r.comprador ? ' · ' + esc(r.comprador) : ''}`; a = `<span class="pos">${usd(r.monto)}</span>`; chip = `<span class="chip c-venta">Venta</span>${r.cobrado ? '' : ' <span class="chip c-warn">Por cobrar</span>'}`; }
-  const sub = [S.finca === 'all' ? fincaName(r.finca) : '', r.lote ? loteName(r.lote) : '', r.tipo === 'cosecha' ? cosechaDet(r) : '', r.tipo === 'venta' ? (CANALES[r.canal] || '') : '', r.tipo === 'gasto' ? medioTxt(r) : '', r.cantidad ? `${nf(r.cantidad, r.cantidad % 1 ? 1 : 0)} ${r.unidad || ''}` : '', r.desc].filter(Boolean).map(esc).join(' · ');
+  const sub = [S.finca === 'all' ? fincaName(r.finca) : '', r.lote ? loteName(r.lote) : '', r.tipo === 'cosecha' ? cosechaDet(r) : '', r.tipo === 'venta' ? (CANALES[r.canal] || '') : '', r.tipo === 'gasto' || r.tipo === 'venta' || r.tipo === 'insumo' ? medioTxt(r) : '', r.cantidad ? `${nf(r.cantidad, r.cantidad % 1 ? 1 : 0)} ${r.unidad || ''}` : '', r.desc].filter(Boolean).map(esc).join(' · ');
   const who = r.autor && r.autor !== S.uid ? (S.names[r.autor] || '') : '';
   const conf = S.confirm === 'reg:' + r.id;
   const mine = S.canAdmin || r.autor === S.uid;
@@ -1233,7 +1258,7 @@ document.addEventListener('click', async ev => {
   if (b.dataset.tab) { S.sheet = false; return go(b.dataset.tab); }
   if (b.dataset.go) { if (b.dataset.nt) { S.regTipo = b.dataset.nt; S.editing = null; } return go(b.dataset.go); }
   if (b.dataset.tipo) { S.regTipo = b.dataset.tipo; S.editing = null; return render(); }
-  if (b.dataset.medio) { const h = $('#r-medio'); if (h) h.value = b.dataset.medio; const t = $('#r-tasa'); if (t && esBs(b.dataset.medio) && S.tasas[b.dataset.medio]) t.value = String(S.tasas[b.dataset.medio]).replace('.', ','); syncMedio(); return; }
+  if (b.dataset.medio) { const box = b.closest('.pago'); if (!box) return; const p = box.dataset.p, h = document.getElementById(p + '-medio'); if (h) h.value = b.dataset.medio; const t = document.getElementById(p + '-tasa'); if (t && esBs(b.dataset.medio) && S.tasas[b.dataset.medio]) t.value = String(S.tasas[b.dataset.medio]).replace('.', ','); syncMedio(); ventaTotal(); return; }
   if (b.dataset.cat) { const h = $('#r-cat'); if (h) h.value = b.dataset.cat; syncCats(); return; }
   const act = b.dataset.act; if (!act) return;
   const id = b.dataset.id;
@@ -1320,9 +1345,9 @@ document.addEventListener('gesturestart', e => e.preventDefault()); // iOS ignor
 document.addEventListener('input', ev => {
   const el = ev.target;
   if (el.dataset.libro === 'q') { clearTimeout(qT); qT = setTimeout(() => { S.libro.q = el.value; render(); }, 250); }
-  if (el.id === 'r-monto' || el.id === 'r-tasa') syncMedio();
+  if (el.closest('.pago')) { syncMedio(); ventaTotal(); }
   if (el.closest('#reg-form') && S.regTipo === 'cosecha') { const t = $('#r-total'); if (t) t.textContent = cosechaResumen(); }
-  if (el.closest('#reg-form') && (el.id === 'r-sacos' || el.id === 'r-precio')) { const t = $('#r-total'); const s = parseNum($('#r-sacos')?.value), p = parseNum($('#r-precio')?.value); if (t) t.textContent = s && p && S.regTipo === 'venta' ? `Total: ${usd(s * p)}` : ''; }
+  if (el.id === 'r-sacos') ventaTotal();
 });
 document.addEventListener('submit', async ev => {
   ev.preventDefault();
@@ -1392,16 +1417,15 @@ async function guardarRegistro() {
   if (!isoOk(fecha)) return toast('Pon la fecha.');
   let r;
   if (t === 'precio') {
-    const precio = parseNum(val('r-precio')); if (!precio) return toast('Pon el precio por saco.');
-    r = { fecha, mercado: val('r-mercado'), producto: val('r-producto').trim(), precio, kgSaco: parseNum(val('r-kg')) || 45, desc: val('r-desc').trim() };
+    const pg = leerPago('rp', 'r-precio', 'el precio'); if (pg.err) return toast(pg.err); const precio = pg.usd; if (!precio) return toast('Pon el precio por saco.');
+    r = { fecha, medio: pg.medio, precioBs: pg.bs, tasa: pg.tasa, mercado: val('r-mercado'), producto: val('r-producto').trim(), precio, kgSaco: parseNum(val('r-kg')) || 45, desc: val('r-desc').trim() };
   } else {
     r = { tipo: t, fecha, finca: val('r-finca'), lote: val('r-lote'), desc: val('r-desc').trim() };
     if (!r.finca) return toast('Elige la finca.');
-    if (t === 'gasto') { r.cat = val('r-cat'); r.monto = parseNum(val('r-monto'));
-      if (has('r-medio')) { r.medio = val('r-medio') || 'efectivo'; lsSet('cf-medio', r.medio); r.montoBs = null; r.tasa = null;
-        if (esBs(r.medio)) { const tasa = parseNum(val('r-tasa')); if (!r.monto) return toast('Pon el monto en bolívares.'); if (!(tasa > 0)) return toast('Pon la tasa del día.'); r.montoBs = r.monto; r.tasa = tasa; if (S.tasas[r.medio] !== tasa) { S.tasas = { ...S.tasas, [r.medio]: tasa, fecha: r.fecha, auto: false }; lsSet('cf-tasas', JSON.stringify(S.tasas)); } r.monto = Math.round(r.montoBs / tasa * 100) / 100; } } if (has('r-cant')) { r.cantidad = parseNum(val('r-cant')); r.unidad = val('r-unidad').trim(); } if (!r.monto) return toast('Pon el monto del gasto.'); }
+    if (t === 'gasto') { r.cat = val('r-cat'); const pg = leerPago('r', 'r-monto', 'el monto'); if (pg.err) return toast(pg.err);
+      Object.assign(r, { monto: pg.usd, medio: pg.medio, montoBs: pg.bs, tasa: pg.tasa }); if (has('r-cant')) { r.cantidad = parseNum(val('r-cant')); r.unidad = val('r-unidad').trim(); } if (!r.monto) return toast('Pon el monto del gasto.'); }
     if (t === 'cosecha') { const err = leerCosecha(r); if (err) return toast(err); }
-    if (t === 'venta') { r.comprador = val('r-comprador').trim(); r.canal = val('r-canal'); r.calidad = val('r-calidad'); r.sacos = parseNum(val('r-sacos')); r.precio = parseNum(val('r-precio')); r.kgSaco = parseNum(val('r-kg')) || (S.editing && (S.regs.find(x => x.id === S.editing) || {}).kgSaco) || S.cfg.kgSaco; r.cobrado = !!document.getElementById('r-cobrado')?.checked; if (!r.sacos || !r.precio) return toast('Pon los sacos y el precio por saco.'); r.monto = Math.round(r.sacos * r.precio * 100) / 100; }
+    if (t === 'venta') { r.comprador = val('r-comprador').trim(); r.canal = val('r-canal'); r.calidad = val('r-calidad'); r.sacos = parseNum(val('r-sacos')); const pg = leerPago('rv', 'r-precio', 'el precio'); if (pg.err) return toast(pg.err); Object.assign(r, { precio: pg.usd, medio: pg.medio, precioBs: pg.bs, tasa: pg.tasa }); r.kgSaco = parseNum(val('r-kg')) || (S.editing && (S.regs.find(x => x.id === S.editing) || {}).kgSaco) || S.cfg.kgSaco; r.cobrado = !!document.getElementById('r-cobrado')?.checked; if (!r.sacos || !r.precio) return toast('Pon los sacos y el precio por saco.'); r.monto = Math.round(r.sacos * r.precio * 100) / 100; }
   }
   S.saving = true;
   const col = t === 'precio' ? 'precios' : 'registros';
@@ -1463,7 +1487,7 @@ async function exportCsv() {
   const cols = ['fecha', 'tipo', 'finca', 'lote', 'categoria', 'detalle', 'cantidad', 'unidad', 'codigo', 'sacos_primera', 'sacos_segunda', 'sacos_tercera', 'sacos_descarte', 'papas_malas_de_20', 'gravedad', 'sacos_vendidos', 'precio_saco', 'kg_saco', 'monto_usd', 'pago', 'monto_bs', 'tasa', 'comprador', 'canal', 'calidad', 'cobrado'];
   const n = v => v === null || v === undefined || v === '' ? '' : String(v).replace('.', ',');
   const q = v => { const s = String(v ?? ''); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-  const rows = [...S.regs].sort((a, b) => a.fecha.localeCompare(b.fecha)).map(r => [r.fecha, r.tipo, fincaName(r.finca), loteName(r.lote), (CAT_BY[r.cat] || {}).n || '', r.desc, n(r.cantidad), r.unidad, esCosecha(r) ? codigoCosecha(r) : '', n(r.sacosPrimera), n(r.sacosSegunda), n(r.sacosTercera), n(r.sacosDescarte), r.muestra ? n(muestraMalas(r.muestra)) : '', n(r.gs), n(r.sacos), n(r.precio), n(r.kgSaco), n(r.tipo === 'gasto' || r.tipo === 'insumo' ? -N(r.monto) : r.monto), MEDIO_N[r.medio] || '', n(r.montoBs), n(r.tasa), r.comprador, CANALES[r.canal] || '', CALIDADES[r.calidad] || '', r.tipo === 'venta' ? (r.cobrado ? 'sí' : 'no') : ''].map(q).join(';'));
+  const rows = [...S.regs].sort((a, b) => a.fecha.localeCompare(b.fecha)).map(r => [r.fecha, r.tipo, fincaName(r.finca), loteName(r.lote), (CAT_BY[r.cat] || {}).n || '', r.desc, n(r.cantidad), r.unidad, esCosecha(r) ? codigoCosecha(r) : '', n(r.sacosPrimera), n(r.sacosSegunda), n(r.sacosTercera), n(r.sacosDescarte), r.muestra ? n(muestraMalas(r.muestra)) : '', n(r.gs), n(r.sacos), n(r.precio), n(r.kgSaco), n(r.tipo === 'gasto' || r.tipo === 'insumo' ? -N(r.monto) : r.monto), MEDIO_N[r.medio] || '', n(r.montoBs || (r.precioBs && r.sacos ? r.precioBs * r.sacos : null)), n(r.tasa), r.comprador, CANALES[r.canal] || '', CALIDADES[r.calidad] || '', r.tipo === 'venta' ? (r.cobrado ? 'sí' : 'no') : ''].map(q).join(';'));
   const csv = '﻿' + cols.join(';') + '\n' + rows.join('\n');
   try { await S.downloads.save({ filename: `cuaderno-fincas-${S.year}.csv`, data: csv }); toast('Archivo listo'); }
   catch (e) { if (e && e.code !== 'declined') toast('No se pudo descargar en esta vista.'); }

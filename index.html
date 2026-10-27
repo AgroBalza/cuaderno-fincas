@@ -115,7 +115,12 @@ details.lotes-done { margin-top:12px; }
 .tasa-row label { font-size:0.85rem; color:var(--muted); font-weight:600; }
 .tasa-row input { min-height:40px; }
 .conv { font-family:var(--f-num); font-weight:700; font-size:1.05rem; color:var(--paramo); white-space:nowrap; }
-.amt-in span#r-pre { min-width:1.4em; }
+.amt-in .pre { min-width:1.4em; }
+.amt-in input, .amt-in input:focus { border:0; background:transparent; box-shadow:none; outline:none; }
+.amt-in.sm { padding:0 12px; }
+.amt-in.sm .pre { font-size:1.05rem; }
+.amt-in.sm input { font-size:1.1rem; min-height:46px; padding:8px 0; }
+.amt-in .suf { color:var(--muted); white-space:nowrap; font-size:0.85rem; }
 .catf { order:-1; }
 .amt-in { display:flex; align-items:center; gap:6px; background:var(--sunk); border-radius:var(--r-s); padding:0 14px; }
 .amt-in span { font-family:var(--f-num); font-size:1.8rem; color:var(--muted); }
@@ -350,7 +355,7 @@ body.out .shell { margin-left:0; }
 <div id="sheet-root"></div>
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="config.js?v=32bc96af"></script>
-<script type="module" src="app.js?v=32bc96af"></script>
+<script src="config.js?v=c18f5039"></script>
+<script type="module" src="app.js?v=c18f5039"></script>
 </body>
 </html>
