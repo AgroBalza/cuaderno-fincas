@@ -29,6 +29,19 @@ const ICONS = {
   reloj: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   almacen: '<path d="M3 9 12 4l9 5v11H3z"/><path d="M7 20v-7h10v7M7 16h10"/>',
   insumo: '<path d="M3 9 12 4l9 5v11H3z"/><path d="M7 20v-7h10v7M7 16h10"/>',
+  c_jornales: '<circle cx="12" cy="7" r="3.5"/><path d="M5 21v-1.5a7 7 0 0 1 14 0V21"/>',
+  c_semilla: '<path d="M12 21v-8"/><path d="M12 13c0-4 3-7 8-7 0 4-3 7-8 7z"/><path d="M12 15c0-3-2.5-6-7-6 0 3 2.5 6 7 6z"/>',
+  c_fertilizante: '<path d="M7 7h10l2 13H5z"/><path d="M9 7V4h6v3M9 13h6"/>',
+  c_agroquimicos: '<path d="M8 10h7v11H8z"/><path d="M9.5 10V7h4v3M13.5 7h3l1 2M19 5.5l2-1M19 9l2 1"/>',
+  c_riego: '<path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/>',
+  c_maquinaria: '<path d="M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h12M7 7h4"/><path d="M14 9h3l2 3v6a1.5 1.5 0 0 1-3 0v-3h-2"/>',
+  c_flete: '<path d="M2 6h12v10H2zM14 10h4l3 3v3h-7"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',
+  c_sacos: '<path d="M6 9h12l1.5 11a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1z"/><path d="M9 9V7a3 3 0 0 1 6 0v2"/>',
+  c_planta: '<path d="M3 21V10l6 4v-4l6 4V5h6v16z"/>',
+  c_sueldo: '<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',
+  c_viajes: '<path d="M5 15l1.5-5h11L19 15M3 15h18v4H3z"/><circle cx="7.5" cy="19" r="1.5"/><circle cx="16.5" cy="19" r="1.5"/>',
+  c_admin: '<path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h5"/>',
+  c_otros: '<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>',
   chispa: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
 };
 const LOGO = `<svg viewBox="-13.3 25.9 216.9 108.1" class="mono" aria-hidden="true"><defs><mask id="lb-m" maskUnits="userSpaceOnUse" x="-13.3" y="25.9" width="216.9" height="108.1"><rect x="-13.3" y="25.9" width="216.9" height="108.1" fill="#fff"/><rect x="101.1" y="28.6" width="38.1" height="45.5" fill="#000"/></mask></defs><path d="M-9.3 91.1L-9.3 86.5L19.2 46.5L26.6 46.5L26.6 86.2Q29.4 86.2 31.2 85.8Q33.0 85.4 34 84.6Q35.0 83.8 35.4 82.4Q35.8 81.0 35.8 78.7L35.8 78.7L38.7 78.7L38.7 97.7L35.8 97.7Q35.8 95.6 35.4 94.3Q35.0 92.9 34 92.2Q33.0 91.5 31.2 91.2Q29.4 90.9 26.6 90.8L26.6 90.8L26.6 93.2Q26.6 96.0 26.9 98.0Q27.1 100.0 27.9 101.4Q28.7 102.8 30.1 103.5Q31.6 104.2 33.8 104.2L33.8 104.2L33.8 107.4L7.1 107.4L7.1 104.2Q9.8 104.2 11.5 103.4Q13.2 102.7 14.1 101.4Q15.0 100.0 15.3 98.2Q15.6 96.3 15.6 93.8L15.6 93.8L15.6 91.1L-9.3 91.1ZM15.6 86.2L15.6 61.0L15.3 61.0L-2.7 86.2L15.6 86.2Z" fill="currentColor"/><path d="M91.1 124.8L91.1 130L44.7 130L44.7 124.8Q49.1 124.7 51.8 124.0Q54.4 123.2 55.9 121.3Q57.3 119.3 57.8 115.8Q58.3 112.2 58.3 106.1L58.3 106.1L58.3 53.8Q58.3 48.4 57.9 44.8Q57.4 41.2 56.1 39.1Q54.8 37.0 52.4 36.2Q50.0 35.4 46.0 35.1L46.0 35.1L46.0 29.9L89.8 29.9L89.8 35.1Q85.8 35.4 83.4 36.2Q81.0 37.0 79.7 39.1Q78.3 41.2 77.9 44.8Q77.4 48.4 77.4 53.8L77.4 53.8L77.4 106.1Q77.4 112.2 77.9 115.8Q78.3 119.3 79.8 121.3Q81.3 123.2 84.0 124.0Q86.7 124.7 91.1 124.8L91.1 124.8Z" fill="currentColor"/><path d="M155.4 130L105.4 130L105.4 124.8Q109.8 124.7 112.5 124.0Q115.1 123.4 116.6 121.8Q118.1 120.3 118.6 117.4Q119.2 114.5 119.2 110.0L119.2 110.0L119.2 49.9Q119.2 45.4 118.8 42.6Q118.4 39.8 117.1 38.2Q115.9 36.5 113.8 35.9Q111.6 35.4 108.1 35.1L108.1 35.1L108.1 29.9L149.8 29.9Q169.5 29.9 180.1 36.2Q190.7 42.5 190.7 54.2L190.7 54.2Q190.7 69.7 168.4 76.0L168.4 76.0L168.4 76.6Q175.6 76.6 181.4 78.6Q187.2 80.6 191.2 84.2Q195.2 87.9 197.4 92.8Q199.6 97.8 199.6 103.6L199.6 103.6Q199.6 110.2 196.4 115.2Q193.3 120.1 187.3 123.5L187.3 123.5Q175.7 130 155.4 130L155.4 130ZM156.3 122.1L156.3 122.1Q177.3 122.1 177.3 103.2L177.3 103.2Q177.3 91.7 169.7 86.3L169.7 86.3Q165.8 83.6 159.7 82.4Q153.5 81.3 144.5 81.3L144.5 81.3L138.3 81.3L138.3 107.3Q138.3 115.3 142.4 118.7Q146.6 122.1 156.3 122.1ZM138.3 73.4L145.9 73.4Q151.8 73.4 156.1 72.3Q160.4 71.2 163.4 69.2L163.4 69.2Q169.6 64.9 169.6 55.8L169.6 55.8Q169.6 46.3 164.9 42.1Q160.2 37.8 149.8 37.8L149.8 37.8L140.6 37.8Q138.3 37.8 138.3 40.0L138.3 40.0L138.3 73.4Z" fill="currentColor" mask="url(#lb-m)"/><path d="M108.9 29.9 H140.1 V38.5 H108.9 Z M107.6 73.3 H140.1 V81.1 H107.6 Z" fill="currentColor"/></svg>`;
@@ -53,6 +66,16 @@ const CATS = [
   { id: 'otros_gestion', n: 'Otros de gestión', g: 'gestion' },
 ];
 const CAT_BY = Object.fromEntries(CATS.map(c => [c.id, c]));
+// Short names and icons for the tap-to-choose grid on the expense form.
+const CAT_CORTO = { semilla: 'Semilla', fertilizante: 'Abono', agroquimicos: 'Fumigación', jornales: 'Jornales', riego: 'Riego', maquinaria: 'Gasoil y máquina', otros_cultivo: 'Otro del campo', sacos: 'Sacos', flete: 'Flete', otros_venta: 'Otro de venta', compra_papa: 'Papa comprada', planta: 'Planta', sueldo: 'Sueldo', viajes: 'Viajes', admin: 'Contador', otros_gestion: 'Otro de gestión' };
+const CAT_PRINCIPALES = ['jornales', 'semilla', 'fertilizante', 'agroquimicos', 'riego', 'maquinaria', 'flete', 'sacos'];
+const catIcon = id => icon(ICONS['c_' + id] ? 'c_' + id : 'c_otros');
+function catGrid(sel, simple) {
+  const ok = CATS.filter(c => !simple || CATS_OBRERO.includes(c.id) || c.id === sel);
+  const b = c => `<button type="button" class="cat" data-cat="${c.id}" aria-pressed="${c.id === sel}"><span class="cat-i">${catIcon(c.id)}</span>${CAT_CORTO[c.id] || c.n}</button>`;
+  const main = ok.filter(c => CAT_PRINCIPALES.includes(c.id)), rest = ok.filter(c => !CAT_PRINCIPALES.includes(c.id));
+  return `<input type="hidden" id="r-cat" value="${esc(sel)}"><div class="cat-grid">${main.map(b).join('')}</div>${rest.length ? `<details class="cat-more" ${rest.some(c => c.id === sel) ? 'open' : ''}><summary>Otros tipos</summary><div class="cat-grid">${rest.map(b).join('')}</div></details>` : ''}`;
+}
 const GROUPS = { cultivo: 'Cultivo', venta: 'Venta y flete', gestion: 'Gestión' };
 const CANALES = { camionero: 'Camionero en finca', coche: 'Mercado de Coche', restaurante: 'Restaurante', otro: 'Otro' };
 const CALIDADES = { primera: 'Primera', segunda: 'Segunda', tercera: 'Tercera', mezclada: 'Mezclada' };
@@ -216,9 +239,21 @@ function doRender() {
   v.innerHTML = pendienteHtml() + html;
   syncLotes(v);
   if (keep) restoreForm(v, keep);
+  syncCats();
+  tidyTitle(v);
   resolveNames();
 }
 // Reminder while changes are saved on the phone but not uploaded yet: they only go up with the app open and signal.
+function syncCats() { const h = $('#r-cat'); if (!h) return; document.querySelectorAll('.cat').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.cat === h.value))); }
+// The bar already names the screen; drop a first heading that only repeats it.
+function tidyTitle(v) {
+  if (S.editing) return;
+  const h = v.querySelector(':scope > section:first-of-type h2'); if (!h || h.closest('.obr, .hero, .demo-panel')) return;
+  const key = tabLabel(S.view).toLowerCase().normalize('NFD').replace(/[^a-z ]/g, '').split(' ')[0].slice(0, 6);
+  const txt = h.textContent.toLowerCase().normalize('NFD').replace(/[^a-z ]/g, '');
+  if (!key || !txt.includes(key)) return;
+  h.hidden = true; const eb = h.previousElementSibling; if (eb && eb.classList.contains('eyebrow')) eb.hidden = true;
+}
 function pendienteHtml() {
   const n = S.demo ? 0 : N(S.porSubir);
   if (!n || S.online) return '';
@@ -357,13 +392,13 @@ VIEWS.resumen = () => {
     out += `<section><h3>Por finca</h3><div class="tbl"><table><thead><tr><th>Finca</th><th class="r">Sacos</th><th class="r">Sacos por saco de semilla</th><th class="r">Ventas</th><th class="r">Gastos</th><th class="r">Utilidad</th><th class="r">Costo cultivo/saco</th><th class="r">En finca</th><th class="r">Por cobrar</th></tr></thead><tbody>
       ${rows.map(({ fc, s }) => { const sem = sum(S.lotes.filter(l => l.finca === fc.id && l.estado !== 'plan' && String(l.siembra || '').startsWith(String(S.year))), l => l.sacosSemilla); return `<tr><td>${esc(fc.nombre)}</td><td class="r num">${nf(s.sacos)}</td><td class="r num">${sem && s.sacos ? nf(s.sacos / sem, 1) : '—'}</td><td class="r num">${usd(s.ventas)}</td><td class="r num">${usd(s.gastos)}</td><td class="r num ${s.utilidad < 0 ? 'neg' : ''}">${usd(s.utilidad)}</td><td class="r num">${s.costoSaco == null ? '—' : usd(s.costoSaco, 2)}</td><td class="r num">${nf(s.stock)}</td><td class="r num">${usd(s.porCobrar)}</td></tr>`; }).join('')}
       <tr class="total"><td>Total</td><td class="r num">${nf(st.sacos)}</td><td class="r num"></td><td class="r num">${usd(st.ventas)}</td><td class="r num">${usd(st.gastos)}</td><td class="r num">${usd(st.utilidad)}</td><td class="r num">${st.costoSaco == null ? '—' : usd(st.costoSaco, 2)}</td><td class="r num">${nf(st.stock)}</td><td class="r num">${usd(st.porCobrar)}</td></tr>
-      </tbody></table></div><p class="hint">Los gastos generales (sueldo, viajes, contador) se reparten entre las fincas ${S.cfg.prorrateo === 'sacos' ? 'según los sacos que cosechó cada una' : 'en partes iguales'}. Se cambia en Ajustes.</p></section>`;
+      </tbody></table></div><p class="hint help">Los gastos generales (sueldo, viajes, contador) se reparten entre las fincas ${S.cfg.prorrateo === 'sacos' ? 'según los sacos que cosechó cada una' : 'en partes iguales'}. Se cambia en Ajustes.</p></section>`;
   }
 
   // agenda + alerts
   const hoy = today();
   const lotesF = S.lotes.filter(l => f === 'all' || l.finca === f);
-  const proximas = lotesF.filter(l => l.estado === 'sembrado').map(l => ({ l, i: loteInfo(l) })).filter(x => x.i.est && !x.i.cosechados).sort((a, b) => a.i.est.localeCompare(b.i.est)).slice(0, 6);
+  const proximas = lotesF.filter(l => l.estado === 'sembrado').map(l => ({ l, i: loteInfo(l) })).filter(x => x.i.est && !x.i.cosechados).sort((a, b) => a.i.est.localeCompare(b.i.est)).slice(0, 3);
   const alerts = [];
   lotesF.filter(l => l.estado === 'sembrado').forEach(l => { const i = loteInfo(l); if (i.est && i.est < hoy && !i.cosechados) alerts.push(['bad', `${esc(l.nombre)} (${esc(fincaName(l.finca))}) debía cosecharse el ${fdate(i.est)} y no tiene cosecha registrada.`, 'registrar', 'Registrar cosecha']); });
   lotesF.filter(l => l.estado === 'plan' && l.siembra && l.siembra < hoy).slice(0, 4).forEach(l => alerts.push(['', `El plan decía sembrar ${esc(l.nombre)} (${esc(fincaName(l.finca))}) el ${fdate(l.siembra)}. ¿Ya se sembró?`, 'lotes', 'Ver lotes']));
@@ -409,7 +444,7 @@ VIEWS.registrar = () => {
   // Claude reader
   if (S.sample) {
     out += `<section><div class="sec-head"><div><p class="eyebrow">Lo más rápido</p><h2>Pegar el reporte del encargado</h2></div></div>
-      <div class="panel"><p class="muted small">Pega el reporte de WhatsApp o sube la foto de una factura o del cuaderno. Claude lo convierte en registros y tú los revisas antes de guardarlos.</p>
+      <div class="panel"><p class="muted small help">Pega el reporte de WhatsApp o sube la foto de una factura o del cuaderno. Claude lo convierte en registros y tú los revisas antes de guardarlos.</p>
       ${fld('ai-text', 'Mensaje', `<textarea id="ai-text" placeholder="Ej.: El Baho, lunes: 4 jornales a 8$, 3 sacos de abono 10-20-20 a 38$ c/u. Se sacaron 60 sacos del lote Tanda 2, 52 de primera. Vendí 50 a Pedro a 26$, pagó.">${''}</textarea>`)}
       <div class="grid">${S.imagesOk ? fld('ai-foto', 'Fotos (facturas o cuaderno)', `<input type="file" id="ai-foto" accept="image/jpeg,image/png,image/webp" multiple>`) : ''}</div>
       <div class="btns"><button class="btn primary" data-act="ai-read" ${S.ai.busy ? 'disabled' : ''}>${icon('chispa', 's')}${S.ai.busy ? 'Leyendo…' : 'Leer con Claude'}</button>${S.ai.busy ? `<button class="btn" data-act="ai-stop">Detener</button>` : ''}</div>
@@ -435,11 +470,10 @@ VIEWS.registrar = () => {
     out += fld('r-finca', 'Finca', `<select id="r-finca" data-act-change="finca">${fincaOptions(df, t === 'gasto')}</select>`)
       + fld('r-lote', !simple ? 'Lote' : t === 'cosecha' ? 'Lote (la tanda que se sacó)' : 'Lote (si sabes cuál)', `<select id="r-lote" data-lote-for="r-finca">${loteOptions(e.lote || S.prefLote || '')}</select>`);
     if (t === 'gasto') {
-      out += fld('r-cat', simple ? 'En qué se gastó' : 'Categoría', `<select id="r-cat">${catOptions(e.cat || 'jornales', simple)}</select>`)
-        + fld('r-monto', 'Monto ($)', numIn('r-monto', e.monto, '0'))
-        + (simple ? '' : fld('r-cant', 'Cantidad (opcional)', numIn('r-cant', e.cantidad, 'Ej.: 4'))
-        + fld('r-unidad', 'Unidad', inp('r-unidad', e.unidad, 'placeholder="jornales, sacos, litros…"')))
-        + fld('r-desc', 'Detalle', inp('r-desc', e.desc, 'placeholder="Ej.: abono 10-20-20, 3 sacos de 50 kg"'), 'wide');
+      out += `<div class="field wide amt"><label for="r-monto">¿Cuánto?</label><div class="amt-in"><span>$</span>${numIn('r-monto', e.monto, '0')}</div></div>`
+        + `<div class="field wide catf"><label>¿En qué?</label>${catGrid(e.cat || 'jornales', simple)}</div>`
+        + fld('r-desc', 'Detalle (opcional)', inp('r-desc', e.desc, 'placeholder="Ej.: 4 jornales de aporque"'), 'wide')
+        + (simple ? '' : `<details class="field wide extra" ${e.cantidad ? 'open' : ''}><summary>Cantidad y unidad</summary><div class="grid">${fld('r-cant', 'Cantidad', numIn('r-cant', e.cantidad, 'Ej.: 4')) + fld('r-unidad', 'Unidad', inp('r-unidad', e.unidad, 'placeholder="jornales, sacos, litros…"'))}</div></details>`);
     } else if (t === 'cosecha') {
       const ps = e.pesos || [], m = e.muestra || {}, pf = e.prueba || {};
       out += `<div class="field wide"><p class="cos-paso"><b>1</b> Cuenta los sacos de cada clase</p></div>`
@@ -498,29 +532,33 @@ VIEWS.lotes = () => {
   const ls = S.lotes.filter(l => (f === 'all' || l.finca === f)).filter(l => { const i = loteInfo(l); const a = l.siembra || '', b = i.lastCos || i.est || a; return a.slice(0, 4) <= String(y) && b.slice(0, 4) >= String(y); })
     .sort((a, b) => (a.finca + a.siembra).localeCompare(b.finca + b.siembra));
   let out = `<section><div class="sec-head"><div><p class="eyebrow">${y}</p><h2>Lotes y siembra escalonada</h2></div>${canWrite() ? `<div class="btns"><button class="btn primary" data-act="lote-new">Nuevo lote</button></div>` : ''}</div>
-    <p class="muted small">Cada lote es una tanda de siembra. El cuaderno calcula cuándo se cosecha cada una y cuánto rindió.</p>`;
+    <p class="muted small help">Cada lote es una tanda de siembra. El cuaderno calcula cuándo se cosecha cada una y cuánto rindió.</p>`;
   if (S.editingLote) out += loteForm();
   out += `<div class="panel">${ls.length ? timeline(ls) : `<p class="muted">No hay lotes en ${y}${f === 'all' ? '' : ' para ' + esc(fincaName(f))}. Crea uno o genera el plan de siembra escalonada abajo.</p>`}
     <div class="legend"><span><i style="background:var(--sunk);border:1px dashed var(--muted)"></i>Planificado</span><span><i style="background:var(--paramo)"></i>Sembrado</span><span><i style="background:var(--papa)"></i>Cosechado</span><span><i style="background:var(--bad);width:2px"></i>Hoy</span></div></div>`;
   if (ls.length) {
-    out += `<div class="lotes">${ls.map(l => {
+    const card = l => {
       const i = loteInfo(l), d = i.est ? daysBetween(hoy, i.est) : null;
       const conf = S.confirm === 'lote:' + l.id;
       return `<div class="lote"><div class="lote-h"><div><div class="t" style="font-weight:700">${esc(l.nombre)}</div><div class="s muted small">${esc(fincaName(l.finca))} · ${esc(l.variedad || 'papa')}${l.ha ? ' · ' + nf(l.ha, 1) + ' ha' : ''}</div></div><span class="chip c-${esc(l.estado || 'plan')}">${{ plan: 'Planificado', sembrado: 'Sembrado', cosechado: 'Cosechado' }[l.estado] || 'Planificado'}</span></div>
-        <dl class="kv"><dt>Siembra</dt><dd>${fdateY(l.siembra)}</dd><dt>Cosecha estimada</dt><dd>${fdateY(i.est)}${l.estado === 'sembrado' && d !== null ? ` · ${d >= 0 ? 'en ' + d : 'hace ' + (-d)} d` : ''}</dd>
+        <div class="lote-n"><div><span>Cosecha</span><b>${l.estado === 'cosechado' && i.lastCos ? fdate(i.lastCos) : i.est ? fdate(i.est) : '—'}</b>${l.estado === 'sembrado' && d !== null ? `<small>${d >= 0 ? 'en ' + d + ' d' : 'hace ' + (-d) + ' d'}</small>` : ''}</div><div><span>Rindió</span><b>${i.rend == null || !i.cosechados ? '—' : nf(i.rend, 1) + '×'}</b>${i.cosechados ? `<small>${sacosTxt(i.cosechados)}</small>` : ''}</div><div><span>Costo/saco</span><b>${i.costoSaco == null ? '—' : usd(i.costoSaco, 2)}</b>${i.gasto ? `<small>${usd(i.gasto)} gastado</small>` : ''}</div></div>
+        <details class="lote-more"><summary>Ver detalle</summary><dl class="kv"><dt>Siembra</dt><dd>${fdateY(l.siembra)}</dd><dt>Cosecha estimada</dt><dd>${fdateY(i.est)}${l.estado === 'sembrado' && d !== null ? ` · ${d >= 0 ? 'en ' + d : 'hace ' + (-d)} d` : ''}</dd>
         <dt>Semilla</dt><dd>${l.sacosSemilla ? sacosTxt(l.sacosSemilla) : '—'}</dd><dt>Cosechado</dt><dd>${i.cosechados ? sacosTxt(i.cosechados) : '—'}</dd>
         <dt>Sacos por saco de semilla</dt><dd>${i.rend == null || !i.cosechados ? '—' : nf(i.rend, 1)}</dd>${i.aprovechable != null ? `<dt>Aprovechable</dt><dd>${nf(i.aprovechable * 100)}%${i.descarte ? ` · ${sacosTxt(i.descarte)} botados` : ''}</dd>` : ''}${i.kgReal ? `<dt>Peso real del saco</dt><dd>${nf(i.kgReal, 1)} kg</dd>` : ''}${i.sanas != null ? `<dt>Papas sanas (muestra)</dt><dd>${nf(i.sanas * 100)}%</dd>` : ''}${i.gs ? `<dt>Prueba para freír</dt><dd>${nf(i.gs, 3)} · ${fritoTxt(i.gs)}</dd>` : ''}<dt>Gastos anotados</dt><dd>${usd(i.gasto)}</dd><dt>Costo por saco</dt><dd>${i.costoSaco == null ? '—' : usd(i.costoSaco, 2)}</dd></dl>
         ${i.presup ? `<div class="budget"><div class="bh"><span>Presupuesto: ${usd(i.gasto)} de ${usd(i.presup)}</span><span class="num">${nf(i.pctPres * 100)}%</span></div><div class="bar2 ${i.pctPres > 1 ? 'over' : i.pctPres > 0.85 ? 'near' : ''}"><i style="width:${Math.min(100, i.pctPres * 100).toFixed(1)}%"></i></div></div>` : ''}
-        ${l.notas ? `<p class="small muted">${esc(l.notas)}</p>` : ''}
+        ${l.notas ? `<p class="small muted">${esc(l.notas)}</p>` : ''}</details>
         ${canWrite() ? `<div class="btns">${l.estado === 'plan' ? `<button class="btn" data-act="lote-estado" data-id="${esc(l.id)}" data-v="sembrado">Ya se sembró</button>` : ''}${l.estado === 'sembrado' ? `<button class="btn" data-act="lote-estado" data-id="${esc(l.id)}" data-v="cosechado">Ya se cosechó</button>` : ''}<button class="btn ghost" data-act="lote-edit" data-id="${esc(l.id)}">Editar</button>${conf ? `<button class="btn danger" data-act="lote-del" data-id="${esc(l.id)}">Sí, borrar</button><button class="btn ghost" data-act="confirm-no">No</button>` : `<button class="btn ghost danger" data-act="confirm" data-k="lote:${esc(l.id)}">Borrar</button>`}</div>` : ''}</div>`;
-    }).join('')}</div>`;
+    };
+    const act = ls.filter(l => l.estado !== 'cosechado'), done = ls.filter(l => l.estado === 'cosechado');
+    out += act.length ? `<div class="lotes">${act.map(card).join('')}</div>` : '';
+    if (done.length) out += `<details class="box lotes-done"><summary>Cosechados (${done.length})</summary><div class="in"><div class="lotes">${done.map(card).join('')}</div></div></details>`;
   }
   out += `</section>`;
   const pr = ls.filter(l => l.estado !== 'plan').map(l => ({ l, i: loteInfo(l) })).filter(x => x.i.presup);
-  if (pr.length) out += `<section><h3>Presupuesto contra lo real</h3><div class="tbl"><table><thead><tr><th>Lote</th><th>Finca</th><th class="r">Presupuesto</th><th class="r">Gastado</th><th class="r">Queda</th><th class="r">Usado</th></tr></thead><tbody>
+  if (pr.length) out += `<section><details class="box"><summary>Presupuesto contra lo real</summary><div class="in"><div class="tbl"><table><thead><tr><th>Lote</th><th>Finca</th><th class="r">Presupuesto</th><th class="r">Gastado</th><th class="r">Queda</th><th class="r">Usado</th></tr></thead><tbody>
     ${pr.map(({ l, i }) => `<tr><td>${esc(l.nombre)}</td><td>${esc(fincaName(l.finca))}</td><td class="r num">${usd(i.presup)}</td><td class="r num">${usd(i.gasto)}</td><td class="r num ${i.presup - i.gasto < 0 ? 'neg' : ''}">${usd(i.presup - i.gasto)}</td><td class="r num ${i.pctPres > 1 ? 'neg' : ''}">${nf(i.pctPres * 100)}%</td></tr>`).join('')}
     <tr class="total"><td>Total</td><td></td><td class="r num">${usd(sum(pr, x => x.i.presup))}</td><td class="r num">${usd(sum(pr, x => x.i.gasto))}</td><td class="r num">${usd(sum(pr, x => x.i.presup - x.i.gasto))}</td><td class="r num">${nf(sum(pr, x => x.i.gasto) / sum(pr, x => x.i.presup) * 100)}%</td></tr></tbody></table></div>
-    <p class="hint">Solo cuenta los gastos anotados con ese lote. Si el lote no tiene presupuesto propio, se calcula con ${usd(S.cfg.presupSemilla)} por saco de semilla (se cambia en Ajustes).</p></section>`;
+    <p class="hint help">Solo cuenta los gastos anotados con ese lote. Si el lote no tiene presupuesto propio, se calcula con ${usd(S.cfg.presupSemilla)} por saco de semilla (se cambia en Ajustes).</p></div></details></section>`;
   if (S.canAdmin) out += planForm();
   return out;
 };
@@ -565,7 +603,7 @@ function loteForm() {
 function planForm() {
   const y = S.year + (new Date().getMonth() >= 9 && S.year === new Date().getFullYear() ? 1 : 0);
   return `<section><details class="box"><summary>Generar el plan de siembra escalonada</summary><div class="in">
-    <p class="muted small">Crea los lotes planificados de un año: cada finca siembra en tandas, una por mes, y las fincas arrancan en meses distintos para que salga papa todo el año. Con 4 tandas por finca y 4 meses de diferencia, siempre hay una finca cosechando.</p>
+    <p class="muted small help">Crea los lotes planificados de un año: cada finca siembra en tandas, una por mes, y las fincas arrancan en meses distintos para que salga papa todo el año. Con 4 tandas por finca y 4 meses de diferencia, siempre hay una finca cosechando.</p>
     <form id="plan-form" class="grid">
       ${fld('p-anio', 'Año', numIn('p-anio', y))}
       ${fld('p-tandas', 'Tandas por finca', numIn('p-tandas', 4))}
@@ -620,7 +658,7 @@ VIEWS.almacen = () => {
   if (!ready() || !S.loaded.almacen) return notReady();
   const inv = inventario(), hay = inv.filter(p => p.stock > 0), valor = sum(hay, p => p.stock * p.costo);
   let out = `<section><p class="eyebrow">Insumos</p><h2>Almacén</h2>
-    <p class="muted small">Se compra todo junto, se guarda y se entrega a cada finca. Al entregar, el gasto pasa a esa finca y a su lote al costo de compra. Los encargados no ven esta parte.</p>
+    <p class="muted small help">Se compra todo junto, se guarda y se entrega a cada finca. Al entregar, el gasto pasa a esa finca y a su lote al costo de compra. Los encargados no ven esta parte.</p>
     <div class="kpis">${kpi('Valor guardado', usd(valor), 'al costo de compra')}${kpi('Productos con existencia', nf(hay.length), inv.length > hay.length ? `${inv.length - hay.length} agotados` : '')}</div></section>
   <section>${almForm()}</section>`;
   out += `<section><h3>Lo que hay guardado</h3>${inv.length ? `<div class="tbl"><table><thead><tr><th>Producto</th><th class="r">Hay</th><th class="r">Costo c/u</th><th class="r">Valor</th></tr></thead><tbody>${inv.map(p => `<tr${p.stock > 0 ? '' : ' class="muted"'}><td>${esc(p.producto)}</td><td class="r num">${p.stock > 0 ? esc(cantTxt(p.stock, p.unidad)) : 'Agotado'}</td><td class="r num">${usd(p.costo, 2)}</td><td class="r num">${p.stock > 0 ? usd(p.stock * p.costo) : '—'}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">Todavía no hay compras anotadas.</p>'}</section>`;
@@ -676,12 +714,13 @@ VIEWS.libro = () => {
   if (!rs.length) { out += `<div class="empty"><p class="muted">${S.regs.length ? 'Ningún registro coincide con el filtro.' : `Todavía no hay registros de ${S.year}.`}</p>${canWrite() ? '<button class="btn primary" data-go="registrar">Registrar</button>' : ''}</div></section>`; return out; }
   out += `<div class="list">`;
   let curM = null;
-  for (const r of rs) {
+  const lim = S.libroN || 60;
+  for (const r of rs.slice(0, lim)) {
     const m = r.fecha.slice(0, 7);
     if (m !== curM) { curM = m; const rm = rs.filter(x => x.fecha.startsWith(m)); out += `<div class="month-h"><span>${MESES_L[+m.slice(5) - 1]} ${m.slice(0, 4)}</span><span class="num">${usd(sum(rm.filter(x => x.tipo === 'venta'), x => x.monto))} · ${usd(-sum(rm.filter(x => x.tipo === 'gasto'), x => x.monto))}</span></div>`; }
     out += itemHtml(r);
   }
-  return out + `</div></section>`;
+  return out + `</div>${rs.length > lim ? `<div class="btns" style="justify-content:center;margin-top:10px"><button class="btn" data-act="libro-mas">Ver ${nf(Math.min(60, rs.length - lim))} más</button></div>` : ''}</section>`;
 };
 function itemHtml(r) {
   let t = '', a = '', chip = '';
@@ -689,12 +728,13 @@ function itemHtml(r) {
   if (r.tipo === 'cosecha') { t = `${r.compra ? 'Compra a vecinos' : 'Cosecha'} · ${sacosTxt(sacosCosecha(r))}`; a = `${nf(sacosCosecha(r))}<small>sacos</small>`; chip = '<span class="chip c-cosecha">Cosecha</span>'; }
   if (r.tipo === 'insumo') { t = `Compra para el almacén · ${esc(r.producto || '')}`; a = `<span class="neg">${usd(-N(r.monto))}</span>`; chip = '<span class="chip c-plan">Almacén</span>'; }
   if (r.tipo === 'venta') { t = `Venta · ${ventaTxt(r)}${r.comprador ? ' · ' + esc(r.comprador) : ''}`; a = `<span class="pos">${usd(r.monto)}</span>`; chip = `<span class="chip c-venta">Venta</span>${r.cobrado ? '' : ' <span class="chip c-warn">Por cobrar</span>'}`; }
-  const sub = [fincaName(r.finca), r.lote ? loteName(r.lote) : '', r.tipo === 'cosecha' ? cosechaDet(r) : '', r.tipo === 'venta' ? (CANALES[r.canal] || '') : '', r.cantidad ? `${nf(r.cantidad, r.cantidad % 1 ? 1 : 0)} ${r.unidad || ''}` : '', r.desc].filter(Boolean).map(esc).join(' · ');
-  const who = r.autor ? (S.names[r.autor] || '') : '';
+  const sub = [S.finca === 'all' ? fincaName(r.finca) : '', r.lote ? loteName(r.lote) : '', r.tipo === 'cosecha' ? cosechaDet(r) : '', r.tipo === 'venta' ? (CANALES[r.canal] || '') : '', r.cantidad ? `${nf(r.cantidad, r.cantidad % 1 ? 1 : 0)} ${r.unidad || ''}` : '', r.desc].filter(Boolean).map(esc).join(' · ');
+  const who = r.autor && r.autor !== S.uid ? (S.names[r.autor] || '') : '';
   const conf = S.confirm === 'reg:' + r.id;
   const mine = S.canAdmin || r.autor === S.uid;
-  return `<div class="item"><span class="av t-${esc(r.tipo)}">${icon(r.tipo, 's')}</span><div><div class="t">${t}</div><div class="s">${fdate(r.fecha)} · ${sub}${r.tipo === 'venta' && !r.cobrado ? ' <span class="chip c-warn">Por cobrar</span>' : ''}${who || r.fuente === 'claude' ? ` · <span class="small">${who ? 'por ' + esc(who) : ''}${r.fuente === 'claude' ? (who ? ', ' : '') + 'leído por Claude' : ''}</span>` : ''}</div></div><div class="a">${a}</div>
-    ${canWrite() && mine ? `<div class="acts">${r.tipo === 'venta' && !r.cobrado ? `<button class="btn ghost" data-act="cobrar" data-id="${esc(r.id)}">Marcar cobrada</button>` : ''}${r.tipo === 'insumo' || r.almacen ? '' : `<button class="btn ghost" data-act="edit" data-id="${esc(r.id)}">Editar</button>`}${conf ? `<button class="btn danger" data-act="del" data-id="${esc(r.id)}">Sí, borrar</button><button class="btn ghost" data-act="confirm-no">No</button>` : `<button class="btn ghost danger" data-act="confirm" data-k="reg:${esc(r.id)}">Borrar</button>`}</div>` : ''}</div>`;
+  const acc = canWrite() && mine;
+  return `<div class="item${acc ? ' tapable' : ''}${conf ? ' open' : ''}"><span class="av t-${esc(r.tipo)}">${icon(r.tipo, 's')}</span><div><div class="t">${t}</div><div class="s">${fdate(r.fecha)} · ${sub}${r.tipo === 'venta' && !r.cobrado ? ' <span class="chip c-warn">Por cobrar</span>' : ''}${who || r.fuente === 'claude' ? ` · <span class="small">${who ? 'por ' + esc(who) : ''}${r.fuente === 'claude' ? (who ? ', ' : '') + 'leído por Claude' : ''}</span>` : ''}</div></div><div class="a">${a}</div>
+    ${acc ? `<div class="acts tap">${r.tipo === 'venta' && !r.cobrado ? `<button class="btn ghost" data-act="cobrar" data-id="${esc(r.id)}">Marcar cobrada</button>` : ''}${r.tipo === 'insumo' || r.almacen ? '' : `<button class="btn ghost" data-act="edit" data-id="${esc(r.id)}">Editar</button>`}${conf ? `<button class="btn danger" data-act="del" data-id="${esc(r.id)}">Sí, borrar</button><button class="btn ghost" data-act="confirm-no">No</button>` : `<button class="btn ghost danger" data-act="confirm" data-k="reg:${esc(r.id)}">Borrar</button>`}</div>` : ''}</div>`;
 }
 
 VIEWS.liquidacion = () => {
@@ -706,7 +746,7 @@ VIEWS.liquidacion = () => {
   const hdr = `<tr><th></th>${L.map(x => `<th class="r">${esc(x.f.nombre)}</th>`).join('')}${L.length > 1 ? '<th class="r">Total</th>' : ''}</tr>`;
   const txt = liqTexto(L);
   return `<section><div class="sec-head"><div><p class="eyebrow">${S.year}</p><h2>Liquidación y reparto</h2></div></div>
-    <p class="muted small">Cuánto dejó cada finca en el año y cómo se reparte entre quien trabaja, quien pone la tierra y quien pone el dinero. Los porcentajes se cambian en Ajustes.</p>
+    <p class="muted small help">Cuánto dejó cada finca en el año y cómo se reparte entre quien trabaja, quien pone la tierra y quien pone el dinero. Los porcentajes se cambian en Ajustes.</p>
     <div class="tbl"><table><thead>${hdr}</thead><tbody>
       <tr><td>Sacos cosechados</td>${L.map(x => `<td class="r num">${nf(x.q.sacos)}</td>`).join('')}${L.length > 1 ? `<td class="r num">${nf(tot('sacos'))}</td>` : ''}</tr>
       ${row('Ventas', 'ventas')}
@@ -718,7 +758,7 @@ VIEWS.liquidacion = () => {
       ${row(`Tierra (${nf(c.pctTierra, 1)}%)`, 'tierra')}
       ${row(`Dinero (${nf(c.pctDinero, 1)}%)`, 'dinero')}
     </tbody></table></div>
-    <p class="hint">${c.baseEncargado === 'precioFinca' ? `El tercio del encargado se calcula sobre la cosecha a precio de finca (${usd(c.precioRef)} el saco) menos cultivo y gestión. Lo que se gana de más vendiendo mejor queda para tierra y dinero.` : 'El tercio del encargado se calcula sobre la utilidad real.'} Si la utilidad es negativa, el encargado no cobra parte y la pérdida la cubren tierra y dinero.</p>
+    <p class="hint help">${c.baseEncargado === 'precioFinca' ? `El tercio del encargado se calcula sobre la cosecha a precio de finca (${usd(c.precioRef)} el saco) menos cultivo y gestión. Lo que se gana de más vendiendo mejor queda para tierra y dinero.` : 'El tercio del encargado se calcula sobre la utilidad real.'} Si la utilidad es negativa, el encargado no cobra parte y la pérdida la cubren tierra y dinero.</p>
     <div class="panel"><h3>Texto para mandar a la familia</h3><pre class="tpl" id="liq-txt">${esc(txt)}</pre><div class="btns"><button class="btn" data-act="copy" data-src="liq-txt">Copiar</button></div></div></section>`;
 };
 function liqTexto(L) {
@@ -736,12 +776,14 @@ VIEWS.precios = () => {
   const ps = [...S.precios].sort((a, b) => b.fecha.localeCompare(a.fecha));
   const per50 = p => N(p.kgSaco) ? N(p.precio) / N(p.kgSaco) * 50 : N(p.precio);
   let out = `<section><div class="sec-head"><div><p class="eyebrow">Mercado</p><h2>Precios de la papa</h2></div>${canWrite() ? `<button class="btn primary" data-act="new-precio">Anotar precio</button>` : ''}</div>
-    <p class="muted small">Precio por saco llevado a 50 kg para poder comparar. Anotar Coche cada semana muestra si conviene vender en finca o llevar a Caracas.</p>`;
+    <p class="muted small help">Precio por saco llevado a 50 kg para poder comparar. Anotar Coche cada semana muestra si conviene vender en finca o llevar a Caracas.</p>`;
   if (!ps.length) return out + `<div class="empty"><p class="muted">Todavía no hay precios anotados.</p></div></section>`;
-  out += `<div class="panel">${priceChart(ps, per50)}<div class="legend"><span><i style="background:var(--papa)"></i>Coche</span><span><i style="background:var(--paramo)"></i>En finca</span><span><i style="background:var(--tierra)"></i>Otro</span></div></div>
-    <div class="tbl"><table><thead><tr><th>Fecha</th><th>Mercado</th><th>Producto</th><th class="r">Precio</th><th class="r">Kg</th><th class="r">$ por 50 kg</th><th>Fuente</th><th></th></tr></thead><tbody>
+  const ult = m => ps.find(p => p.mercado === m), co = ult('coche'), fi = ult('finca');
+  out += `<div class="kpis">${kpi('Coche', co ? usd(per50(co), 2) : '—', co ? fdate(co.fecha) : 'sin dato')}${kpi('En finca', fi ? usd(per50(fi), 2) : '—', fi ? fdate(fi.fecha) : 'sin dato')}${co && fi ? kpi('Diferencia por saco', usd(per50(co) - per50(fi), 2), 'antes de flete') : ''}</div>
+    <div class="panel">${priceChart(ps, per50)}<div class="legend"><span><i style="background:var(--papa)"></i>Coche</span><span><i style="background:var(--paramo)"></i>En finca</span><span><i style="background:var(--tierra)"></i>Otro</span></div></div>
+    <details class="box"><summary>Todos los precios (${nf(ps.length)})</summary><div class="in"><div class="tbl"><table><thead><tr><th>Fecha</th><th>Mercado</th><th>Producto</th><th class="r">Precio</th><th class="r">Kg</th><th class="r">$ por 50 kg</th><th>Fuente</th><th></th></tr></thead><tbody>
     ${ps.slice(0, 80).map(p => `<tr><td class="num">${fdateY(p.fecha)}</td><td>${esc(MERCADOS[p.mercado] || p.mercado)}</td><td>${esc(p.producto)}</td><td class="r num">${usd(p.precio, 2)}</td><td class="r num">${nf(p.kgSaco)}</td><td class="r num">${usd(per50(p), 2)}</td><td class="small muted">${esc(p.desc || '')}</td><td>${canWrite() ? (S.confirm === 'pre:' + p.id ? `<button class="btn danger" data-act="del-precio" data-id="${esc(p.id)}">Sí, borrar</button>` : `<button class="btn ghost danger" data-act="confirm" data-k="pre:${esc(p.id)}">Borrar</button>`) : ''}</td></tr>`).join('')}
-    </tbody></table></div></section>`;
+    </tbody></table></div></div></details></section>`;
   return out;
 };
 function priceChart(ps, per50) {
@@ -812,7 +854,7 @@ VIEWS.guia = () => {
     <li>Si un gasto es de una tanda, elige el lote. Así se sabe cuánto costó cada tanda.</li>
     <li>Siempre anota los kilos del saco.</li>
     <li>Un error se corrige con "Editar", no anotándolo dos veces.</li></ul></section>`;
-  if (esc_) out += `<section class="panel"><h3>Plantilla para un encargado sin la app</h3><p class="muted small">Si algún encargado prefiere mandar su reporte por WhatsApp, que use este orden. Tú lo anotas en la app.</p>
+  if (esc_) out += `<section class="panel"><h3>Plantilla para un encargado sin la app</h3><p class="muted small help">Si algún encargado prefiere mandar su reporte por WhatsApp, que use este orden. Tú lo anotas en la app.</p>
   <pre class="tpl" id="tpl-enc">${esc(PLANTILLA)}</pre><div class="btns"><button class="btn" data-act="copy" data-src="tpl-enc">Copiar plantilla</button></div></section>`;
   return out;
 };
@@ -828,9 +870,9 @@ VIEWS.ajustes = () => {
   const c = S.cfg, adm = S.canAdmin;
   const dis = adm ? '' : 'disabled';
   let out = `<section><div class="sec-head"><div><p class="eyebrow">Configuración</p><h2>Ajustes</h2></div></div>
-    <div class="panel"><h3>Tamaño de la letra</h3><p class="small muted">También puedes abrir o cerrar dos dedos sobre la pantalla. Solo crece el contenido; los botones de abajo quedan igual.</p><div class="btns">${[[1, 'Normal'], [1.15, 'Grande'], [1.3, 'Muy grande']].map(([z, n]) => `<button class="btn ${Math.abs(zoomV - z) < 0.05 ? 'primary' : ''}" data-act="zoom" data-v="${z}">${n}</button>`).join('')}</div></div>
+    <div class="panel"><h3>Tamaño de la letra</h3><p class="small muted help">También puedes abrir o cerrar dos dedos sobre la pantalla. Solo crece el contenido; los botones de abajo quedan igual.</p><div class="btns">${[[1, 'Normal'], [1.15, 'Grande'], [1.3, 'Muy grande']].map(([z, n]) => `<button class="btn ${Math.abs(zoomV - z) < 0.05 ? 'primary' : ''}" data-act="zoom" data-v="${z}">${n}</button>`).join('')}</div></div>
     ${S.demo ? `<div class="panel"><h3>Modo demostración</h3><p class="small">Estás viendo una operación simulada con los números del plan: tres fincas, cuatro siembras al año en cada una, unos 200 sacos al mes a restaurantes a $40 y el resto al camionero. Lo que anotes aquí no se guarda.</p><div class="btns"><button class="btn primary" data-act="demo-salir">Salir de la demostración</button></div></div>`
-    : `<div class="panel"><h3>Tu cuenta</h3><p class="small">${esc(S.names[S.email] || '')} ${esc(S.email || '')}<br><span class="muted">${esc(ROLES[S.rol] || '')}${S.rol === 'encargado' ? ' · ' + esc(fincaName(S.miFinca)) : ''}</span></p><div class="btns"><button class="btn" data-act="logout">${icon('salir', 's')}Cerrar sesión</button>${S.rol !== 'encargado' ? `<button class="btn" data-act="demo">Ver demostración</button>` : ''}</div><p class="hint">La demostración muestra la app llena con números simulados del plan, para presentarla. No toca tus datos.</p></div>`}`;
+    : `<div class="panel"><h3>Tu cuenta</h3><p class="small">${esc(S.names[S.email] || '')} ${esc(S.email || '')}<br><span class="muted">${esc(ROLES[S.rol] || '')}${S.rol === 'encargado' ? ' · ' + esc(fincaName(S.miFinca)) : ''}</span></p><div class="btns"><button class="btn" data-act="logout">${icon('salir', 's')}Cerrar sesión</button>${S.rol !== 'encargado' ? `<button class="btn" data-act="demo">Ver demostración</button>` : ''}</div><p class="hint help">La demostración muestra la app llena con números simulados del plan, para presentarla. No toca tus datos.</p></div>`}`;
   if (!adm) return out + `<div class="notice"><p>Solo el administrador puede cambiar las metas, el reparto y los usuarios.</p></div></section>`;
   out += `<form class="panel" id="cfg-form"><h3>Fincas</h3>
       ${S.fincas.map(f => `<div class="grid">${fld('fc-n-' + f.id, 'Nombre', inp('fc-n-' + f.id, f.nombre, dis))}${fld('fc-ha-' + f.id, 'Hectáreas', numIn('fc-ha-' + f.id, f.ha).replace('<input', `<input ${dis}`))}${fld('fc-e-' + f.id, 'Encargado', inp('fc-e-' + f.id, f.encargado, dis + ' placeholder="Nombre"'))}</div>`).join('')}
@@ -904,10 +946,10 @@ function labHtml(x, hoy) {
   let acts = '';
   if (canWrite()) {
     if (S.movLab === x.id) acts = `<form class="lab-move" id="lab-move-form" data-id="${esc(x.id)}">${inp('lm-fecha', x.fecha, 'type="date" aria-label="Nueva fecha"')}<button class="btn primary" type="submit">Guardar</button><button class="btn ghost" type="button" data-act="lab-mover-no">Cancelar</button></form>`;
-    else if (labPend(x)) acts = `<div class="acts">${x.k === 'cosecha' ? `<button class="btn ghost ok" data-act="lab-cos" data-id="${esc(x.id)}">Registrar cosecha</button>` : `<button class="btn ghost ok" data-act="lab-hecho" data-id="${esc(x.id)}">Hecha</button>`}<button class="btn ghost" data-act="lab-mover" data-id="${esc(x.id)}">Cambiar fecha</button><button class="btn ghost" data-act="lab-omitir" data-id="${esc(x.id)}">No aplica</button>${x.custom ? (S.confirm === 'lab:' + x.id ? `<button class="btn danger" data-act="lab-del" data-id="${esc(x.id)}">Sí, borrar</button>` : `<button class="btn ghost danger" data-act="confirm" data-k="lab:${esc(x.id)}">Borrar</button>`) : ''}</div>`;
+    else if (labPend(x)) acts = `<div class="acts">${x.k === 'cosecha' ? `<button class="btn ghost ok" data-act="lab-cos" data-id="${esc(x.id)}">Registrar cosecha</button>` : `<button class="btn ghost ok" data-act="lab-hecho" data-id="${esc(x.id)}">Hecha</button>`}<span class="more"><button class="btn ghost" data-act="lab-mover" data-id="${esc(x.id)}">Cambiar fecha</button><button class="btn ghost" data-act="lab-omitir" data-id="${esc(x.id)}">No aplica</button>${x.custom ? (S.confirm === 'lab:' + x.id ? `<button class="btn danger" data-act="lab-del" data-id="${esc(x.id)}">Sí, borrar</button>` : `<button class="btn ghost danger" data-act="confirm" data-k="lab:${esc(x.id)}">Borrar</button>`) : ''}</span></div>`;
     else if (x.k !== 'cosecha') acts = `<div class="acts"><button class="btn ghost" data-act="lab-undo" data-id="${esc(x.id)}">Deshacer</button></div>`;
   }
-  return `<div class="item"><span class="av t-lab ${labPend(x) && d < 0 ? 'late' : ''}">${icon('labores', 's')}</span><div><div class="t">${esc(x.nombre)}</div><div class="s">${sub}</div></div><div class="a">${chip}</div>${acts}</div>`;
+  return `<div class="item${acts && labPend(x) ? ' tapable' : ''}${S.confirm === 'lab:' + x.id ? ' open' : ''}"><span class="av t-lab ${labPend(x) && d < 0 ? 'late' : ''}">${icon('labores', 's')}</span><div><div class="t">${esc(x.nombre)}</div><div class="s">${sub}</div></div><div class="a">${chip}</div>${acts}</div>`;
 }
 function labTexto(fid, hoy) {
   const g = labGroups(labItems(true).filter(x => x.finca === fid), hoy);
@@ -923,7 +965,7 @@ VIEWS.labores = () => {
   const hoy = today(), items = labItems(), g = labGroups(items, hoy);
   const sec = (title, arr, empty) => `<section><h3>${title}${arr.length ? ` <span class="muted small num">${arr.length}</span>` : ''}</h3>${arr.length ? `<div class="list">${arr.map(x => labHtml(x, hoy)).join('')}</div>` : `<p class="muted small">${empty}</p>`}</section>`;
   let out = `<section><div class="sec-head"><div><p class="eyebrow">Calendario de labores</p><h2>Qué toca hacer en cada lote</h2></div>${canWrite() ? `<button class="btn" data-act="lab-new">${icon('registrar', 's')}Agregar labor</button>` : ''}</div>
-    <p class="muted small">Sale solo de la fecha de siembra de cada lote, con el plan base de la papa: aporques, abonos y fumigaciones. Si el encargado lo hace distinto, cambia la fecha o márcala como "No aplica".</p>
+    <p class="muted small help">Sale solo de la fecha de siembra de cada lote, con el plan base de la papa: aporques, abonos y fumigaciones. Si el encargado lo hace distinto, cambia la fecha o márcala como "No aplica".</p>
     <div class="kpis">${kpi('Atrasadas', nf(g.atras.length), 'pasó la fecha y no se ha hecho', g.atras.length ? 'bad' : 'good')}${kpi('Esta semana', nf(g.semana.length), 'próximos 7 días')}${kpi('Próximas semanas', nf(g.prox.length), 'del día 8 al 35')}${kpi('Hechas', nf(g.hechas.filter(x => x.hecho).length), 'últimos 30 días')}</div></section>`;
   if (S.labNew && canWrite()) {
     out += `<form class="panel" id="lab-form"><h3>Nueva labor</h3><div class="grid">
@@ -935,12 +977,13 @@ VIEWS.labores = () => {
     </div><div class="btns"><button class="btn primary" type="submit">Guardar labor</button><button class="btn" type="button" data-act="lab-new-no">Cancelar</button></div></form>`;
   }
   if (!items.length) return out + `<div class="empty"><p class="muted">No hay lotes sembrados ni planificados. Las labores salen de los lotes.</p><button class="btn" data-go="lotes">Ir a lotes</button></div>`;
-  out += sec('Atrasadas', g.atras, 'Nada atrasado.') + sec('Esta semana', g.semana, 'Nada programado para esta semana.') + sec('Próximas semanas', g.prox, 'Nada en las próximas semanas.');
-  if (g.luego.length) out += `<section><details class="box"><summary>Más adelante (${g.luego.length})</summary><div class="in"><div class="list">${g.luego.slice(0, 80).map(x => labHtml(x, hoy)).join('')}</div></div></details></section>`;
+  out += sec('Atrasadas', g.atras, 'Nada atrasado.') + sec('Esta semana', g.semana, 'Nada programado para esta semana.') + sec('Próximas semanas', g.prox.slice(0, 4), 'Nada en las próximas semanas.');
+  const luego = [...g.prox.slice(4), ...g.luego];
+  if (luego.length) out += `<section><details class="box"><summary>Más adelante (${luego.length})</summary><div class="in"><div class="list">${luego.slice(0, 80).map(x => labHtml(x, hoy)).join('')}</div></div></details></section>`;
   if (g.hechas.length) out += `<section><details class="box"><summary>Hechas en los últimos 30 días (${g.hechas.length})</summary><div class="in"><div class="list">${g.hechas.map(x => labHtml(x, hoy)).join('')}</div></div></details></section>`;
   const fs = S.finca === 'all' ? S.fincas : S.fincas.filter(f => f.id === S.finca);
-  out += `<section><h3>Mensaje para cada encargado</h3><p class="muted small">Mándalo cada lunes por WhatsApp. Así el encargado sabe qué se espera de él esa semana.</p>
-    ${fs.map(f => `<div class="panel"><pre class="tpl" id="lab-txt-${esc(f.id)}">${esc(labTexto(f.id, hoy))}</pre><div class="btns"><button class="btn" data-act="copy" data-src="lab-txt-${esc(f.id)}">Copiar para ${esc(f.nombre)}</button></div></div>`).join('')}</section>`;
+  out += `<section><details class="box"><summary>Mensaje de la semana para cada encargado</summary><div class="in"><p class="muted small help">Mándalo cada lunes por WhatsApp. Así el encargado sabe qué se espera de él esa semana.</p>
+    ${fs.map(f => `<div class="panel"><pre class="tpl" id="lab-txt-${esc(f.id)}">${esc(labTexto(f.id, hoy))}</pre><div class="btns"><button class="btn" data-act="copy" data-src="lab-txt-${esc(f.id)}">Copiar para ${esc(f.nombre)}</button></div></div>`).join('')}</div></details></section>`;
   return out;
 };
 async function labSet(id, patch) {
@@ -988,7 +1031,7 @@ VIEWS.cobros = () => {
     const rows = Object.values(cy).sort((a, b) => b.monto - a.monto);
     out += `<section><h3>Clientes de ${S.year}</h3><div class="tbl"><table><thead><tr><th>Cliente</th><th>Tipo</th><th class="r">Sacos</th><th class="r">Compró</th><th class="r">Precio promedio</th><th class="r">Días en pagar</th><th class="r">Debe</th></tr></thead><tbody>
       ${rows.map(c => `<tr><td>${esc(c.n)}</td><td>${esc(CANALES[c.canal] || '')}</td><td class="r num">${nf(c.sacos)}</td><td class="r num">${usd(c.monto)}</td><td class="r num">${c.sacos ? usd(c.monto / c.sacos, 2) : '—'}</td><td class="r num">${c.dias.length ? nf(sum(c.dias, d => d) / c.dias.length) : '—'}</td><td class="r num ${c.pend ? 'neg' : ''}">${usd(c.pend)}</td></tr>`).join('')}
-      </tbody></table></div><p class="hint">"Días en pagar" cuenta desde la venta hasta el día en que se marcó cobrada. Las ventas que se anotaron como cobradas al momento no entran en ese promedio.</p></section>`;
+      </tbody></table></div><p class="hint help">"Días en pagar" cuenta desde la venta hasta el día en que se marcó cobrada. Las ventas que se anotaron como cobradas al momento no entran en ese promedio.</p></section>`;
   }
   return out;
 };
@@ -1039,7 +1082,8 @@ function cierreTexto(D, nota) {
   }
   const ojo = [];
   if (D.porCobrar) ojo.push(`Por cobrar ${usd(D.porCobrar)} de ${D.clientes} ${D.clientes === 1 ? 'cliente' : 'clientes'}${D.vencido ? `, ${usd(D.vencido)} vencido` : ''}.`);
-  D.sobre.forEach(x => ojo.push(`${x.l.nombre} (${fincaName(x.l.finca)}) se pasó del presupuesto: ${usd(x.i.gasto)} de ${usd(x.i.presup)}.`));
+  if (D.sobre.length === 1) D.sobre.forEach(x => ojo.push(`${x.l.nombre} (${fincaName(x.l.finca)}) se pasó del presupuesto: ${usd(x.i.gasto)} de ${usd(x.i.presup)}.`));
+  else if (D.sobre.length) ojo.push(`${D.sobre.length} lotes se pasaron del presupuesto (${usd(sum(D.sobre, x => x.i.gasto - x.i.presup))} de más): ${D.sobre.map(x => x.l.nombre + ' en ' + fincaName(x.l.finca)).join('; ')}.`);
   if (D.labAtras) ojo.push(`${D.labAtras} ${D.labAtras === 1 ? 'labor atrasada' : 'labores atrasadas'} en el campo.`);
   if (ojo.length) L.push('', 'Para estar pendientes:', ...ojo.map(t => '- ' + t));
   if (nota && String(nota).trim()) L.push('', 'Comentario del gerente:', String(nota).trim());
@@ -1075,21 +1119,23 @@ VIEWS.cierre = () => {
     ...D.cosechas.map(c => `<div class="item"><span class="av t-venta">${icon('cosecha', 's')}</span><div><div class="t">${esc(c.lote ? c.lote.nombre : 'Cosecha sin lote')} · ${sacosTxt(c.sacos)}</div><div class="s">${esc(fincaName(c.finca))} · ${nf(c.primera)} de primera${c.rend ? ' · ' + nf(c.rend, 1) + ' sacos por saco de semilla' : ''}</div></div><div class="a"></div></div>`)].join('');
   const ojo = [];
   if (D.vencido) ojo.push(['bad', `${usd(D.vencido)} en ventas vencidas.`, 'cobros', 'Ver cobros']);
-  D.sobre.forEach(x => ojo.push(['bad', `${esc(x.l.nombre)} (${esc(fincaName(x.l.finca))}) se pasó del presupuesto: ${usd(x.i.gasto)} de ${usd(x.i.presup)}.`, 'lotes', 'Ver lote']));
+  if (D.sobre.length === 1) D.sobre.forEach(x => ojo.push(['bad', `${esc(x.l.nombre)} (${esc(fincaName(x.l.finca))}) se pasó del presupuesto: ${usd(x.i.gasto)} de ${usd(x.i.presup)}.`, 'lotes', 'Ver lote']));
+  else if (D.sobre.length) ojo.push(['bad', `${D.sobre.length} lotes se pasaron del presupuesto, en total ${usd(sum(D.sobre, x => x.i.gasto - x.i.presup))} de más.`, 'lotes', 'Ver lotes']);
   if (D.labAtras) ojo.push(['', `${D.labAtras} ${D.labAtras === 1 ? 'labor atrasada' : 'labores atrasadas'}.`, 'labores', 'Ver labores']);
   if (!D.coche) ojo.push(['info', `No hay precios de Coche anotados en ${mes.toLowerCase()}.`, 'precios', 'Ver precios']);
   out += `<div class="split"><section><h3>Lotes del mes</h3>${lotesHtml ? `<div class="list">${lotesHtml}</div>` : `<p class="muted small">No se sembró ni se cosechó en ${mes.toLowerCase()}.</p>`}</section>
     <section><h3>Para estar pendientes</h3>${ojo.length ? `<div class="alerts">${ojo.map(([cls, t, go, b]) => `<div class="alert ${cls}"><span class="ai">${icon(cls === 'info' ? 'precio' : cls === 'bad' ? 'alerta' : 'reloj', 's')}</span><span>${t}</span><button class="btn ghost" data-go="${go}">${b} →</button></div>`).join('')}</div>` : '<p class="muted small">Todo en orden.</p>'}</section></div>`;
   const nota = doc ? doc.nota || '' : '';
-  out += `<section><div class="panel"><h3>Comentario del gerente</h3><p class="muted small">Tres o cuatro líneas: qué salió bien, qué preocupa y en qué te vas a enfocar el mes que viene. Es lo que más lee la familia.</p>
+  out += `<section><div class="panel"><h3>Comentario del gerente</h3><p class="muted small help">Tres o cuatro líneas: qué salió bien, qué preocupa y en qué te vas a enfocar el mes que viene. Es lo que más lee la familia.</p>
     <textarea id="ci-nota" placeholder="Ej.: Buen mes de ventas en Caracas. Preocupa el costo del abono en El Mostrenco. En noviembre: sembrar la tanda 3 y cobrar a Plan B.">${esc(nota)}</textarea>
     ${S.cierreAi.error ? `<div class="notice">${esc(S.cierreAi.error)}</div>` : ''}
     <div class="btns">${S.canAdmin ? `<button class="btn primary" data-act="ci-save" ${S.saving ? 'disabled' : ''}>${doc && doc.cerrado ? 'Guardar cambios' : 'Guardar y cerrar el mes'}</button>` : ''}${S.sample ? `<button class="btn" data-act="ci-ai" ${S.cierreAi.busy ? 'disabled' : ''}>${icon('chispa', 's')}${S.cierreAi.busy ? 'Redactando…' : 'Borrador con Claude'}</button>` : ''}</div></div></section>`;
-  out += `<section><div class="panel"><h3>Para mandar a la familia</h3><pre class="tpl" id="ci-txt">${esc(cierreTexto(D, nota))}</pre>
+  out += `<section><div class="panel"><h3>Para mandar a la familia</h3>
+    <details class="extra"><summary>Ver el mensaje</summary><pre class="tpl" id="ci-txt">${esc(cierreTexto(D, nota))}</pre></details>
     <div class="btns"><button class="btn" data-act="copy" data-src="ci-txt">Copiar para WhatsApp</button>${S.downloads ? `<button class="btn" data-act="ci-dl">Descargar reporte</button>` : ''}</div>
-    <p class="hint">El reporte descargado se abre en cualquier navegador y se puede imprimir o guardar como PDF.</p></div></section>`;
+    <p class="hint help">El reporte descargado se abre en cualquier navegador y se puede imprimir o guardar como PDF.</p></div></section>`;
   const hechos = S.cierres.filter(c => c.cerrado && String(c.id).startsWith(String(D.y)) && (c.finca || 'all') === S.finca).sort((a, b) => String(a.id).localeCompare(String(b.id)));
-  out += `<section><h3>Meses de ${D.y}</h3><div class="months">${MESES.map((n, i) => { const c = hechos.find(x => x.id === cierreId(D.y, i + 1, S.finca)); return `<button class="mo ${c ? 'done' : ''} ${i + 1 === D.m ? 'cur' : ''}" data-act="ci-go" data-v="${i + 1}" aria-label="${MESES_L[i]}${c ? ', cerrado' : ''}">${n}</button>`; }).join('')}</div><p class="hint">En verde, los meses cerrados.</p></section>`;
+  out += `<section><h3>Meses de ${D.y}</h3><div class="months">${MESES.map((n, i) => { const c = hechos.find(x => x.id === cierreId(D.y, i + 1, S.finca)); return `<button class="mo ${c ? 'done' : ''} ${i + 1 === D.m ? 'cur' : ''}" data-act="ci-go" data-v="${i + 1}" aria-label="${MESES_L[i]}${c ? ', cerrado' : ''}">${n}</button>`; }).join('')}</div><p class="hint help">En verde, los meses cerrados.</p></section>`;
   return out;
 };
 async function guardarCierre() {
@@ -1144,16 +1190,20 @@ async function descargarCierre() {
 // ---------- actions ----------
 document.addEventListener('click', async ev => {
   if (ev.target.closest('.scrim')) { S.sheet = false; return render(); }
-  const b = ev.target.closest('button, [data-go]'); if (!b) return;
+  const b = ev.target.closest('button, [data-go]');
+  if (!b) { const it = ev.target.closest('.item.tapable'); if (it && !ev.target.closest('a, input, select, textarea, form')) it.classList.toggle('open'); return; }
   if (b.dataset.tab === 'mas') { S.sheet = !S.sheet; return render(); }
   if (b.dataset.tab) { S.sheet = false; return go(b.dataset.tab); }
   if (b.dataset.go) { if (b.dataset.nt) { S.regTipo = b.dataset.nt; S.editing = null; } return go(b.dataset.go); }
   if (b.dataset.tipo) { S.regTipo = b.dataset.tipo; S.editing = null; return render(); }
+  if (b.dataset.cat) { const h = $('#r-cat'); if (h) h.value = b.dataset.cat; syncCats(); return; }
   const act = b.dataset.act; if (!act) return;
   const id = b.dataset.id;
   try {
     switch (act) {
       case 'confirm': S.confirm = b.dataset.k; render(); break;
+      case 'ayuda': document.body.classList.toggle('ayuda'); lsSet('cf-ayuda', document.body.classList.contains('ayuda') ? '1' : ''); b.setAttribute('aria-pressed', String(document.body.classList.contains('ayuda'))); break;
+      case 'libro-mas': S.libroN = (S.libroN || 60) + 60; render(); break;
       case 'zoom': setZoom(+b.dataset.v); render(); break;
       case 'alm-mode': S.almMode = b.dataset.v; S.skipRestore = true; render(); break;
       case 'confirm-no': S.confirm = null; render(); break;
@@ -1223,6 +1273,7 @@ function setZoom(z, show) {
   el.textContent = `Letra ${Math.round(zoomV * 100)}%`; el.hidden = false; clearTimeout(zoomT); zoomT = setTimeout(() => { el.hidden = true; }, 900);
 }
 setZoom(Number(lsGet('cf-zoom')) || 1);
+if (lsGet('cf-ayuda')) document.body.classList.add('ayuda');
 const dist2 = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
 document.addEventListener('touchstart', e => { if (e.touches.length === 2 && e.target.closest('#view')) pinch = { d: dist2(e.touches) || 1, z: zoomV }; }, { passive: true });
 document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); if (pinch && e.touches.length === 2) setZoom(pinch.z * dist2(e.touches) / pinch.d, true); }, { passive: false });
@@ -1489,7 +1540,7 @@ async function guardarPropuestas() {
 function usuariosHtml() {
   const ms = [...S.miembros].sort((a, b) => (a.rol + a.id).localeCompare(b.rol + b.id));
   return `<div class="panel"><h3>Usuarios</h3>
-    <p class="small muted">Agrega aquí el correo de cada persona. Después le mandas el link de la app y entra con "Crear cuenta" usando ese mismo correo. Los encargados solo ven y registran su finca; la familia y el analista solo pueden ver.</p>
+    <p class="small muted help">Agrega aquí el correo de cada persona. Después le mandas el link de la app y entra con "Crear cuenta" usando ese mismo correo. Los encargados solo ven y registran su finca; la familia y el analista solo pueden ver.</p>
     ${ms.length ? `<div class="list">${ms.map(m => `<div class="item"><span class="av t-lab">${icon('usuario', 's')}</span><div><div class="t">${esc(m.nombre || m.id)}</div><div class="s">${esc(m.id)} · ${esc(ROLES[m.rol] || m.rol)}${m.rol === 'encargado' ? ' · ' + esc(fincaName(m.finca)) : ''}</div></div><div class="a"></div>
       <div class="acts">${S.confirm === 'mb:' + m.id ? `<button class="btn danger" data-act="mb-del" data-id="${esc(m.id)}">Sí, quitar</button><button class="btn ghost" data-act="confirm-no">No</button>` : `<button class="btn ghost danger" data-act="confirm" data-k="mb:${esc(m.id)}">Quitar acceso</button>`}</div></div>`).join('')}</div>` : '<p class="muted small">Todavía no has agregado a nadie.</p>'}
     <form id="mb-form" class="grid">
@@ -1510,7 +1561,7 @@ async function guardarMiembro() {
 }
 function importHtml() {
   return `<details class="box"><summary>Pasar datos de un respaldo</summary><div class="in">
-    <p class="small muted">Carga un archivo de respaldo (.json) con fincas, lotes, registros, precios, labores y cierres. Los registros que ya existan con el mismo código se reemplazan; nada se duplica.</p>
+    <p class="small muted help">Carga un archivo de respaldo (.json) con fincas, lotes, registros, precios, labores y cierres. Los registros que ya existan con el mismo código se reemplazan; nada se duplica.</p>
     <input type="file" id="imp-file" accept="application/json,.json">
     <div class="btns"><button class="btn" data-act="imp" ${S.saving ? 'disabled' : ''}>Importar</button></div></div></details>`;
 }
