@@ -246,6 +246,7 @@ function doRender() {
   v.innerHTML = pendienteHtml() + html;
   syncLotes(v);
   if (keep) restoreForm(v, keep);
+  if (!keep) restoreDraft(v);
   syncCats(); syncMedio();
   tidyTitle(v);
   resolveNames();
@@ -305,6 +306,35 @@ async function cargarTasas() {
     if (bcv > 0 && paralelo > 0) { S.tasas = { bcv, paralelo, fecha: hoy, auto: true, ts: Date.now() }; lsSet('cf-tasas', JSON.stringify(S.tasas)); syncMedio(); }
   } catch { /* no signal or service down: keep last rates */ }
 }
+// Drafts: what was typed in a new record stays on this phone until it is saved or discarded, even when changing screens.
+function draftKey() {
+  if (S.editing) return '';
+  if (S.view === 'registrar') return 'cf-draft-' + (S.regTipo === 'insumo' ? 'insumo-' + S.almMode : S.regTipo);
+  if (S.view === 'almacen') return 'cf-draft-insumo-' + S.almMode;
+  return '';
+}
+function draftForm() { return $('#reg-form') || $('#alm-form'); }
+function saveDraft() {
+  const k = draftKey(), f = draftForm(); if (!k || !f) return;
+  const m = {}; let lleno = false;
+  f.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
+    if (el.type === 'file') return;
+    m[el.id] = el.type === 'checkbox' ? el.checked : el.value;
+    if (el.type !== 'hidden' && el.type !== 'date' && el.type !== 'checkbox' && el.tagName !== 'SELECT' && el.value.trim() && !['r-tasa', 'rv-tasa', 'rp-tasa', 'a-tasa'].includes(el.id)) lleno = true;
+  });
+  if (lleno) lsSet(k, JSON.stringify(m)); else clearDraft();
+}
+function clearDraft(k = draftKey()) { if (k) try { localStorage.removeItem(k); } catch { } }
+function hayDraft() { const k = draftKey(); return !!(k && lsGet(k)); }
+function restoreDraft(v) {
+  const k = draftKey(); if (!k) return; let m; try { m = JSON.parse(lsGet(k) || 'null'); } catch { m = null; } if (!m) return;
+  for (const [id, x] of Object.entries(m)) { const el = document.getElementById(id); if (!el || !v.contains(el)) continue; if (el.type === 'checkbox') el.checked = !!x; else if (el.tagName === 'SELECT') { if ([...el.options].some(o => o.value === x)) el.value = x; } else el.value = x; }
+  syncLotes(v);
+  for (const [id, x] of Object.entries(m)) { const el = document.getElementById(id); if (el && el.tagName === 'SELECT' && [...el.options].some(o => o.value === x)) el.value = x; }
+  if ($('#r-total')) { cosechaResumenSafe(); ventaTotal(); }
+}
+function cosechaResumenSafe() { if (S.regTipo === 'cosecha') { const t = $('#r-total'); if (t) t.textContent = cosechaResumen(); } }
+const draftBar = () => hayDraft() ? `<div class="draft-bar"><span>${icon('reloj', 's')}Borrador sin guardar</span><button class="btn ghost" data-act="draft-del">Descartar</button></div>` : '';
 function syncCats() { const h = $('#r-cat'); if (!h) return; document.querySelectorAll('.cat').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.cat === h.value))); }
 // The bar already names the screen; drop a first heading that only repeats it.
 function tidyTitle(v) {
@@ -518,6 +548,7 @@ VIEWS.registrar = () => {
   const df = e.finca || S.prefFinca || defaultFinca(), simple = S.rol === 'encargado';
   out += `<section><div class="sec-head"><div><p class="eyebrow">${ed ? 'Corrigiendo un registro' : simple ? esc(fincaName(S.miFinca)) : 'A mano'}</p><h2>${ed ? 'Editar registro' : 'Nuevo registro'}</h2></div>${ed ? `<button class="btn" data-act="cancel-edit">Cancelar</button>` : ''}</div>
     ${ed ? '' : `<div class="seg" role="group" aria-label="Tipo de registro" style="grid-template-columns:repeat(${S.canAdmin ? 5 : 3},minmax(0,1fr))">${[['gasto', 'Gasto'], ['cosecha', 'Cosecha'], ['venta', 'Venta'], ['insumo', 'Insumo'], ['precio', 'Precio']].filter(x => (x[0] !== 'precio' && x[0] !== 'insumo') || S.canAdmin).map(([k, n]) => `<button data-tipo="${k}" aria-pressed="${t === k}"><span class="tile t-${k}">${icon(k)}</span>${n}</button>`).join('')}</div>`}`;
+  out += draftBar();
   if (t === 'insumo' && !ed) return out + (S.loaded.almacen ? almForm() + `<div class="btns"><button class="btn ghost" data-go="almacen">Ver lo que hay en el almacén →</button></div>` : notReady()) + '</section>';
   out += `<form class="panel" id="reg-form" data-tipo="${t}"><div class="grid">
     ${fld('r-fecha', 'Fecha', inp('r-fecha', e.fecha || today(), 'type="date" required'))}`;
@@ -721,7 +752,7 @@ VIEWS.almacen = () => {
   let out = `<section><p class="eyebrow">Insumos</p><h2>Almacén</h2>
     <p class="muted small help">Se compra todo junto, se guarda y se entrega a cada finca. Al entregar, el gasto pasa a esa finca y a su lote al costo de compra. Los encargados no ven esta parte.</p>
     <div class="kpis">${kpi('Valor guardado', usd(valor), 'al costo de compra')}${kpi('Productos con existencia', nf(hay.length), inv.length > hay.length ? `${inv.length - hay.length} agotados` : '')}</div></section>
-  <section>${almForm()}</section>`;
+  <section>${draftBar()}${almForm()}</section>`;
   out += `<section><h3>Lo que hay guardado</h3>${inv.length ? `<div class="tbl"><table><thead><tr><th>Producto</th><th class="r">Hay</th><th class="r">Costo c/u</th><th class="r">Valor</th></tr></thead><tbody>${inv.map(p => `<tr${p.stock > 0 ? '' : ' class="muted"'}><td>${esc(p.producto)}</td><td class="r num">${p.stock > 0 ? esc(cantTxt(p.stock, p.unidad)) : 'Agotado'}</td><td class="r num">${usd(p.costo, 2)}</td><td class="r num">${p.stock > 0 ? usd(p.stock * p.costo) : '—'}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">Todavía no hay compras anotadas.</p>'}</section>`;
   const movs = [...S.almacen].sort((a, b) => b.fecha.localeCompare(a.fecha) || String(b.creado || '').localeCompare(String(a.creado || ''))).slice(0, 20);
   if (movs.length) out += `<section><h3>Últimos movimientos</h3><div class="list">${movs.map(r => {
@@ -753,7 +784,7 @@ async function guardarAlmacen() {
     const finca = val('a-finca'); if (!finca) return toast('Elige la finca.');
     d = { tipo: 'gasto', almacen: true, fecha, finca, lote: val('a-lote'), cat: p.cat || 'otros_cultivo', producto: p.producto, cantidad: cant, unidad: p.unidad, monto: Math.round(cant * p.costo * 100) / 100, desc: `Del almacén: ${p.producto}` };
   }
-  S.saving = true;
+  S.saving = true; clearDraft();
   await S.db.collection('registros').add({ ...d, autor: S.uid || null, creado: new Date().toISOString(), fuente: 'almacen' });
   toast(d.tipo === 'insumo' ? 'Compra guardada en el almacén' : `Entregado: ${usd(d.monto)} de gasto para ${fincaName(d.finca)}`);
   S.saving = false; S.skipRestore = true; render();
@@ -1257,9 +1288,9 @@ document.addEventListener('click', async ev => {
   if (b.dataset.tab === 'mas') { S.sheet = !S.sheet; return render(); }
   if (b.dataset.tab) { S.sheet = false; return go(b.dataset.tab); }
   if (b.dataset.go) { if (b.dataset.nt) { S.regTipo = b.dataset.nt; S.editing = null; } return go(b.dataset.go); }
-  if (b.dataset.tipo) { S.regTipo = b.dataset.tipo; S.editing = null; return render(); }
-  if (b.dataset.medio) { const box = b.closest('.pago'); if (!box) return; const p = box.dataset.p, h = document.getElementById(p + '-medio'); if (h) h.value = b.dataset.medio; const t = document.getElementById(p + '-tasa'); if (t && esBs(b.dataset.medio) && S.tasas[b.dataset.medio]) t.value = String(S.tasas[b.dataset.medio]).replace('.', ','); syncMedio(); ventaTotal(); return; }
-  if (b.dataset.cat) { const h = $('#r-cat'); if (h) h.value = b.dataset.cat; syncCats(); return; }
+  if (b.dataset.tipo) { saveDraft(); S.regTipo = b.dataset.tipo; S.editing = null; S.skipRestore = true; return render(); }
+  if (b.dataset.medio) { const box = b.closest('.pago'); if (!box) return; const p = box.dataset.p, h = document.getElementById(p + '-medio'); if (h) h.value = b.dataset.medio; const t = document.getElementById(p + '-tasa'); if (t && esBs(b.dataset.medio) && S.tasas[b.dataset.medio]) t.value = String(S.tasas[b.dataset.medio]).replace('.', ','); syncMedio(); ventaTotal(); saveDraft(); return; }
+  if (b.dataset.cat) { const h = $('#r-cat'); if (h) h.value = b.dataset.cat; syncCats(); saveDraft(); return; }
   const act = b.dataset.act; if (!act) return;
   const id = b.dataset.id;
   try {
@@ -1267,8 +1298,9 @@ document.addEventListener('click', async ev => {
       case 'confirm': S.confirm = b.dataset.k; render(); break;
       case 'ayuda': document.body.classList.toggle('ayuda'); lsSet('cf-ayuda', document.body.classList.contains('ayuda') ? '1' : ''); b.setAttribute('aria-pressed', String(document.body.classList.contains('ayuda'))); break;
       case 'libro-mas': S.libroN = (S.libroN || 60) + 60; render(); break;
+      case 'draft-del': clearDraft(); S.skipRestore = true; render(); break;
       case 'zoom': setZoom(+b.dataset.v); render(); break;
-      case 'alm-mode': S.almMode = b.dataset.v; S.skipRestore = true; render(); break;
+      case 'alm-mode': saveDraft(); S.almMode = b.dataset.v; S.skipRestore = true; render(); break;
       case 'confirm-no': S.confirm = null; render(); break;
       case 'del': S.confirm = null; await S.db.doc('registros/' + id).delete(); toast('Registro borrado'); break;
       case 'del-precio': S.confirm = null; await S.db.doc('precios/' + id).delete(); toast('Precio borrado'); break;
@@ -1361,6 +1393,7 @@ document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preven
 document.addEventListener('touchend', e => { if (e.touches.length < 2 && pinch) { pinch = null; } });
 document.addEventListener('gesturestart', e => e.preventDefault()); // iOS ignores user-scalable=no without this
 document.addEventListener('input', ev => {
+  if (ev.target.closest && ev.target.closest('#reg-form, #alm-form')) saveDraft();
   const el = ev.target;
   if (el.dataset.libro === 'q') { clearTimeout(qT); qT = setTimeout(() => { S.libro.q = el.value; render(); }, 250); }
   if (el.closest('.pago')) { syncMedio(); ventaTotal(); }
@@ -1453,6 +1486,7 @@ async function guardarRegistro() {
     await S.db.doc(col + '/' + S.editing).set({ ...rest, ...r, editado: new Date().toISOString(), editadoPor: S.uid || null });
     S.editing = null; toast('Cambios guardados');
   } else {
+    clearDraft();
     await S.db.collection(col).add({ ...r, autor: S.uid || null, creado: new Date().toISOString(), fuente: 'manual' });
     toast(t === 'precio' ? 'Precio anotado' : t === 'cosecha' ? `Cosecha guardada. Código ${codigoCosecha(r)}: escríbelo en la guía del camión.` : 'Registro guardado');
   }

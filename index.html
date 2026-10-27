@@ -106,6 +106,8 @@ details.lote-more > summary::after, details.cat-more > summary::after, details.e
 details[open].lote-more > summary::after, details[open].cat-more > summary::after, details[open].extra > summary::after { content:' ▴'; }
 .lote:not(:has(details.lote-more[open])) .btns .btn.ghost { display:none; }
 details.lotes-done { margin-top:12px; }
+.draft-bar { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:10px 0 0; padding:4px 4px 4px 12px; border-radius:var(--r-s); background:color-mix(in srgb, var(--papa) 14%, var(--surface)); font-size:0.85rem; font-weight:600; }
+.draft-bar span { display:flex; align-items:center; gap:8px; }
 .amt { order:-2; }
 .medios { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
 .medios::-webkit-scrollbar { display:none; }
@@ -355,7 +357,7 @@ body.out .shell { margin-left:0; }
 <div id="sheet-root"></div>
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="config.js?v=51e31b67"></script>
-<script type="module" src="app.js?v=51e31b67"></script>
+<script src="config.js?v=bc9c35ff"></script>
+<script type="module" src="app.js?v=bc9c35ff"></script>
 </body>
 </html>
