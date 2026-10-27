@@ -3,7 +3,7 @@ import { initFb } from './fb.js';
 import { memDb, demoData, ESCENARIOS } from './demo.js';
 // ---------- constants ----------
 const TABS = [
-  ['resumen', 'Resumen'], ['registrar', 'Registrar'], ['lotes', 'Lotes y siembra'], ['labores', 'Labores'], ['libro', 'Libro'],
+  ['resumen', 'Resumen'], ['registrar', 'Registrar'], ['lotes', 'Lotes y siembra'], ['labores', 'Labores'], ['libro', 'Libro'], ['almacen', 'Almacén de insumos'],
   ['cobros', 'Por cobrar'], ['cierre', 'Cierre del mes'], ['liquidacion', 'Liquidación'], ['precios', 'Precios'], ['guia', 'Instrucciones'], ['ajustes', 'Ajustes'],
 ];
 const ICONS = {
@@ -27,11 +27,13 @@ const ICONS = {
   precio: '<path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.4"/>',
   alerta: '<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>',
   reloj: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  almacen: '<path d="M3 9 12 4l9 5v11H3z"/><path d="M7 20v-7h10v7M7 16h10"/>',
+  insumo: '<path d="M3 9 12 4l9 5v11H3z"/><path d="M7 20v-7h10v7M7 16h10"/>',
   chispa: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
 };
 const LOGO = `<svg viewBox="-13.3 25.9 216.9 108.1" class="mono" aria-hidden="true"><defs><mask id="lb-m" maskUnits="userSpaceOnUse" x="-13.3" y="25.9" width="216.9" height="108.1"><rect x="-13.3" y="25.9" width="216.9" height="108.1" fill="#fff"/><rect x="101.1" y="28.6" width="38.1" height="45.5" fill="#000"/></mask></defs><path d="M-9.3 91.1L-9.3 86.5L19.2 46.5L26.6 46.5L26.6 86.2Q29.4 86.2 31.2 85.8Q33.0 85.4 34 84.6Q35.0 83.8 35.4 82.4Q35.8 81.0 35.8 78.7L35.8 78.7L38.7 78.7L38.7 97.7L35.8 97.7Q35.8 95.6 35.4 94.3Q35.0 92.9 34 92.2Q33.0 91.5 31.2 91.2Q29.4 90.9 26.6 90.8L26.6 90.8L26.6 93.2Q26.6 96.0 26.9 98.0Q27.1 100.0 27.9 101.4Q28.7 102.8 30.1 103.5Q31.6 104.2 33.8 104.2L33.8 104.2L33.8 107.4L7.1 107.4L7.1 104.2Q9.8 104.2 11.5 103.4Q13.2 102.7 14.1 101.4Q15.0 100.0 15.3 98.2Q15.6 96.3 15.6 93.8L15.6 93.8L15.6 91.1L-9.3 91.1ZM15.6 86.2L15.6 61.0L15.3 61.0L-2.7 86.2L15.6 86.2Z" fill="currentColor"/><path d="M91.1 124.8L91.1 130L44.7 130L44.7 124.8Q49.1 124.7 51.8 124.0Q54.4 123.2 55.9 121.3Q57.3 119.3 57.8 115.8Q58.3 112.2 58.3 106.1L58.3 106.1L58.3 53.8Q58.3 48.4 57.9 44.8Q57.4 41.2 56.1 39.1Q54.8 37.0 52.4 36.2Q50.0 35.4 46.0 35.1L46.0 35.1L46.0 29.9L89.8 29.9L89.8 35.1Q85.8 35.4 83.4 36.2Q81.0 37.0 79.7 39.1Q78.3 41.2 77.9 44.8Q77.4 48.4 77.4 53.8L77.4 53.8L77.4 106.1Q77.4 112.2 77.9 115.8Q78.3 119.3 79.8 121.3Q81.3 123.2 84.0 124.0Q86.7 124.7 91.1 124.8L91.1 124.8Z" fill="currentColor"/><path d="M155.4 130L105.4 130L105.4 124.8Q109.8 124.7 112.5 124.0Q115.1 123.4 116.6 121.8Q118.1 120.3 118.6 117.4Q119.2 114.5 119.2 110.0L119.2 110.0L119.2 49.9Q119.2 45.4 118.8 42.6Q118.4 39.8 117.1 38.2Q115.9 36.5 113.8 35.9Q111.6 35.4 108.1 35.1L108.1 35.1L108.1 29.9L149.8 29.9Q169.5 29.9 180.1 36.2Q190.7 42.5 190.7 54.2L190.7 54.2Q190.7 69.7 168.4 76.0L168.4 76.0L168.4 76.6Q175.6 76.6 181.4 78.6Q187.2 80.6 191.2 84.2Q195.2 87.9 197.4 92.8Q199.6 97.8 199.6 103.6L199.6 103.6Q199.6 110.2 196.4 115.2Q193.3 120.1 187.3 123.5L187.3 123.5Q175.7 130 155.4 130L155.4 130ZM156.3 122.1L156.3 122.1Q177.3 122.1 177.3 103.2L177.3 103.2Q177.3 91.7 169.7 86.3L169.7 86.3Q165.8 83.6 159.7 82.4Q153.5 81.3 144.5 81.3L144.5 81.3L138.3 81.3L138.3 107.3Q138.3 115.3 142.4 118.7Q146.6 122.1 156.3 122.1ZM138.3 73.4L145.9 73.4Q151.8 73.4 156.1 72.3Q160.4 71.2 163.4 69.2L163.4 69.2Q169.6 64.9 169.6 55.8L169.6 55.8Q169.6 46.3 164.9 42.1Q160.2 37.8 149.8 37.8L149.8 37.8L140.6 37.8Q138.3 37.8 138.3 40.0L138.3 40.0L138.3 73.4Z" fill="currentColor" mask="url(#lb-m)"/><path d="M108.9 29.9 H140.1 V38.5 H108.9 Z M107.6 73.3 H140.1 V81.1 H107.6 Z" fill="currentColor"/></svg>`;
 const icon = (n, cls = '') => `<svg viewBox="0 0 24 24" class="ico ${cls}" aria-hidden="true">${ICONS[n] || ''}</svg>`;
-const TAB_SUB = { labores: 'Qué toca hacer en cada lote', cobros: 'Quién debe y desde cuándo', cierre: 'Reporte mensual para la familia', liquidacion: 'Utilidad y reparto en tercios', precios: 'Coche y precio en finca', guia: 'Cómo usar la app, paso a paso', ajustes: 'Fincas, metas y reparto' };
+const TAB_SUB = { labores: 'Qué toca hacer en cada lote', cobros: 'Quién debe y desde cuándo', cierre: 'Reporte mensual para la familia', liquidacion: 'Utilidad y reparto en tercios', precios: 'Coche y precio en finca', guia: 'Cómo usar la app, paso a paso', almacen: 'Compras y entregas de insumos a cada finca', ajustes: 'Fincas, metas y reparto' };
 const CATS = [
   { id: 'semilla', n: 'Semilla', g: 'cultivo' },
   { id: 'fertilizante', n: 'Fertilizante y abono', g: 'cultivo' },
@@ -105,7 +107,8 @@ const S = {
   uid: null, canAdmin: false, rol: null, miFinca: '', auth: 'checking', loginMode: 'in', loginErr: '', loginBusy: false, miembros: [], unsubs: [], online: navigator.onLine !== false,
   year: new Date().getFullYear(), finca: lsGet('cf-finca') || 'all', view: 'resumen',
   fincas: [], lotes: [], regs: [], precios: [], cfg: { ...DEF }, labores: [], cierres: [], pend: [],
-  loaded: { fincas: false, lotes: false, regs: false, precios: false, cfg: false, labores: false, cierres: false, pend: false },
+  almacen: [], almMode: 'compra',
+  loaded: { almacen: false, fincas: false, lotes: false, regs: false, precios: false, cfg: false, labores: false, cierres: false, pend: false },
   movLab: null, labNew: false, cierreMes: null, cierreAi: { busy: false, error: '' }, prefLote: '', prefFinca: '',
   names: {}, regTipo: 'gasto', editing: null, editingLote: null, proposals: [], ai: { busy: false, error: '' },
   libro: { tipo: 'all', mes: 'all', q: '' }, confirm: null, unsubRegs: null, skipRestore: false, saving: false,
@@ -113,13 +116,15 @@ const S = {
 const h0 = (location.hash || '').slice(1);
 if (TABS.some(t => t[0] === h0)) S.view = h0; else { const v = lsGet('cf-view'); if (TABS.some(t => t[0] === v)) S.view = v; }
 
-const fincaName = id => id === 'general' ? 'Todas (general)' : ((S.fincas.find(f => f.id === id) || {}).nombre || id || '—');
+const fincaName = id => id === 'general' ? 'Todas (general)' : id === 'almacen' ? 'Almacén' : ((S.fincas.find(f => f.id === id) || {}).nombre || id || '—');
 const loteName = id => (S.lotes.find(l => l.id === id) || {}).nombre || '';
 const ready = () => S.status === 'ok' && S.loaded.fincas && S.loaded.regs && S.loaded.lotes && S.loaded.cfg;
 const canWrite = () => !!S.db && (S.rol === 'admin' || S.rol === 'encargado');
 const ROLES = { admin: 'Administrador', encargado: 'Encargado de finca', familia: 'Familia (solo ver)', lector: 'Analista (solo ver)' };
-const ROLE_TABS = { encargado: ['resumen', 'registrar', 'lotes', 'labores', 'libro', 'guia', 'ajustes'], familia: ['resumen', 'lotes', 'labores', 'libro', 'cobros', 'cierre', 'liquidacion', 'precios', 'guia', 'ajustes'] };
+const ROLE_TABS = { encargado: ['resumen', 'registrar', 'libro', 'guia', 'ajustes'], familia: ['resumen', 'lotes', 'labores', 'libro', 'cobros', 'cierre', 'liquidacion', 'precios', 'guia', 'ajustes'] };
 ROLE_TABS.lector = ROLE_TABS.familia;
+// Overseers get a short app: start, record, what they recorded, help. Simpler names for them.
+const tabLabel = id => (S.rol === 'encargado' && { resumen: 'Inicio', libro: 'Lo que anoté', guia: 'Ayuda' }[id]) || (TABS.find(t => t[0] === id) || [])[1] || '';
 const tabOk = id => { const r = ROLE_TABS[S.rol]; return !r || r.includes(id); };
 
 // ---------- calculations ----------
@@ -204,6 +209,7 @@ function doRender() {
   document.body.classList.toggle('out', S.auth !== 'in' || !S.rol || S.rol === 'none');
   if (S.auth !== 'in' || !S.rol || S.rol === 'none') { v.innerHTML = gateHtml(); return; }
   if (!tabOk(S.view)) S.view = 'resumen';
+  document.body.classList.toggle('enc', S.rol === 'encargado');
   renderHeader();
   let html;
   try { html = (VIEWS[S.view] || VIEWS.resumen)(); } catch (e) { console.error(e); html = `<div class="notice">Algo falló al mostrar esta sección: ${esc(e.message)}</div>`; }
@@ -220,21 +226,21 @@ function pendienteHtml() {
 }
 function renderHeader() {
   const cur = S.view;
-  const tabName = (TABS.find(t => t[0] === cur) || [])[1] || '';
+  const tabName = tabLabel(cur);
   const tEl = $('#appbar-t'); if (tEl.textContent !== tabName) tEl.textContent = tabName;
   const side = `<div class="side-brand"><span class="logo">${LOGO}</span><div><b>Agropecuaria Los Granates</b><small>Cuaderno de las fincas</small></div></div>
     ${canWrite() ? `<button class="sn cta" data-tab="registrar">${icon('registrar')}Registrar</button>` : '<div style="height:8px"></div>'}
-    ${TABS.filter(t => t[0] !== 'registrar' && tabOk(t[0])).map(([id, n]) => `<button class="sn" data-tab="${id}" ${cur === id ? 'aria-current="page"' : ''}>${icon(id)}${n}</button>`).join('')}
+    ${TABS.filter(t => t[0] !== 'registrar' && tabOk(t[0])).map(([id]) => `<button class="sn" data-tab="${id}" ${cur === id ? 'aria-current="page"' : ''}>${icon(id)}${tabLabel(id)}</button>`).join('')}
     <div class="side-foot">Santo Domingo, Mérida</div>`;
   const hk = cur + '|' + S.rol;
   const sd = $('#side'); if (sd.dataset.k !== hk) { sd.innerHTML = side; sd.dataset.k = hk; }
-  let more = ['labores', 'cobros', 'cierre', 'liquidacion', 'precios', 'guia', 'ajustes'].filter(tabOk);
-  if (S.rol === 'encargado') { more.splice(more.indexOf('labores'), 1); more.unshift('lotes'); }
+  const more = ['labores', 'almacen', 'cobros', 'cierre', 'liquidacion', 'precios', 'guia', 'ajustes'].filter(tabOk);
+  const enc = S.rol === 'encargado';
   const bt = (id, label, extra = '') => `<button class="bt ${extra}" data-tab="${id}" ${cur === id || (id === 'mas' && more.includes(cur)) ? 'aria-current="page"' : ''}>${extra === 'fab' ? `<span class="fab-c">${icon('registrar')}</span>` : icon(id)}<span>${label}</span></button>`;
-  const bottom = `<div class="bottom-in">${bt('resumen', 'Inicio')}${S.rol === 'encargado' ? bt('labores', 'Labores') : bt('lotes', 'Lotes')}${canWrite() ? bt('registrar', 'Registrar', 'fab') : bt('cierre', 'Cierre')}${bt('libro', 'Libro')}${bt('mas', 'Más')}</div>`;
+  const bottom = `<div class="bottom-in">${bt('resumen', 'Inicio')}${enc ? bt('guia', 'Ayuda') : bt('lotes', 'Lotes')}${canWrite() ? bt('registrar', 'Registrar', 'fab') : bt('cierre', 'Cierre')}${bt('libro', enc ? 'Lo anotado' : 'Libro')}${bt('mas', 'Más')}</div>`;
   const bm = $('#bottom'); if (bm.dataset.k !== hk) { bm.innerHTML = bottom; bm.dataset.k = hk; }
   const sr = $('#sheet-root');
-  const sheet = S.sheet ? `<div class="scrim" data-act="sheet-close"></div><div class="sheet" role="dialog" aria-label="Más secciones"><div class="grab"></div><div class="sheet-list">${more.map(id => `<button data-tab="${id}"><span class="ic">${icon(id)}</span><span>${(TABS.find(t => t[0] === id) || [])[1]}<small>${TAB_SUB[id] || ''}</small></span></button>`).join('')}<a href="${sugerenciaUrl()}" target="_blank" rel="noopener"><span class="ic">${icon('guia')}</span><span>Enviar una idea o un error<small>Por WhatsApp a Luis</small></span></a>${S.demo ? `<button data-act="demo-salir"><span class="ic">${icon('salir')}</span><span>Salir de la demostración<small>Volver a tus datos reales</small></span></button>` : `<button data-act="logout"><span class="ic">${icon('salir')}</span><span>Cerrar sesión<small>${esc(S.email || '')}</small></span></button>`}</div></div>` : '';
+  const sheet = S.sheet ? `<div class="scrim" data-act="sheet-close"></div><div class="sheet" role="dialog" aria-label="Más secciones"><div class="grab"></div><div class="sheet-list">${more.map(id => `<button data-tab="${id}"><span class="ic">${icon(id)}</span><span>${tabLabel(id)}<small>${TAB_SUB[id] || ''}</small></span></button>`).join('')}<a href="${sugerenciaUrl()}" target="_blank" rel="noopener"><span class="ic">${icon('guia')}</span><span>Enviar una idea o un error<small>Por WhatsApp a Luis</small></span></a>${S.demo ? `<button data-act="demo-salir"><span class="ic">${icon('salir')}</span><span>Salir de la demostración<small>Volver a tus datos reales</small></span></button>` : `<button data-act="logout"><span class="ic">${icon('salir')}</span><span>Cerrar sesión<small>${esc(S.email || '')}</small></span></button>`}</div></div>` : '';
   if (sr.dataset.k !== String(!!S.sheet)) { sr.innerHTML = sheet; sr.dataset.k = String(!!S.sheet); }
   const cy = new Date().getFullYear(), ys = new Set([S.year]);
   for (let y = Math.min(2024, cy - 2); y <= cy + 10; y++) ys.add(y);
@@ -285,7 +291,8 @@ function loteOptions(sel) {
   const ls = [...S.lotes].sort((a, b) => String(b.siembra || '').localeCompare(String(a.siembra || '')));
   return `<option value="">Sin lote</option>` + ls.map(l => `<option value="${esc(l.id)}" data-finca="${esc(l.finca)}" ${sel === l.id ? 'selected' : ''}>${esc(l.nombre)} · ${esc(fincaName(l.finca))}</option>`).join('');
 }
-function catOptions(sel) { return Object.entries(GROUPS).map(([g, gn]) => `<optgroup label="${gn}">${CATS.filter(c => c.g === g).map(c => opt(c.id, c.n, sel)).join('')}</optgroup>`).join(''); }
+const CATS_OBRERO = ['semilla', 'fertilizante', 'agroquimicos', 'jornales', 'riego', 'maquinaria', 'otros_cultivo', 'sacos', 'flete', 'otros_venta'];
+function catOptions(sel, simple) { if (simple) return CATS.filter(c => CATS_OBRERO.includes(c.id) || c.id === sel).map(c => opt(c.id, c.n, sel)).join(''); return Object.entries(GROUPS).map(([g, gn]) => `<optgroup label="${gn}">${CATS.filter(c => c.g === g).map(c => opt(c.id, c.n, sel)).join('')}</optgroup>`).join(''); }
 const fld = (id, label, inner, cls = '') => `<div class="field ${cls}"><label for="${id}">${label}</label>${inner}</div>`;
 const inp = (id, val, attrs = '') => `<input id="${id}" name="${id}" value="${esc(val ?? '')}" ${attrs}>`;
 const numIn = (id, val, ph = '') => inp(id, val, `inputmode="decimal" autocomplete="off" placeholder="${ph}"`);
@@ -299,8 +306,22 @@ function readonlyNote() { return canWrite() ? '' : `<div class="notice"><strong>
 // ---------- views ----------
 const VIEWS = {};
 
+function obreroHome() {
+  const hoy = today(), sem = S.regs.filter(r => r.fecha >= addDays(hoy, -6) && r.fecha <= hoy);
+  const nombre = (S.names[S.email] || '').split(' ')[0];
+  const big = (t, n, h) => `<button class="obr-btn" data-go="registrar" data-nt="${t}"><span class="tile t-${t}">${icon(t)}</span><span><b>${n}</b><small>${h}</small></span></button>`;
+  const g = sem.filter(r => r.tipo === 'gasto'), v = sem.filter(r => r.tipo === 'venta'), c = sem.filter(esCosecha);
+  const linea = [g.length ? `${g.length} ${g.length === 1 ? 'gasto' : 'gastos'} por ${usd(sum(g, r => r.monto))}` : '', c.length ? `${sacosTxt(sum(c, sacosCosecha))} cosechados` : '', v.length ? `${v.length} ${v.length === 1 ? 'venta' : 'ventas'} por ${usd(sum(v, r => r.monto))}` : ''].filter(Boolean);
+  let out = `<section class="obr"><p class="eyebrow">${esc(fincaName(S.miFinca))}</p><h2>Hola${nombre ? ', ' + esc(nombre) : ''}. ¿Qué vas a anotar?</h2>
+    <div class="obr-grid">${big('gasto', 'Un gasto', 'Jornales, abono, fumigación, flete…')}${big('cosecha', 'Una cosecha', 'Los sacos que se sacaron hoy')}${big('venta', 'Una venta', 'Lo que se vendió y a cuánto')}</div>
+    <p class="muted small">${linea.length ? 'Esta semana anotaste ' + linea.join(', ') + '.' : 'Esta semana todavía no has anotado nada.'}</p></section>`;
+  const ult = S.regs.slice(0, 6);
+  out += `<section><div class="sec-head"><h3>Lo último que anotaste</h3>${ult.length ? '<button class="btn ghost" data-go="libro">Ver todo →</button>' : ''}</div>${ult.length ? `<div class="list">${ult.map(itemHtml).join('')}</div>` : '<p class="muted">Aquí vas a ver lo que anotes. Si te equivocas, tocas Editar y lo corriges.</p>'}</section>`;
+  return out;
+}
 VIEWS.resumen = () => {
   if (!ready()) return notReady();
+  if (S.rol === 'encargado') return obreroHome();
   const f = S.finca, st = stats(f), c = S.cfg;
   const nF = f === 'all' ? (S.fincas.length || 3) : 1;
   const meta = nF * N(c.metaSacosFinca);
@@ -398,8 +419,8 @@ VIEWS.registrar = () => {
   // manual form
   const t = S.regTipo, ed = S.editing ? S.regs.find(r => r.id === S.editing) || S.precios.find(p => p.id === S.editing) : null;
   const e = ed || {};
-  const df = e.finca || S.prefFinca || defaultFinca();
-  out += `<section><div class="sec-head"><div><p class="eyebrow">${ed ? 'Corrigiendo un registro' : 'A mano'}</p><h2>${ed ? 'Editar registro' : 'Nuevo registro'}</h2></div>${ed ? `<button class="btn" data-act="cancel-edit">Cancelar</button>` : ''}</div>
+  const df = e.finca || S.prefFinca || defaultFinca(), simple = S.rol === 'encargado';
+  out += `<section><div class="sec-head"><div><p class="eyebrow">${ed ? 'Corrigiendo un registro' : simple ? esc(fincaName(S.miFinca)) : 'A mano'}</p><h2>${ed ? 'Editar registro' : 'Nuevo registro'}</h2></div>${ed ? `<button class="btn" data-act="cancel-edit">Cancelar</button>` : ''}</div>
     ${ed ? '' : `<div class="seg" role="group" aria-label="Tipo de registro" ${S.canAdmin ? '' : 'style="grid-template-columns:repeat(3,minmax(0,1fr))"'}>${[['gasto', 'Gasto'], ['cosecha', 'Cosecha'], ['venta', 'Venta'], ['precio', 'Precio']].filter(x => x[0] !== 'precio' || S.canAdmin).map(([k, n]) => `<button data-tipo="${k}" aria-pressed="${t === k}"><span class="tile t-${k}">${icon(k)}</span>${n}</button>`).join('')}</div>`}
     <form class="panel" id="reg-form" data-tipo="${t}"><div class="grid">
     ${fld('r-fecha', 'Fecha', inp('r-fecha', e.fecha || today(), 'type="date" required'))}`;
@@ -411,12 +432,12 @@ VIEWS.registrar = () => {
       + fld('r-desc', 'Fuente', inp('r-desc', e.desc, 'placeholder="Ej.: llamada a un mayorista, 2001online"'), 'wide');
   } else {
     out += fld('r-finca', 'Finca', `<select id="r-finca" data-act-change="finca">${fincaOptions(df, t === 'gasto')}</select>`)
-      + fld('r-lote', 'Lote', `<select id="r-lote" data-lote-for="r-finca">${loteOptions(e.lote || S.prefLote || '')}</select>`);
+      + fld('r-lote', !simple ? 'Lote' : t === 'cosecha' ? 'Lote (la tanda que se sacó)' : 'Lote (si sabes cuál)', `<select id="r-lote" data-lote-for="r-finca">${loteOptions(e.lote || S.prefLote || '')}</select>`);
     if (t === 'gasto') {
-      out += fld('r-cat', 'Categoría', `<select id="r-cat">${catOptions(e.cat || 'jornales')}</select>`)
+      out += fld('r-cat', simple ? 'En qué se gastó' : 'Categoría', `<select id="r-cat">${catOptions(e.cat || 'jornales', simple)}</select>`)
         + fld('r-monto', 'Monto ($)', numIn('r-monto', e.monto, '0'))
-        + fld('r-cant', 'Cantidad (opcional)', numIn('r-cant', e.cantidad, 'Ej.: 4'))
-        + fld('r-unidad', 'Unidad', inp('r-unidad', e.unidad, 'placeholder="jornales, sacos, litros…"'))
+        + (simple ? '' : fld('r-cant', 'Cantidad (opcional)', numIn('r-cant', e.cantidad, 'Ej.: 4'))
+        + fld('r-unidad', 'Unidad', inp('r-unidad', e.unidad, 'placeholder="jornales, sacos, litros…"')))
         + fld('r-desc', 'Detalle', inp('r-desc', e.desc, 'placeholder="Ej.: abono 10-20-20, 3 sacos de 50 kg"'), 'wide');
     } else if (t === 'cosecha') {
       const ps = e.pesos || [], m = e.muestra || {}, pf = e.prueba || {};
@@ -426,8 +447,8 @@ VIEWS.registrar = () => {
         + fld('r-ter', 'Tercera (pequeña)', numIn('r-ter', e.sacosTercera, '0'))
         + fld('r-des', 'Descarte (se bota)', numIn('r-des', e.sacosDescarte, '0'))
         + `<div class="field wide"><p class="cos-paso"><b>2</b> Pesa 3 sacos de primera, cualquiera</p><div class="cos-tres">${[0, 1, 2].map(k => numIn('r-p' + k, ps[k], 'Saco ' + (k + 1) + ' (kg)')).join('')}</div><span class="hint">Si hoy no hay romana, déjalo vacío y se cuentan ${nf(e.kgSaco ?? S.cfg.kgSaco)} kg por saco.</span></div>`
-        + `<div class="field wide"><p class="cos-paso"><b>3</b> Agarra 20 papas al azar de varios sacos y cuenta las malas</p><div class="cos-muestra">${MUESTRA.map(([k, n]) => `<label><span>${n}</span>${numIn('r-m-' + k, m[k], '0')}</label>`).join('')}</div></div>`
-        + `<details class="field wide cos-frito" ${pf.aire ? 'open' : ''}><summary>Prueba para freír <span class="muted small">(solo en el lote de prueba)</span></summary><p class="hint">Mete unos 5 kg de papa en una malla y cuélgala de una romana digital. Anota el peso en el aire y después con la malla toda dentro de un tobo con agua, sin tocar el fondo.</p><div class="cos-tres">${numIn('r-aire', pf.aire, 'En el aire (kg)')}${numIn('r-agua', pf.agua, 'Dentro del agua (kg)')}</div></details>`
+        + (simple ? '' : `<div class="field wide"><p class="cos-paso"><b>3</b> Agarra 20 papas al azar de varios sacos y cuenta las malas</p><div class="cos-muestra">${MUESTRA.map(([k, n]) => `<label><span>${n}</span>${numIn('r-m-' + k, m[k], '0')}</label>`).join('')}</div></div>`
+        + `<details class="field wide cos-frito" ${pf.aire ? 'open' : ''}><summary>Prueba para freír <span class="muted small">(solo en el lote de prueba)</span></summary><p class="hint">Mete unos 5 kg de papa en una malla y cuélgala de una romana digital. Anota el peso en el aire y después con la malla toda dentro de un tobo con agua, sin tocar el fondo.</p><div class="cos-tres">${numIn('r-aire', pf.aire, 'En el aire (kg)')}${numIn('r-agua', pf.agua, 'Dentro del agua (kg)')}</div></details>`)
         + fld('r-desc', 'Notas', inp('r-desc', e.desc, 'placeholder="Ej.: lluvia, papa sucia, gusano en el borde"'), 'wide');
     } else {
       out += fld('r-comprador', 'Comprador', inp('r-comprador', e.comprador, 'list="dl-comp" placeholder="Nombre"') + `<datalist id="dl-comp">${[...new Set(S.regs.filter(r => r.comprador).map(r => r.comprador))].slice(0, 30).map(c => `<option value="${esc(c)}">`).join('')}</datalist>`)
@@ -435,7 +456,7 @@ VIEWS.registrar = () => {
         + fld('r-calidad', 'Calidad', `<select id="r-calidad">${Object.entries(CALIDADES).map(([k, n]) => opt(k, n, e.calidad || 'mezclada')).join('')}</select>`)
         + fld('r-sacos', 'Sacos vendidos', numIn('r-sacos', e.sacos, '0'))
         + fld('r-precio', 'Precio por saco ($)', numIn('r-precio', e.precio, String(S.cfg.precioRef)))
-        + fld('r-kg', 'Kilos por saco', numIn('r-kg', e.kgSaco ?? S.cfg.kgSaco))
+        + (simple ? '' : fld('r-kg', 'Kilos por saco', numIn('r-kg', e.kgSaco ?? S.cfg.kgSaco)))
         + `<div class="field"><span class="hint">&nbsp;</span><label class="check"><input type="checkbox" id="r-cobrado" ${e.cobrado === false ? '' : 'checked'}> Ya se cobró</label></div>`
         + fld('r-desc', 'Notas', inp('r-desc', e.desc), 'wide');
     }
@@ -555,6 +576,83 @@ function planForm() {
     </form></div></details></section>`;
 }
 
+// ---------- insumos: almacén ----------
+// Purchases sit in the store (finca "almacen", tipo "insumo"); a delivery is a normal expense of the farm at average purchase cost.
+const prodKey = x => String(x || '').trim().toLowerCase().replace(/\s+/g, ' ');
+const CATS_ALM = ['semilla', 'fertilizante', 'agroquimicos', 'riego', 'maquinaria', 'otros_cultivo', 'sacos'];
+function inventario() {
+  const m = {};
+  for (const r of S.almacen) {
+    const k = prodKey(r.producto); if (!k) continue;
+    const p = m[k] = m[k] || { key: k, producto: r.producto, unidad: r.unidad || '', cat: r.cat, comprado: 0, monto: 0, entregado: 0 };
+    if (r.tipo === 'insumo') { p.comprado += N(r.cantidad); p.monto += N(r.monto); p.producto = r.producto; p.unidad = r.unidad || p.unidad; p.cat = r.cat || p.cat; }
+    else if (r.tipo === 'gasto') p.entregado += N(r.cantidad);
+  }
+  return Object.values(m).map(p => ({ ...p, stock: Math.round((p.comprado - p.entregado) * 1000) / 1000, costo: p.comprado ? p.monto / p.comprado : 0 })).sort((a, b) => a.producto.localeCompare(b.producto));
+}
+const cantTxt = (n, u) => `${nf(n, n % 1 ? 1 : 0)} ${u || ''}`.trim();
+VIEWS.almacen = () => {
+  if (!ready() || !S.loaded.almacen) return notReady();
+  const inv = inventario(), hay = inv.filter(p => p.stock > 0), valor = sum(hay, p => p.stock * p.costo);
+  const modo = S.almMode, hoy = today();
+  let out = `<section><p class="eyebrow">Insumos</p><h2>Almacén</h2>
+    <p class="muted small">Se compra todo junto, se guarda y se entrega a cada finca. Al entregar, el gasto pasa a esa finca y a su lote al costo de compra. Los encargados no ven esta parte.</p>
+    <div class="kpis">${kpi('Valor guardado', usd(valor), 'al costo de compra')}${kpi('Productos con existencia', nf(hay.length), inv.length > hay.length ? `${inv.length - hay.length} agotados` : '')}</div></section>
+  <section><div class="seg" role="group" aria-label="Movimiento" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+    <button data-act="alm-mode" data-v="compra" aria-pressed="${modo === 'compra'}"><span class="tile t-gasto">${icon('gasto')}</span>Compra</button>
+    <button data-act="alm-mode" data-v="entrega" aria-pressed="${modo === 'entrega'}"><span class="tile t-venta">${icon('venta')}</span>Entrega a finca</button></div>
+  <form class="panel" id="alm-form" data-modo="${modo}"><div class="grid">${fld('a-fecha', 'Fecha', inp('a-fecha', hoy, 'type="date" required'))}`;
+  if (modo === 'compra') {
+    const provs = [...new Set(S.almacen.filter(r => r.proveedor).map(r => r.proveedor))];
+    out += fld('a-prod', 'Producto', inp('a-prod', '', 'list="dl-prod-alm" placeholder="Ej.: Urea, Revus, semilla Granola" autocomplete="off"') + `<datalist id="dl-prod-alm">${inv.map(p => `<option value="${esc(p.producto)}">`).join('')}</datalist>`)
+      + fld('a-cat', 'Tipo', `<select id="a-cat">${CATS.filter(c => CATS_ALM.includes(c.id)).map(c => opt(c.id, c.n, 'agroquimicos')).join('')}</select>`)
+      + fld('a-cant', 'Cantidad', numIn('a-cant', '', 'Ej.: 8'))
+      + fld('a-unidad', 'Unidad', inp('a-unidad', '', 'list="dl-unid" placeholder="sacos, litros, kg…"') + '<datalist id="dl-unid"><option value="sacos"><option value="litros"><option value="kg"><option value="unidades"><option value="bultos"></datalist>')
+      + fld('a-monto', 'Costo total ($)', numIn('a-monto', '', '0'))
+      + fld('a-prov', 'Proveedor', inp('a-prov', '', 'list="dl-prov" placeholder="Ej.: Semillas Andinas"') + `<datalist id="dl-prov">${provs.map(x => `<option value="${esc(x)}">`).join('')}</datalist>`)
+      + fld('a-fact', 'Factura (opcional)', inp('a-fact', '', 'placeholder="Nro."'));
+  } else {
+    out += fld('a-item', 'Producto', hay.length ? `<select id="a-item">${hay.map(p => `<option value="${esc(p.key)}">${esc(p.producto)} · quedan ${esc(cantTxt(p.stock, p.unidad))}</option>`).join('')}</select>` : '<p class="muted small">No hay nada guardado. Anota primero una compra.</p>')
+      + fld('a-cant', 'Cantidad', numIn('a-cant', '', 'Ej.: 2'))
+      + fld('a-finca', 'Finca', `<select id="a-finca">${fincaOptions(S.finca !== 'all' ? S.finca : '', false)}</select>`)
+      + fld('a-lote', 'Lote', `<select id="a-lote" data-lote-for="a-finca">${loteOptions('')}</select>`);
+  }
+  out += `</div><span class="hint" id="a-total"></span><button class="btn primary block" type="submit" ${S.saving || (modo === 'entrega' && !hay.length) ? 'disabled' : ''}>${modo === 'compra' ? 'Guardar compra' : 'Guardar entrega'}</button></form></section>`;
+  out += `<section><h3>Lo que hay guardado</h3>${inv.length ? `<div class="tbl"><table><thead><tr><th>Producto</th><th class="r">Hay</th><th class="r">Costo c/u</th><th class="r">Valor</th></tr></thead><tbody>${inv.map(p => `<tr${p.stock > 0 ? '' : ' class="muted"'}><td>${esc(p.producto)}</td><td class="r num">${p.stock > 0 ? esc(cantTxt(p.stock, p.unidad)) : 'Agotado'}</td><td class="r num">${usd(p.costo, 2)}</td><td class="r num">${p.stock > 0 ? usd(p.stock * p.costo) : '—'}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">Todavía no hay compras anotadas.</p>'}</section>`;
+  const movs = [...S.almacen].sort((a, b) => b.fecha.localeCompare(a.fecha) || String(b.creado || '').localeCompare(String(a.creado || ''))).slice(0, 20);
+  if (movs.length) out += `<section><h3>Últimos movimientos</h3><div class="list">${movs.map(r => {
+    const conf = S.confirm === 'reg:' + r.id, compra = r.tipo === 'insumo';
+    return `<div class="item"><span class="av t-${compra ? 'gasto' : 'venta'}">${icon(compra ? 'gasto' : 'venta', 's')}</span><div><div class="t">${compra ? 'Compra' : 'Entrega'} · ${esc(r.producto)} · ${esc(cantTxt(N(r.cantidad), r.unidad))}</div><div class="s">${fdate(r.fecha)} · ${compra ? esc(r.proveedor || 'sin proveedor') + (r.factura ? ' · factura ' + esc(r.factura) : '') : esc(fincaName(r.finca)) + (r.lote ? ' · ' + esc(loteName(r.lote)) : '')}</div>
+      <div class="acts">${conf ? `<button class="btn danger" data-act="del" data-id="${esc(r.id)}">Sí, borrar</button><button class="btn ghost" data-act="confirm-no">No</button>` : `<button class="btn ghost danger" data-act="confirm" data-k="reg:${esc(r.id)}">Borrar</button>`}</div></div><div class="a">${usd(N(r.monto))}</div></div>`;
+  }).join('')}</div></section>`;
+  return out;
+};
+async function guardarAlmacen() {
+  if (S.saving) return;
+  const fecha = val('a-fecha'), cant = parseNum(val('a-cant'));
+  if (!isoOk(fecha)) return toast('Pon la fecha.');
+  if (!(cant > 0)) return toast('Pon la cantidad.');
+  let d;
+  if (S.almMode === 'compra') {
+    const producto = val('a-prod').trim().replace(/\s+/g, ' '), monto = parseNum(val('a-monto'));
+    if (!producto) return toast('Escribe el producto.');
+    if (!(monto > 0)) return toast('Pon cuánto costó en total.');
+    const prev = inventario().find(p => p.key === prodKey(producto));
+    const unidad = val('a-unidad').trim() || (prev ? prev.unidad : '');
+    if (prev && prev.unidad && unidad && prodKey(prev.unidad) !== prodKey(unidad)) return toast(`${prev.producto} se lleva en ${prev.unidad}. Usa la misma unidad para que cuadre el inventario.`);
+    d = { tipo: 'insumo', almacen: true, fecha, finca: 'almacen', producto: prev ? prev.producto : producto, cat: val('a-cat'), cantidad: cant, unidad, monto, proveedor: val('a-prov').trim(), factura: val('a-fact').trim(), desc: `Compra: ${producto}` };
+  } else {
+    const p = inventario().find(x => x.key === val('a-item'));
+    if (!p) return toast('Elige el producto.');
+    if (cant > p.stock + 1e-6) return toast(`Solo quedan ${cantTxt(p.stock, p.unidad)} de ${p.producto}.`);
+    const finca = val('a-finca'); if (!finca) return toast('Elige la finca.');
+    d = { tipo: 'gasto', almacen: true, fecha, finca, lote: val('a-lote'), cat: p.cat || 'otros_cultivo', producto: p.producto, cantidad: cant, unidad: p.unidad, monto: Math.round(cant * p.costo * 100) / 100, desc: `Del almacén: ${p.producto}` };
+  }
+  S.saving = true;
+  await S.db.collection('registros').add({ ...d, autor: S.uid || null, creado: new Date().toISOString(), fuente: 'almacen' });
+  toast(d.tipo === 'insumo' ? 'Compra guardada en el almacén' : `Entregado: ${usd(d.monto)} de gasto para ${fincaName(d.finca)}`);
+  S.saving = false; S.skipRestore = true; render();
+}
 VIEWS.libro = () => {
   if (!ready()) return notReady();
   const L = S.libro, f = S.finca, q = L.q.trim().toLowerCase();
@@ -584,13 +682,14 @@ function itemHtml(r) {
   let t = '', a = '', chip = '';
   if (r.tipo === 'gasto') { t = (CAT_BY[r.cat] || {}).n || 'Gasto'; a = `<span class="neg">${usd(-N(r.monto))}</span>`; chip = '<span class="chip c-gasto">Gasto</span>'; }
   if (r.tipo === 'cosecha') { t = `${r.compra ? 'Compra a vecinos' : 'Cosecha'} · ${sacosTxt(sacosCosecha(r))}`; a = `${nf(sacosCosecha(r))}<small>sacos</small>`; chip = '<span class="chip c-cosecha">Cosecha</span>'; }
+  if (r.tipo === 'insumo') { t = `Compra para el almacén · ${esc(r.producto || '')}`; a = `<span class="neg">${usd(-N(r.monto))}</span>`; chip = '<span class="chip c-plan">Almacén</span>'; }
   if (r.tipo === 'venta') { t = `Venta · ${ventaTxt(r)}${r.comprador ? ' · ' + esc(r.comprador) : ''}`; a = `<span class="pos">${usd(r.monto)}</span>`; chip = `<span class="chip c-venta">Venta</span>${r.cobrado ? '' : ' <span class="chip c-warn">Por cobrar</span>'}`; }
   const sub = [fincaName(r.finca), r.lote ? loteName(r.lote) : '', r.tipo === 'cosecha' ? cosechaDet(r) : '', r.tipo === 'venta' ? (CANALES[r.canal] || '') : '', r.cantidad ? `${nf(r.cantidad, r.cantidad % 1 ? 1 : 0)} ${r.unidad || ''}` : '', r.desc].filter(Boolean).map(esc).join(' · ');
   const who = r.autor ? (S.names[r.autor] || '') : '';
   const conf = S.confirm === 'reg:' + r.id;
   const mine = S.canAdmin || r.autor === S.uid;
   return `<div class="item"><span class="av t-${esc(r.tipo)}">${icon(r.tipo, 's')}</span><div><div class="t">${t}</div><div class="s">${fdate(r.fecha)} · ${sub}${r.tipo === 'venta' && !r.cobrado ? ' <span class="chip c-warn">Por cobrar</span>' : ''}${who || r.fuente === 'claude' ? ` · <span class="small">${who ? 'por ' + esc(who) : ''}${r.fuente === 'claude' ? (who ? ', ' : '') + 'leído por Claude' : ''}</span>` : ''}</div></div><div class="a">${a}</div>
-    ${canWrite() && mine ? `<div class="acts">${r.tipo === 'venta' && !r.cobrado ? `<button class="btn ghost" data-act="cobrar" data-id="${esc(r.id)}">Marcar cobrada</button>` : ''}<button class="btn ghost" data-act="edit" data-id="${esc(r.id)}">Editar</button>${conf ? `<button class="btn danger" data-act="del" data-id="${esc(r.id)}">Sí, borrar</button><button class="btn ghost" data-act="confirm-no">No</button>` : `<button class="btn ghost danger" data-act="confirm" data-k="reg:${esc(r.id)}">Borrar</button>`}</div>` : ''}</div>`;
+    ${canWrite() && mine ? `<div class="acts">${r.tipo === 'venta' && !r.cobrado ? `<button class="btn ghost" data-act="cobrar" data-id="${esc(r.id)}">Marcar cobrada</button>` : ''}${r.tipo === 'insumo' || r.almacen ? '' : `<button class="btn ghost" data-act="edit" data-id="${esc(r.id)}">Editar</button>`}${conf ? `<button class="btn danger" data-act="del" data-id="${esc(r.id)}">Sí, borrar</button><button class="btn ghost" data-act="confirm-no">No</button>` : `<button class="btn ghost danger" data-act="confirm" data-k="reg:${esc(r.id)}">Borrar</button>`}</div>` : ''}</div>`;
 }
 
 VIEWS.liquidacion = () => {
@@ -680,10 +779,10 @@ VIEWS.guia = () => {
   </div></section>`;
   if (anota) out += `<section><h3>Lo de todos los días</h3><div class="how-list">
     ${paso('Anotar un gasto', ['Toca <b>Registrar</b> (el botón del centro) y elige <b>Gasto</b>.', 'Revisa la fecha y elige la <b>finca</b>. Si el gasto es de una tanda, elige también el <b>lote</b>.', 'Elige la <b>categoría</b>: jornales, semilla, fertilizante, agroquímicos, flete…', 'Escribe el <b>monto</b> en dólares y, en <b>Detalle</b>, qué fue. Por ejemplo: "4 jornales de aporque".', 'Toca <b>Guardar gasto</b>.'], 'Todo pago se anota el mismo día, aunque sea pequeño. Si hay factura o nota, guarda la foto.')}
-    ${paso('Anotar una cosecha', ['Al final del día, toca <b>Registrar</b> y elige <b>Cosecha</b>. Una cosecha por lote y por día.', 'Elige la finca y el <b>lote</b> (la tanda que se sacó).', '<b>Cuenta los sacos</b> de cada clase: primera, segunda, tercera (pequeña) y descarte (la que se bota).', '<b>Pesa 3 sacos</b> de primera, cualquiera, y escribe los kilos.', '<b>Agarra 20 papas al azar</b> de varios sacos y cuenta cuántas tienen gusano, están verdes, golpeadas o podridas.', 'Toca <b>Guardar cosecha</b> y escribe el <b>código</b> que te da la app en la guía del camión.'], 'Así lo hacen las grandes empresas: cada carga sabe de qué lote salió, cuánto pesa y qué calidad tiene. Si un comprador se queja, sabemos de dónde vino esa papa.')}
+    ${!esc_ ? paso('Anotar una cosecha', ['Al final del día, toca <b>Registrar</b> y elige <b>Cosecha</b>. Una por lote y por día.', '<b>Cuenta los sacos</b> de cada clase: primera, segunda, tercera (pequeña) y descarte (la que se bota).', '<b>Pesa 3 sacos</b> de primera, cualquiera, y escribe los kilos.', 'Toca <b>Guardar cosecha</b> y escribe el <b>código</b> que te da la app en la guía del camión.']) : paso('Anotar una cosecha', ['Al final del día, toca <b>Registrar</b> y elige <b>Cosecha</b>. Una cosecha por lote y por día.', 'Elige la finca y el <b>lote</b> (la tanda que se sacó).', '<b>Cuenta los sacos</b> de cada clase: primera, segunda, tercera (pequeña) y descarte (la que se bota).', '<b>Pesa 3 sacos</b> de primera, cualquiera, y escribe los kilos.', '<b>Agarra 20 papas al azar</b> de varios sacos y cuenta cuántas tienen gusano, están verdes, golpeadas o podridas.', 'Toca <b>Guardar cosecha</b> y escribe el <b>código</b> que te da la app en la guía del camión.'], 'Así lo hacen las grandes empresas: cada carga sabe de qué lote salió, cuánto pesa y qué calidad tiene. Si un comprador se queja, sabemos de dónde vino esa papa.')}
     ${paso('Anotar una venta', ['Toca <b>Registrar</b> y elige <b>Venta</b>.', 'Escribe los <b>sacos vendidos</b> y el <b>precio por saco</b>. El total sale solo.', 'Escribe el <b>comprador</b> y elige <b>a quién se vendió</b>: camionero, Coche o restaurante.', 'Si ya pagó, déjalo como cobrado. Si queda debiendo, márcalo como <b>por cobrar</b>.', 'Toca <b>Guardar venta</b>.'])}
-    ${paso('Marcar las labores del campo', ['Abre <b>Labores</b>. Ahí está lo que toca esta semana y lo atrasado.', 'Cuando la hagas, toca <b>Hecha</b>.', 'Si se tiene que mover, toca <b>Cambiar fecha</b>. Si no hace falta, toca <b>No aplica</b>.', 'Para una labor que no está en la lista, agrégala con <b>Guardar labor</b>.'])}
-    ${paso('Corregir un error', ['Abre el <b>Libro</b> y busca el registro (puedes filtrar por mes o escribir en Buscar).', 'Toca <b>Editar</b>, corrige y guarda.', 'Si sobra, toca <b>Borrar</b> y confirma.'], 'Nunca anotes lo mismo dos veces para corregir: se duplican los números.')}
+    ${!esc_ ? '' : paso('Marcar las labores del campo', ['Abre <b>Labores</b>. Ahí está lo que toca esta semana y lo atrasado.', 'Cuando la hagas, toca <b>Hecha</b>.', 'Si se tiene que mover, toca <b>Cambiar fecha</b>. Si no hace falta, toca <b>No aplica</b>.', 'Para una labor que no está en la lista, agrégala con <b>Guardar labor</b>.'])}
+    ${paso('Corregir un error', [`Abre ${esc_ ? 'el <b>Libro</b>' : '<b>Lo que anoté</b>'} y busca el registro (puedes filtrar por mes o escribir en Buscar).`, 'Toca <b>Editar</b>, corrige y guarda.', 'Si sobra, toca <b>Borrar</b> y confirma.'], 'Nunca anotes lo mismo dos veces para corregir: se duplican los números.')}
   </div></section>`;
   if (esc_) out += `<section><h3>Lo del gerente</h3><div class="how-list">
     ${paso('Cada lunes', ['Revisa en el <b>Libro</b> lo que anotaron los encargados la semana pasada.', 'En <b>Precios</b>, anota el precio de Coche y el de la finca de esa semana.', 'En <b>Labores</b>, toca <b>Copiar para WhatsApp</b> y mándale a cada encargado lo que le toca.'])}
@@ -691,6 +790,7 @@ VIEWS.guia = () => {
     ${paso('Cada fin de mes: el cierre', ['Abre <b>Cierre del mes</b> y revisa las cifras del mes.', 'Escribe el comentario del gerente: qué pasó, qué salió bien y qué hay que mejorar.', 'Toca <b>Guardar y cerrar el mes</b>.', 'Toca <b>Copiar para WhatsApp</b> o <b>Descargar reporte</b> y mándalo a la familia.'])}
     ${paso('Al terminar una cosecha', ['En <b>Lotes y siembra</b>, toca <b>Ya se cosechó</b> en esa tanda.', 'Compara cuánto rindió por saco de semilla y cuánto costó frente a su presupuesto.'])}
     ${paso('Cada fin de año', ['Abre <b>Liquidación</b> y revisa la utilidad y el reparto de cada finca.', 'Toca <b>Copiar</b> y manda el texto a la familia.', 'En <b>Lotes y siembra</b>, con <b>Planificar la siembra</b>, crea las tandas del año siguiente.'])}
+    ${paso('Comprar y entregar insumos', ['Cuando compres, abre <b>Almacén de insumos</b>, toca <b>Compra</b> y anota el producto, la cantidad y lo que costó.', 'Cuando lleves algo a una finca, toca <b>Entrega</b>, elige el producto, la cantidad, la finca y el lote.', 'La app pasa ese gasto a la finca y al lote al costo de compra, y descuenta lo que queda guardado.'], 'Así el encargado no tiene que anotar los insumos: solo los jornales y lo que pague él.')}
     ${paso('Agregar a alguien', ['En <b>Ajustes</b>, baja a <b>Usuarios</b>.', 'Escribe su correo y su nombre, y elige el tipo: <b>Encargado</b> (anota en su finca), <b>Familia</b> (solo ve) o <b>Administrador</b>.', 'Toca <b>Agregar usuario</b> y dile que cree su cuenta con ese mismo correo.'])}
   </div></section>
   <section class="prose"><h3>Las cifras que hay que mirar</h3><ul>
@@ -1041,13 +1141,14 @@ document.addEventListener('click', async ev => {
   const b = ev.target.closest('button, [data-go]'); if (!b) return;
   if (b.dataset.tab === 'mas') { S.sheet = !S.sheet; return render(); }
   if (b.dataset.tab) { S.sheet = false; return go(b.dataset.tab); }
-  if (b.dataset.go) return go(b.dataset.go);
+  if (b.dataset.go) { if (b.dataset.nt) { S.regTipo = b.dataset.nt; S.editing = null; } return go(b.dataset.go); }
   if (b.dataset.tipo) { S.regTipo = b.dataset.tipo; S.editing = null; return render(); }
   const act = b.dataset.act; if (!act) return;
   const id = b.dataset.id;
   try {
     switch (act) {
       case 'confirm': S.confirm = b.dataset.k; render(); break;
+      case 'alm-mode': S.almMode = b.dataset.v; S.skipRestore = true; render(); break;
       case 'confirm-no': S.confirm = null; render(); break;
       case 'del': S.confirm = null; await S.db.doc('registros/' + id).delete(); toast('Registro borrado'); break;
       case 'del-precio': S.confirm = null; await S.db.doc('precios/' + id).delete(); toast('Precio borrado'); break;
@@ -1116,6 +1217,7 @@ document.addEventListener('submit', async ev => {
   const f = ev.target;
   try {
     if (f.id === 'reg-form') await guardarRegistro();
+    if (f.id === 'alm-form') await guardarAlmacen();
     if (f.id === 'lote-form') await guardarLote();
     if (f.id === 'plan-form') await generarPlan();
     if (f.id === 'cfg-form') await guardarAjustes();
@@ -1136,6 +1238,7 @@ function writeErr(e) {
   S.saving = false; render();
 }
 const val = id => (document.getElementById(id) || {}).value ?? '';
+const has = id => !!document.getElementById(id);
 // Reads the harvest form into r. Returns a message when something doesn't add up, so a wrong number never gets saved.
 function leerCosecha(r) {
   const ed = S.editing ? S.regs.find(x => x.id === S.editing) || {} : {};
@@ -1153,7 +1256,8 @@ function leerCosecha(r) {
   const m = { n: 20 }; let hay = false;
   for (const [k] of MUESTRA) { const v = parseNum(val('r-m-' + k)); m[k] = v || 0; if (v) hay = true; }
   if (muestraMalas(m) > 20) return 'En la muestra hay más de 20 papas malas. Revisa los números (son de 20 papas).';
-  r.muestra = hay || ed.muestra ? m : null;
+  r.muestra = !has('r-m-gusano') ? ed.muestra || null : hay || ed.muestra ? m : null;
+  if (!has('r-aire')) { r.prueba = ed.prueba || null; r.gs = ed.gs || null; return ''; }
   const aire = parseNum(val('r-aire')), agua = parseNum(val('r-agua'));
   if (aire || agua) {
     const gs = gravedad(aire, agua);
@@ -1181,9 +1285,9 @@ async function guardarRegistro() {
   } else {
     r = { tipo: t, fecha, finca: val('r-finca'), lote: val('r-lote'), desc: val('r-desc').trim() };
     if (!r.finca) return toast('Elige la finca.');
-    if (t === 'gasto') { r.cat = val('r-cat'); r.monto = parseNum(val('r-monto')); r.cantidad = parseNum(val('r-cant')); r.unidad = val('r-unidad').trim(); if (!r.monto) return toast('Pon el monto del gasto.'); }
+    if (t === 'gasto') { r.cat = val('r-cat'); r.monto = parseNum(val('r-monto')); if (has('r-cant')) { r.cantidad = parseNum(val('r-cant')); r.unidad = val('r-unidad').trim(); } if (!r.monto) return toast('Pon el monto del gasto.'); }
     if (t === 'cosecha') { const err = leerCosecha(r); if (err) return toast(err); }
-    if (t === 'venta') { r.comprador = val('r-comprador').trim(); r.canal = val('r-canal'); r.calidad = val('r-calidad'); r.sacos = parseNum(val('r-sacos')); r.precio = parseNum(val('r-precio')); r.kgSaco = parseNum(val('r-kg')) || S.cfg.kgSaco; r.cobrado = !!document.getElementById('r-cobrado')?.checked; if (!r.sacos || !r.precio) return toast('Pon los sacos y el precio por saco.'); r.monto = Math.round(r.sacos * r.precio * 100) / 100; }
+    if (t === 'venta') { r.comprador = val('r-comprador').trim(); r.canal = val('r-canal'); r.calidad = val('r-calidad'); r.sacos = parseNum(val('r-sacos')); r.precio = parseNum(val('r-precio')); r.kgSaco = parseNum(val('r-kg')) || (S.editing && (S.regs.find(x => x.id === S.editing) || {}).kgSaco) || S.cfg.kgSaco; r.cobrado = !!document.getElementById('r-cobrado')?.checked; if (!r.sacos || !r.precio) return toast('Pon los sacos y el precio por saco.'); r.monto = Math.round(r.sacos * r.precio * 100) / 100; }
   }
   S.saving = true;
   const col = t === 'precio' ? 'precios' : 'registros';
@@ -1245,7 +1349,7 @@ async function exportCsv() {
   const cols = ['fecha', 'tipo', 'finca', 'lote', 'categoria', 'detalle', 'cantidad', 'unidad', 'codigo', 'sacos_primera', 'sacos_segunda', 'sacos_tercera', 'sacos_descarte', 'papas_malas_de_20', 'gravedad', 'sacos_vendidos', 'precio_saco', 'kg_saco', 'monto_usd', 'comprador', 'canal', 'calidad', 'cobrado'];
   const n = v => v === null || v === undefined || v === '' ? '' : String(v).replace('.', ',');
   const q = v => { const s = String(v ?? ''); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-  const rows = [...S.regs].sort((a, b) => a.fecha.localeCompare(b.fecha)).map(r => [r.fecha, r.tipo, fincaName(r.finca), loteName(r.lote), (CAT_BY[r.cat] || {}).n || '', r.desc, n(r.cantidad), r.unidad, esCosecha(r) ? codigoCosecha(r) : '', n(r.sacosPrimera), n(r.sacosSegunda), n(r.sacosTercera), n(r.sacosDescarte), r.muestra ? n(muestraMalas(r.muestra)) : '', n(r.gs), n(r.sacos), n(r.precio), n(r.kgSaco), n(r.tipo === 'gasto' ? -N(r.monto) : r.monto), r.comprador, CANALES[r.canal] || '', CALIDADES[r.calidad] || '', r.tipo === 'venta' ? (r.cobrado ? 'sí' : 'no') : ''].map(q).join(';'));
+  const rows = [...S.regs].sort((a, b) => a.fecha.localeCompare(b.fecha)).map(r => [r.fecha, r.tipo, fincaName(r.finca), loteName(r.lote), (CAT_BY[r.cat] || {}).n || '', r.desc, n(r.cantidad), r.unidad, esCosecha(r) ? codigoCosecha(r) : '', n(r.sacosPrimera), n(r.sacosSegunda), n(r.sacosTercera), n(r.sacosDescarte), r.muestra ? n(muestraMalas(r.muestra)) : '', n(r.gs), n(r.sacos), n(r.precio), n(r.kgSaco), n(r.tipo === 'gasto' || r.tipo === 'insumo' ? -N(r.monto) : r.monto), r.comprador, CANALES[r.canal] || '', CALIDADES[r.calidad] || '', r.tipo === 'venta' ? (r.cobrado ? 'sí' : 'no') : ''].map(q).join(';'));
   const csv = '﻿' + cols.join(';') + '\n' + rows.join('\n');
   try { await S.downloads.save({ filename: `cuaderno-fincas-${S.year}.csv`, data: csv }); toast('Archivo listo'); }
   catch (e) { if (e && e.code !== 'declined') toast('No se pudo descargar en esta vista.'); }
@@ -1468,6 +1572,7 @@ function subscribeStatic() {
   on(db.collection('labores').limit(5000).onSnapshot(s => { S.labores = s.docs.map(d => ({ id: d.id, ...d.data() })); S.loaded.labores = true; render(); }, snapErr));
   on(db.collection('precios').orderBy('fecha', 'desc').limit(500).onSnapshot(s => { S.precios = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => isoOk(p.fecha)); S.loaded.precios = true; render(); }, snapErr));
   if (S.rol === 'encargado') { S.loaded.cierres = true; return; }
+  if (S.rol === 'admin') on(db.collection('registros').where('almacen', '==', true).limit(5000).onSnapshot(s => { S.almacen = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(r => isoOk(r.fecha)); S.loaded.almacen = true; render(); }, snapErr));
   on(db.collection('cierres').limit(500).onSnapshot(s => { S.cierres = s.docs.map(d => ({ id: d.id, ...d.data() })); S.loaded.cierres = true; render(); }, snapErr));
   on(db.collection('registros').where('cobrado', '==', false).limit(1000).onSnapshot(s => { S.pend = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(r => r.tipo === 'venta' && isoOk(r.fecha)); S.loaded.pend = true; render(); }, snapErr));
   if (S.rol === 'admin') on(db.collection('miembros').onSnapshot(s => { S.miembros = s.docs.map(d => ({ id: d.id, ...d.data() })); S.miembros.forEach(m => { if (m.nombre) S.names[m.id] = m.nombre; }); render(); }, snapErr));

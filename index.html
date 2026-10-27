@@ -163,6 +163,14 @@ tr.total td { font-weight:700; background:var(--sunk); }
 form.grid, .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:12px; }
 .field { display:flex; flex-direction:column; gap:5px; min-width:0; }
 .field.wide { grid-column:1 / -1; }
+.obr h2 { margin-bottom:12px; }
+.obr-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-bottom:10px; }
+.obr-btn { appearance:none; display:flex; align-items:center; gap:14px; text-align:left; background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:16px; box-shadow:var(--shadow); cursor:pointer; color:var(--ink); font:inherit; min-height:76px; }
+.obr-btn b { display:block; font-size:1.08rem; }
+.obr-btn small { display:block; color:var(--muted); font-size:0.85rem; }
+.obr-btn .tile { width:46px; height:46px; flex:none; border-radius:12px; display:grid; place-items:center; }
+tr.muted td { color:var(--muted); }
+body.enc .filters { display:none; }
 .cos-paso { margin:10px 0 0; font-weight:700; display:flex; align-items:center; gap:10px; }
 .cos-paso b { width:26px; height:26px; border-radius:50%; background:var(--paramo); color:var(--surface); display:grid; place-items:center; font-size:0.85rem; flex:none; }
 .cos-tres { display:grid; grid-template-columns:repeat(auto-fit,minmax(90px,1fr)); gap:8px; }
@@ -290,7 +298,7 @@ body.out .shell { margin-left:0; }
 <div id="sheet-root"></div>
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="config.js?v=546c3b69"></script>
-<script type="module" src="app.js?v=546c3b69"></script>
+<script src="config.js?v=49673eb5"></script>
+<script type="module" src="app.js?v=49673eb5"></script>
 </body>
 </html>
