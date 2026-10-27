@@ -53,7 +53,7 @@ const CATS = [
 const CAT_BY = Object.fromEntries(CATS.map(c => [c.id, c]));
 const GROUPS = { cultivo: 'Cultivo', venta: 'Venta y flete', gestion: 'Gestión' };
 const CANALES = { camionero: 'Camionero en finca', coche: 'Mercado de Coche', restaurante: 'Restaurante', otro: 'Otro' };
-const CALIDADES = { primera: 'Primera', segunda: 'Segunda', mezclada: 'Mezclada' };
+const CALIDADES = { primera: 'Primera', segunda: 'Segunda', tercera: 'Tercera', mezclada: 'Mezclada' };
 const MERCADOS = { finca: 'En finca', coche: 'Coche (Caracas)', otro: 'Otro' };
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const MESES_L = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -79,9 +79,21 @@ function parseNum(s) {
 }
 const isoOk = s => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ''));
 const sum = (arr, fn) => arr.reduce((a, x) => a + N(fn(x)), 0);
-const sacosCosecha = r => N(r.sacosPrimera) + N(r.sacosSegunda);
+const sacosCosecha = r => N(r.sacosPrimera) + N(r.sacosSegunda) + N(r.sacosTercera);
+// Harvest quality, the way processors grade a load: usable share, a 20-potato sample, and specific gravity for frying.
+const MUESTRA = [['gusano', 'Con gusano'], ['verde', 'Verdes'], ['golpe', 'Golpeadas o cortadas'], ['podrida', 'Podridas']];
+const muestraMalas = m => m ? MUESTRA.reduce((a, [k]) => a + N(m[k]), 0) : 0;
+const gravedad = (aire, agua) => aire > 0 && agua > 0 && agua < aire ? aire / (aire - agua) : null;
+const materiaSeca = gs => 24.182 + 211.04 * (gs - 1.0988);
+const fritoTxt = gs => gs >= 1.080 ? 'Buena para freír' : gs >= 1.070 ? 'Regular para freír' : 'Muy aguada para freír';
+const codigoCosecha = r => {
+  const f = (fincaName(r.finca) || '').split(/\s+/).filter(w => !/^(el|la|los|las|de|del)$/i.test(w))[0] || 'FIN';
+  const ln = loteName(r.lote), m = ln.match(/(\d+)/);
+  return [f.normalize('NFD').replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase(), ln ? (/^tanda/i.test(ln) && m ? 'T' + m[1] : ln.replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase()) : '', String(r.fecha || '').slice(8, 10) + String(r.fecha || '').slice(5, 7)].filter(Boolean).join('-');
+};
 // Bought-in potatoes ride on cosecha records with compra: true; they count as stock, not as our harvest.
 const esCosecha = r => r.tipo === 'cosecha' && !r.compra;
+const cosechaDet = r => [r.compra ? '' : codigoCosecha(r), `${nf(r.sacosPrimera)} de primera, ${nf(r.sacosSegunda)} de segunda${N(r.sacosTercera) ? `, ${nf(r.sacosTercera)} de tercera` : ''}${N(r.sacosDescarte) ? `, ${nf(r.sacosDescarte)} botados` : ''}`, r.pesos && r.pesos.length ? `${nf(r.kgSaco, 1)} kg el saco` : '', r.muestra && r.muestra.n ? `${nf(r.muestra.n - muestraMalas(r.muestra))} de ${nf(r.muestra.n)} sanas` : '', r.gs ? `freír ${nf(r.gs, 3)}` : ''].filter(Boolean).join(' · ');
 const ventaTxt = r => r.bolsas ? `${nf(r.bolsas)} bolsas de papa cortada (${nf(r.kgCortada)} kg)` : `${sacosTxt(r.sacos)} a ${usd(r.precio, 2)}`;
 const catGroup = id => (CAT_BY[id] || {}).g || 'cultivo';
 const lsGet = k => { try { return localStorage.getItem(k); } catch { return null; } };
@@ -154,11 +166,15 @@ function liquidar(f) {
 function loteInfo(l) {
   const est = l.siembra ? addDays(l.siembra, l.cicloDias || S.cfg.cicloDias) : null;
   const regs = S.regs.filter(r => r.lote === l.id);
-  const cosechados = sum(regs.filter(r => r.tipo === 'cosecha'), sacosCosecha);
+  const cos = regs.filter(r => r.tipo === 'cosecha');
+  const cosechados = sum(cos, sacosCosecha), descarte = sum(cos, r => r.sacosDescarte);
+  const pesados = cos.filter(r => r.pesos && r.pesos.length), kgReal = pesados.length ? sum(pesados, r => r.kgSaco) / pesados.length : null;
+  const conM = cos.filter(r => r.muestra && N(r.muestra.n)), sanas = conM.length ? 1 - sum(conM, r => muestraMalas(r.muestra)) / sum(conM, r => r.muestra.n) : null;
+  const gsL = cos.map(r => r.gs).filter(Boolean), gs = gsL.length ? gsL.reduce((a, b) => a + b, 0) / gsL.length : null;
   const gasto = sum(regs.filter(r => r.tipo === 'gasto'), r => r.monto);
   const lastCos = regs.filter(r => r.tipo === 'cosecha').map(r => r.fecha).sort().pop() || null;
   const presup = N(l.presupuesto) || N(l.sacosSemilla) * N(S.cfg.presupSemilla) || null;
-  return { est, cosechados, gasto, lastCos, presup, pctPres: presup ? gasto / presup : null, rend: N(l.sacosSemilla) ? cosechados / N(l.sacosSemilla) : null, costoSaco: cosechados ? gasto / cosechados : null };
+  return { est, cosechados, descarte, aprovechable: cosechados + descarte ? cosechados / (cosechados + descarte) : null, kgReal, sanas, gs, gasto, lastCos, presup, pctPres: presup ? gasto / presup : null, rend: N(l.sacosSemilla) ? cosechados / N(l.sacosSemilla) : null, costoSaco: cosechados ? gasto / cosechados : null };
 }
 
 // ---------- render plumbing ----------
@@ -253,7 +269,7 @@ function syncLotes(root) {
   });
 }
 let toastT = 0;
-function toast(msg) { if (!S.online && !S.demo && /guard|anot|agreg|hecha|cobrad|marcad|borrad|cambi|creand|creado/i.test(msg)) msg += '. Se sube cuando haya señal'; const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 3200); }
+function toast(msg) { if (!S.online && !S.demo && /guard|anot|agreg|hecha|cobrad|marcad|borrad|cambi|creand|creado/i.test(msg)) msg += '. Se sube cuando haya señal'; const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, Math.max(3200, msg.length * 70)); }
 async function resolveNames() {
   return;
   const ids = [...new Set(S.regs.map(r => r.autor).filter(Boolean))].filter(id => !(id in S.names));
@@ -330,6 +346,7 @@ VIEWS.resumen = () => {
   const alerts = [];
   lotesF.filter(l => l.estado === 'sembrado').forEach(l => { const i = loteInfo(l); if (i.est && i.est < hoy && !i.cosechados) alerts.push(['bad', `${esc(l.nombre)} (${esc(fincaName(l.finca))}) debía cosecharse el ${fdate(i.est)} y no tiene cosecha registrada.`, 'registrar', 'Registrar cosecha']); });
   lotesF.filter(l => l.estado === 'plan' && l.siembra && l.siembra < hoy).slice(0, 4).forEach(l => alerts.push(['', `El plan decía sembrar ${esc(l.nombre)} (${esc(fincaName(l.finca))}) el ${fdate(l.siembra)}. ¿Ya se sembró?`, 'lotes', 'Ver lotes']));
+  lotesF.forEach(l => { const i = loteInfo(l); if (i.aprovechable != null && i.aprovechable < 0.9 && i.lastCos && i.lastCos >= addDays(hoy, -60)) alerts.push(['bad', `En ${esc(l.nombre)} (${esc(fincaName(l.finca))}) se botó ${nf((1 - i.aprovechable) * 100)}% de la cosecha. Revisa la causa en las notas y la muestra.`, 'lotes', 'Ver lote']); });
   if (st.stock > 0) alerts.push(['', `Quedan ${sacosTxt(st.stock)} cosechados sin venta registrada.`, 'registrar', 'Registrar venta']);
   { const pend = S.pend.filter(r => r.tipo === 'venta' && !r.cobrado && (f === 'all' || r.finca === f)), lim = N(c.diasCredito) || 15; const venc = sum(pend.filter(r => daysBetween(r.fecha, hoy) > lim), r => r.monto), tot = sum(pend, r => r.monto);
     if (tot > 0) alerts.push([venc ? 'bad' : '', venc ? `Hay ${usd(venc)} en ventas vencidas, de ${usd(tot)} por cobrar.` : `Hay ${usd(tot)} en ventas por cobrar.`, 'cobros', 'Ver cobros']); }
@@ -402,10 +419,16 @@ VIEWS.registrar = () => {
         + fld('r-unidad', 'Unidad', inp('r-unidad', e.unidad, 'placeholder="jornales, sacos, litros…"'))
         + fld('r-desc', 'Detalle', inp('r-desc', e.desc, 'placeholder="Ej.: abono 10-20-20, 3 sacos de 50 kg"'), 'wide');
     } else if (t === 'cosecha') {
-      out += fld('r-prim', 'Sacos de primera', numIn('r-prim', e.sacosPrimera, '0'))
-        + fld('r-seg', 'Sacos de segunda', numIn('r-seg', e.sacosSegunda, '0'))
-        + fld('r-kg', 'Kilos por saco', numIn('r-kg', e.kgSaco ?? S.cfg.kgSaco))
-        + fld('r-desc', 'Notas', inp('r-desc', e.desc, 'placeholder="Ej.: papa sana, algo de gusano en el borde"'), 'wide');
+      const ps = e.pesos || [], m = e.muestra || {}, pf = e.prueba || {};
+      out += `<div class="field wide"><p class="cos-paso"><b>1</b> Cuenta los sacos de cada clase</p></div>`
+        + fld('r-prim', 'Primera', numIn('r-prim', e.sacosPrimera, '0'))
+        + fld('r-seg', 'Segunda', numIn('r-seg', e.sacosSegunda, '0'))
+        + fld('r-ter', 'Tercera (pequeña)', numIn('r-ter', e.sacosTercera, '0'))
+        + fld('r-des', 'Descarte (se bota)', numIn('r-des', e.sacosDescarte, '0'))
+        + `<div class="field wide"><p class="cos-paso"><b>2</b> Pesa 3 sacos de primera, cualquiera</p><div class="cos-tres">${[0, 1, 2].map(k => numIn('r-p' + k, ps[k], 'Saco ' + (k + 1) + ' (kg)')).join('')}</div><span class="hint">Si hoy no hay romana, déjalo vacío y se cuentan ${nf(e.kgSaco ?? S.cfg.kgSaco)} kg por saco.</span></div>`
+        + `<div class="field wide"><p class="cos-paso"><b>3</b> Agarra 20 papas al azar de varios sacos y cuenta las malas</p><div class="cos-muestra">${MUESTRA.map(([k, n]) => `<label><span>${n}</span>${numIn('r-m-' + k, m[k], '0')}</label>`).join('')}</div></div>`
+        + `<details class="field wide cos-frito" ${pf.aire ? 'open' : ''}><summary>Prueba para freír <span class="muted small">(solo en el lote de prueba)</span></summary><p class="hint">Mete unos 5 kg de papa en una malla y cuélgala de una romana digital. Anota el peso en el aire y después con la malla toda dentro de un tobo con agua, sin tocar el fondo.</p><div class="cos-tres">${numIn('r-aire', pf.aire, 'En el aire (kg)')}${numIn('r-agua', pf.agua, 'Dentro del agua (kg)')}</div></details>`
+        + fld('r-desc', 'Notas', inp('r-desc', e.desc, 'placeholder="Ej.: lluvia, papa sucia, gusano en el borde"'), 'wide');
     } else {
       out += fld('r-comprador', 'Comprador', inp('r-comprador', e.comprador, 'list="dl-comp" placeholder="Nombre"') + `<datalist id="dl-comp">${[...new Set(S.regs.filter(r => r.comprador).map(r => r.comprador))].slice(0, 30).map(c => `<option value="${esc(c)}">`).join('')}</datalist>`)
         + fld('r-canal', 'A quién se vendió', `<select id="r-canal">${Object.entries(CANALES).map(([k, n]) => opt(k, n, e.canal || 'camionero')).join('')}</select>`)
@@ -436,7 +459,7 @@ function proposalsHtml() {
       fields += fld(id('finca'), 'Finca', `<select id="${id('finca')}">${fincaOptions(p.finca || defaultFinca(), p.tipo === 'gasto')}</select>`)
         + fld(id('lote'), 'Lote', `<select id="${id('lote')}" data-lote-for="${id('finca')}">${loteOptions(p.lote || '')}</select>`);
       if (p.tipo === 'gasto') fields += fld(id('cat'), 'Categoría', `<select id="${id('cat')}">${catOptions(p.cat || 'otros_cultivo')}</select>`) + fld(id('monto'), 'Monto ($)', numIn(id('monto'), p.monto)) + fld(id('cant'), 'Cantidad', numIn(id('cant'), p.cantidad)) + fld(id('unidad'), 'Unidad', inp(id('unidad'), p.unidad));
-      if (p.tipo === 'cosecha') fields += fld(id('prim'), 'Sacos de primera', numIn(id('prim'), p.sacosPrimera)) + fld(id('seg'), 'Sacos de segunda', numIn(id('seg'), p.sacosSegunda)) + fld(id('kg'), 'Kilos por saco', numIn(id('kg'), p.kgSaco ?? S.cfg.kgSaco));
+      if (p.tipo === 'cosecha') fields += fld(id('prim'), 'Sacos de primera', numIn(id('prim'), p.sacosPrimera)) + fld(id('seg'), 'Sacos de segunda', numIn(id('seg'), p.sacosSegunda)) + fld(id('ter'), 'Sacos de tercera', numIn(id('ter'), p.sacosTercera)) + fld(id('des'), 'Descarte', numIn(id('des'), p.sacosDescarte)) + fld(id('kg'), 'Kilos por saco', numIn(id('kg'), p.kgSaco ?? S.cfg.kgSaco));
       if (p.tipo === 'venta') fields += fld(id('comprador'), 'Comprador', inp(id('comprador'), p.comprador)) + fld(id('canal'), 'A quién', `<select id="${id('canal')}">${Object.entries(CANALES).map(([k, n]) => opt(k, n, p.canal || 'camionero')).join('')}</select>`) + fld(id('calidad'), 'Calidad', `<select id="${id('calidad')}">${Object.entries(CALIDADES).map(([k, n]) => opt(k, n, p.calidad || 'mezclada')).join('')}</select>`) + fld(id('sacos'), 'Sacos', numIn(id('sacos'), p.sacos)) + fld(id('precio'), 'Precio por saco ($)', numIn(id('precio'), p.precio)) + fld(id('kg'), 'Kilos por saco', numIn(id('kg'), p.kgSaco ?? S.cfg.kgSaco)) + `<div class="field"><span class="hint">&nbsp;</span><label class="check"><input type="checkbox" id="${id('cobrado')}" ${p.cobrado === false ? '' : 'checked'}> Ya se cobró</label></div>`;
     }
     fields += fld(id('desc'), 'Detalle', inp(id('desc'), p.desc), 'wide');
@@ -464,7 +487,7 @@ VIEWS.lotes = () => {
       return `<div class="lote"><div class="lote-h"><div><div class="t" style="font-weight:700">${esc(l.nombre)}</div><div class="s muted small">${esc(fincaName(l.finca))} · ${esc(l.variedad || 'papa')}${l.ha ? ' · ' + nf(l.ha, 1) + ' ha' : ''}</div></div><span class="chip c-${esc(l.estado || 'plan')}">${{ plan: 'Planificado', sembrado: 'Sembrado', cosechado: 'Cosechado' }[l.estado] || 'Planificado'}</span></div>
         <dl class="kv"><dt>Siembra</dt><dd>${fdateY(l.siembra)}</dd><dt>Cosecha estimada</dt><dd>${fdateY(i.est)}${l.estado === 'sembrado' && d !== null ? ` · ${d >= 0 ? 'en ' + d : 'hace ' + (-d)} d` : ''}</dd>
         <dt>Semilla</dt><dd>${l.sacosSemilla ? sacosTxt(l.sacosSemilla) : '—'}</dd><dt>Cosechado</dt><dd>${i.cosechados ? sacosTxt(i.cosechados) : '—'}</dd>
-        <dt>Sacos por saco de semilla</dt><dd>${i.rend == null || !i.cosechados ? '—' : nf(i.rend, 1)}</dd><dt>Gastos anotados</dt><dd>${usd(i.gasto)}</dd><dt>Costo por saco</dt><dd>${i.costoSaco == null ? '—' : usd(i.costoSaco, 2)}</dd></dl>
+        <dt>Sacos por saco de semilla</dt><dd>${i.rend == null || !i.cosechados ? '—' : nf(i.rend, 1)}</dd>${i.aprovechable != null ? `<dt>Aprovechable</dt><dd>${nf(i.aprovechable * 100)}%${i.descarte ? ` · ${sacosTxt(i.descarte)} botados` : ''}</dd>` : ''}${i.kgReal ? `<dt>Peso real del saco</dt><dd>${nf(i.kgReal, 1)} kg</dd>` : ''}${i.sanas != null ? `<dt>Papas sanas (muestra)</dt><dd>${nf(i.sanas * 100)}%</dd>` : ''}${i.gs ? `<dt>Prueba para freír</dt><dd>${nf(i.gs, 3)} · ${fritoTxt(i.gs)}</dd>` : ''}<dt>Gastos anotados</dt><dd>${usd(i.gasto)}</dd><dt>Costo por saco</dt><dd>${i.costoSaco == null ? '—' : usd(i.costoSaco, 2)}</dd></dl>
         ${i.presup ? `<div class="budget"><div class="bh"><span>Presupuesto: ${usd(i.gasto)} de ${usd(i.presup)}</span><span class="num">${nf(i.pctPres * 100)}%</span></div><div class="bar2 ${i.pctPres > 1 ? 'over' : i.pctPres > 0.85 ? 'near' : ''}"><i style="width:${Math.min(100, i.pctPres * 100).toFixed(1)}%"></i></div></div>` : ''}
         ${l.notas ? `<p class="small muted">${esc(l.notas)}</p>` : ''}
         ${canWrite() ? `<div class="btns">${l.estado === 'plan' ? `<button class="btn" data-act="lote-estado" data-id="${esc(l.id)}" data-v="sembrado">Ya se sembró</button>` : ''}${l.estado === 'sembrado' ? `<button class="btn" data-act="lote-estado" data-id="${esc(l.id)}" data-v="cosechado">Ya se cosechó</button>` : ''}<button class="btn ghost" data-act="lote-edit" data-id="${esc(l.id)}">Editar</button>${conf ? `<button class="btn danger" data-act="lote-del" data-id="${esc(l.id)}">Sí, borrar</button><button class="btn ghost" data-act="confirm-no">No</button>` : `<button class="btn ghost danger" data-act="confirm" data-k="lote:${esc(l.id)}">Borrar</button>`}</div>` : ''}</div>`;
@@ -562,7 +585,7 @@ function itemHtml(r) {
   if (r.tipo === 'gasto') { t = (CAT_BY[r.cat] || {}).n || 'Gasto'; a = `<span class="neg">${usd(-N(r.monto))}</span>`; chip = '<span class="chip c-gasto">Gasto</span>'; }
   if (r.tipo === 'cosecha') { t = `${r.compra ? 'Compra a vecinos' : 'Cosecha'} · ${sacosTxt(sacosCosecha(r))}`; a = `${nf(sacosCosecha(r))}<small>sacos</small>`; chip = '<span class="chip c-cosecha">Cosecha</span>'; }
   if (r.tipo === 'venta') { t = `Venta · ${ventaTxt(r)}${r.comprador ? ' · ' + esc(r.comprador) : ''}`; a = `<span class="pos">${usd(r.monto)}</span>`; chip = `<span class="chip c-venta">Venta</span>${r.cobrado ? '' : ' <span class="chip c-warn">Por cobrar</span>'}`; }
-  const sub = [fincaName(r.finca), r.lote ? loteName(r.lote) : '', r.tipo === 'cosecha' ? `${nf(r.sacosPrimera)} de primera, ${nf(r.sacosSegunda)} de segunda` : '', r.tipo === 'venta' ? (CANALES[r.canal] || '') : '', r.cantidad ? `${nf(r.cantidad, r.cantidad % 1 ? 1 : 0)} ${r.unidad || ''}` : '', r.desc].filter(Boolean).map(esc).join(' · ');
+  const sub = [fincaName(r.finca), r.lote ? loteName(r.lote) : '', r.tipo === 'cosecha' ? cosechaDet(r) : '', r.tipo === 'venta' ? (CANALES[r.canal] || '') : '', r.cantidad ? `${nf(r.cantidad, r.cantidad % 1 ? 1 : 0)} ${r.unidad || ''}` : '', r.desc].filter(Boolean).map(esc).join(' · ');
   const who = r.autor ? (S.names[r.autor] || '') : '';
   const conf = S.confirm === 'reg:' + r.id;
   const mine = S.canAdmin || r.autor === S.uid;
@@ -657,7 +680,7 @@ VIEWS.guia = () => {
   </div></section>`;
   if (anota) out += `<section><h3>Lo de todos los días</h3><div class="how-list">
     ${paso('Anotar un gasto', ['Toca <b>Registrar</b> (el botón del centro) y elige <b>Gasto</b>.', 'Revisa la fecha y elige la <b>finca</b>. Si el gasto es de una tanda, elige también el <b>lote</b>.', 'Elige la <b>categoría</b>: jornales, semilla, fertilizante, agroquímicos, flete…', 'Escribe el <b>monto</b> en dólares y, en <b>Detalle</b>, qué fue. Por ejemplo: "4 jornales de aporque".', 'Toca <b>Guardar gasto</b>.'], 'Todo pago se anota el mismo día, aunque sea pequeño. Si hay factura o nota, guarda la foto.')}
-    ${paso('Anotar una cosecha', ['Toca <b>Registrar</b> y elige <b>Cosecha</b>.', 'Elige la finca y el <b>lote</b> (la tanda que se cosechó).', 'Escribe los <b>sacos de primera</b> y los <b>sacos de segunda</b>.', 'Revisa los <b>kilos del saco</b> (45, 50 o 60).', 'Toca <b>Guardar cosecha</b>.'], 'También puedes hacerlo desde Labores, con el botón "Registrar cosecha" de esa tanda.')}
+    ${paso('Anotar una cosecha', ['Al final del día, toca <b>Registrar</b> y elige <b>Cosecha</b>. Una cosecha por lote y por día.', 'Elige la finca y el <b>lote</b> (la tanda que se sacó).', '<b>Cuenta los sacos</b> de cada clase: primera, segunda, tercera (pequeña) y descarte (la que se bota).', '<b>Pesa 3 sacos</b> de primera, cualquiera, y escribe los kilos.', '<b>Agarra 20 papas al azar</b> de varios sacos y cuenta cuántas tienen gusano, están verdes, golpeadas o podridas.', 'Toca <b>Guardar cosecha</b> y escribe el <b>código</b> que te da la app en la guía del camión.'], 'Así lo hacen las grandes empresas: cada carga sabe de qué lote salió, cuánto pesa y qué calidad tiene. Si un comprador se queja, sabemos de dónde vino esa papa.')}
     ${paso('Anotar una venta', ['Toca <b>Registrar</b> y elige <b>Venta</b>.', 'Escribe los <b>sacos vendidos</b> y el <b>precio por saco</b>. El total sale solo.', 'Escribe el <b>comprador</b> y elige <b>a quién se vendió</b>: camionero, Coche o restaurante.', 'Si ya pagó, déjalo como cobrado. Si queda debiendo, márcalo como <b>por cobrar</b>.', 'Toca <b>Guardar venta</b>.'])}
     ${paso('Marcar las labores del campo', ['Abre <b>Labores</b>. Ahí está lo que toca esta semana y lo atrasado.', 'Cuando la hagas, toca <b>Hecha</b>.', 'Si se tiene que mover, toca <b>Cambiar fecha</b>. Si no hace falta, toca <b>No aplica</b>.', 'Para una labor que no está en la lista, agrégala con <b>Guardar labor</b>.'])}
     ${paso('Corregir un error', ['Abre el <b>Libro</b> y busca el registro (puedes filtrar por mes o escribir en Buscar).', 'Toca <b>Editar</b>, corrige y guarda.', 'Si sobra, toca <b>Borrar</b> y confirma.'], 'Nunca anotes lo mismo dos veces para corregir: se duplican los números.')}
@@ -739,7 +762,7 @@ const LAB_BASE = [
   { k: 'fumi3', d: 85, n: 'Fumigar contra la gota', det: 'Tercera aplicación.' },
   { k: 'fumi4', d: 105, n: 'Fumigar contra la gota', det: 'Cuarta aplicación, si el clima lo pide.' },
   { k: 'madurez', d: -20, fin: true, n: 'Revisar madurez', det: 'Dejar secar o cortar el follaje y parar el riego.' },
-  { k: 'cosecha', d: 0, fin: true, n: 'Cosechar', det: 'Separar primera y segunda y anotar los sacos del lote.' },
+  { k: 'cosecha', d: 0, fin: true, n: 'Cosechar', det: 'Separar primera, segunda, tercera y descarte; pesar 3 sacos y revisar 20 papas.' },
 ];
 function labItems(all) {
   const out = [], byId = Object.fromEntries(S.labores.map(x => [x.id, x]));
@@ -1085,6 +1108,7 @@ let qT = 0;
 document.addEventListener('input', ev => {
   const el = ev.target;
   if (el.dataset.libro === 'q') { clearTimeout(qT); qT = setTimeout(() => { S.libro.q = el.value; render(); }, 250); }
+  if (el.closest('#reg-form') && S.regTipo === 'cosecha') { const t = $('#r-total'); if (t) t.textContent = cosechaResumen(); }
   if (el.closest('#reg-form') && (el.id === 'r-sacos' || el.id === 'r-precio')) { const t = $('#r-total'); const s = parseNum($('#r-sacos')?.value), p = parseNum($('#r-precio')?.value); if (t) t.textContent = s && p && S.regTipo === 'venta' ? `Total: ${usd(s * p)}` : ''; }
 });
 document.addEventListener('submit', async ev => {
@@ -1112,6 +1136,40 @@ function writeErr(e) {
   S.saving = false; render();
 }
 const val = id => (document.getElementById(id) || {}).value ?? '';
+// Reads the harvest form into r. Returns a message when something doesn't add up, so a wrong number never gets saved.
+function leerCosecha(r) {
+  const ed = S.editing ? S.regs.find(x => x.id === S.editing) || {} : {};
+  r.sacosPrimera = parseNum(val('r-prim')) || 0; r.sacosSegunda = parseNum(val('r-seg')) || 0;
+  r.sacosTercera = parseNum(val('r-ter')) || 0; r.sacosDescarte = parseNum(val('r-des')) || 0;
+  if ([r.sacosPrimera, r.sacosSegunda, r.sacosTercera, r.sacosDescarte].some(x => x < 0)) return 'Los sacos no pueden ser negativos.';
+  if (!sacosCosecha(r)) return 'Pon cuántos sacos buenos se sacaron.';
+  if (!r.lote && !ed.compra && S.lotes.some(l => l.finca === r.finca && l.estado !== 'plan')) return 'Elige el lote (la tanda que se cosechó).';
+  const dup = S.regs.find(x => esCosecha(x) && x.id !== S.editing && x.finca === r.finca && x.fecha === r.fecha && (x.lote || '') === (r.lote || ''));
+  if (dup) return 'Ya hay una cosecha de ese lote ese día. Ábrela en el Libro y corrígela, así no se cuenta dos veces.';
+  const pesos = [0, 1, 2].map(k => parseNum(val('r-p' + k))).filter(x => x);
+  const malo = pesos.findIndex(x => x < 20 || x > 90);
+  if (malo >= 0) return `Revisa el peso del saco ${malo + 1}: ${nf(pesos[malo], 1)} kg no parece un saco.`;
+  r.pesos = pesos; r.kgSaco = pesos.length ? Math.round(pesos.reduce((a, b) => a + b, 0) / pesos.length * 10) / 10 : (ed.pesos && ed.pesos.length ? S.cfg.kgSaco : ed.kgSaco) || S.cfg.kgSaco;
+  const m = { n: 20 }; let hay = false;
+  for (const [k] of MUESTRA) { const v = parseNum(val('r-m-' + k)); m[k] = v || 0; if (v) hay = true; }
+  if (muestraMalas(m) > 20) return 'En la muestra hay más de 20 papas malas. Revisa los números (son de 20 papas).';
+  r.muestra = hay || ed.muestra ? m : null;
+  const aire = parseNum(val('r-aire')), agua = parseNum(val('r-agua'));
+  if (aire || agua) {
+    const gs = gravedad(aire, agua);
+    if (!gs || gs < 1.04 || gs > 1.14) return 'Revisa la prueba para freír: el peso dentro del agua debe ser mucho menor que en el aire (más o menos 5 kg en el aire y 0,4 kg dentro del agua).';
+    r.prueba = { aire, agua }; r.gs = Math.round(gs * 1000) / 1000;
+  } else { r.prueba = null; r.gs = null; }
+  return '';
+}
+function cosechaResumen() {
+  const g = id => parseNum(val(id)) || 0;
+  const buenos = g('r-prim') + g('r-seg') + g('r-ter'), des = g('r-des');
+  if (!buenos && !des) return '';
+  const ps = [0, 1, 2].map(k => g('r-p' + k)).filter(x => x), kg = ps.length ? ps.reduce((a, b) => a + b, 0) / ps.length : S.cfg.kgSaco;
+  const malas = MUESTRA.reduce((a, [k]) => a + g('r-m-' + k), 0), gs = gravedad(g('r-aire'), g('r-agua'));
+  return [`${sacosTxt(buenos)} buenos, unos ${nf(buenos * kg)} kg`, buenos + des ? `aprovechable ${nf(buenos / (buenos + des) * 100)}%` : '', malas ? `${nf(Math.max(0, 20 - malas))} de 20 sanas` : '', gs && gs > 1.04 && gs < 1.14 ? `freír: ${nf(gs, 3)}, ${fritoTxt(gs).toLowerCase()} (materia seca ${nf(materiaSeca(gs), 1)}%)` : ''].filter(Boolean).join(' · ');
+}
 async function guardarRegistro() {
   if (S.saving) return;
   const t = S.regTipo, fecha = val('r-fecha');
@@ -1124,7 +1182,7 @@ async function guardarRegistro() {
     r = { tipo: t, fecha, finca: val('r-finca'), lote: val('r-lote'), desc: val('r-desc').trim() };
     if (!r.finca) return toast('Elige la finca.');
     if (t === 'gasto') { r.cat = val('r-cat'); r.monto = parseNum(val('r-monto')); r.cantidad = parseNum(val('r-cant')); r.unidad = val('r-unidad').trim(); if (!r.monto) return toast('Pon el monto del gasto.'); }
-    if (t === 'cosecha') { r.sacosPrimera = parseNum(val('r-prim')) || 0; r.sacosSegunda = parseNum(val('r-seg')) || 0; r.kgSaco = parseNum(val('r-kg')) || S.cfg.kgSaco; if (!(r.sacosPrimera + r.sacosSegunda)) return toast('Pon cuántos sacos se cosecharon.'); }
+    if (t === 'cosecha') { const err = leerCosecha(r); if (err) return toast(err); }
     if (t === 'venta') { r.comprador = val('r-comprador').trim(); r.canal = val('r-canal'); r.calidad = val('r-calidad'); r.sacos = parseNum(val('r-sacos')); r.precio = parseNum(val('r-precio')); r.kgSaco = parseNum(val('r-kg')) || S.cfg.kgSaco; r.cobrado = !!document.getElementById('r-cobrado')?.checked; if (!r.sacos || !r.precio) return toast('Pon los sacos y el precio por saco.'); r.monto = Math.round(r.sacos * r.precio * 100) / 100; }
   }
   S.saving = true;
@@ -1136,10 +1194,10 @@ async function guardarRegistro() {
     S.editing = null; toast('Cambios guardados');
   } else {
     await S.db.collection(col).add({ ...r, autor: S.uid || null, creado: new Date().toISOString(), fuente: 'manual' });
-    toast(t === 'precio' ? 'Precio anotado' : 'Registro guardado');
+    toast(t === 'precio' ? 'Precio anotado' : t === 'cosecha' ? `Cosecha guardada. Código ${codigoCosecha(r)}: escríbelo en la guía del camión.` : 'Registro guardado');
   }
   S.saving = false; S.prefLote = ''; S.prefFinca = '';
-  ['r-monto', 'r-cant', 'r-unidad', 'r-desc', 'r-prim', 'r-seg', 'r-sacos', 'r-precio', 'r-comprador'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  ['r-monto', 'r-cant', 'r-unidad', 'r-desc', 'r-prim', 'r-seg', 'r-ter', 'r-des', 'r-p0', 'r-p1', 'r-p2', 'r-aire', 'r-agua', ...MUESTRA.map(([k]) => 'r-m-' + k), 'r-sacos', 'r-precio', 'r-comprador'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   const tt = $('#r-total'); if (tt) tt.textContent = '';
   render();
 }
@@ -1184,10 +1242,10 @@ async function copyText(el) {
   catch { const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast('Texto seleccionado: cópialo con el menú del teléfono'); }
 }
 async function exportCsv() {
-  const cols = ['fecha', 'tipo', 'finca', 'lote', 'categoria', 'detalle', 'cantidad', 'unidad', 'sacos_primera', 'sacos_segunda', 'sacos_vendidos', 'precio_saco', 'kg_saco', 'monto_usd', 'comprador', 'canal', 'calidad', 'cobrado'];
+  const cols = ['fecha', 'tipo', 'finca', 'lote', 'categoria', 'detalle', 'cantidad', 'unidad', 'codigo', 'sacos_primera', 'sacos_segunda', 'sacos_tercera', 'sacos_descarte', 'papas_malas_de_20', 'gravedad', 'sacos_vendidos', 'precio_saco', 'kg_saco', 'monto_usd', 'comprador', 'canal', 'calidad', 'cobrado'];
   const n = v => v === null || v === undefined || v === '' ? '' : String(v).replace('.', ',');
   const q = v => { const s = String(v ?? ''); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-  const rows = [...S.regs].sort((a, b) => a.fecha.localeCompare(b.fecha)).map(r => [r.fecha, r.tipo, fincaName(r.finca), loteName(r.lote), (CAT_BY[r.cat] || {}).n || '', r.desc, n(r.cantidad), r.unidad, n(r.sacosPrimera), n(r.sacosSegunda), n(r.sacos), n(r.precio), n(r.kgSaco), n(r.tipo === 'gasto' ? -N(r.monto) : r.monto), r.comprador, CANALES[r.canal] || '', CALIDADES[r.calidad] || '', r.tipo === 'venta' ? (r.cobrado ? 'sí' : 'no') : ''].map(q).join(';'));
+  const rows = [...S.regs].sort((a, b) => a.fecha.localeCompare(b.fecha)).map(r => [r.fecha, r.tipo, fincaName(r.finca), loteName(r.lote), (CAT_BY[r.cat] || {}).n || '', r.desc, n(r.cantidad), r.unidad, esCosecha(r) ? codigoCosecha(r) : '', n(r.sacosPrimera), n(r.sacosSegunda), n(r.sacosTercera), n(r.sacosDescarte), r.muestra ? n(muestraMalas(r.muestra)) : '', n(r.gs), n(r.sacos), n(r.precio), n(r.kgSaco), n(r.tipo === 'gasto' ? -N(r.monto) : r.monto), r.comprador, CANALES[r.canal] || '', CALIDADES[r.calidad] || '', r.tipo === 'venta' ? (r.cobrado ? 'sí' : 'no') : ''].map(q).join(';'));
   const csv = '﻿' + cols.join(';') + '\n' + rows.join('\n');
   try { await S.downloads.save({ filename: `cuaderno-fincas-${S.year}.csv`, data: csv }); toast('Archivo listo'); }
   catch (e) { if (e && e.code !== 'declined') toast('No se pudo descargar en esta vista.'); }
@@ -1220,7 +1278,7 @@ Reglas:
 Responde solo con JSON con esta forma:
 {"registros":[
  {"tipo":"gasto","fecha":"AAAA-MM-DD","finca":"id","lote":"","cat":"id","desc":"texto corto","cantidad":null,"unidad":"","monto":0,"duda":""},
- {"tipo":"cosecha","fecha":"AAAA-MM-DD","finca":"id","lote":"","sacosPrimera":0,"sacosSegunda":0,"kgSaco":null,"desc":"","duda":""},
+ {"tipo":"cosecha","fecha":"AAAA-MM-DD","finca":"id","lote":"","sacosPrimera":0,"sacosSegunda":0,"sacosTercera":0,"sacosDescarte":0,"kgSaco":null,"desc":"","duda":""},
  {"tipo":"venta","fecha":"AAAA-MM-DD","finca":"id","lote":"","comprador":"","canal":"camionero|coche|restaurante|otro","calidad":"primera|segunda|mezclada","sacos":0,"precio":0,"kgSaco":null,"cobrado":true,"desc":"","duda":""},
  {"tipo":"precio","fecha":"AAAA-MM-DD","mercado":"finca|coche|otro","producto":"","precio":0,"kgSaco":45,"desc":"fuente","duda":""}
 ]}
@@ -1234,7 +1292,7 @@ function normProp(p) {
   const cat = CAT_BY[p.cat] ? p.cat : 'otros_cultivo';
   const n = x => (x === null || x === undefined || x === '') ? null : parseNum(x);
   return { tipo, fecha: isoOk(p.fecha) ? p.fecha : today(), finca, lote, cat, desc: String(p.desc || '').slice(0, 200), cantidad: n(p.cantidad), unidad: String(p.unidad || ''), monto: n(p.monto),
-    sacosPrimera: n(p.sacosPrimera), sacosSegunda: n(p.sacosSegunda), kgSaco: n(p.kgSaco), comprador: String(p.comprador || ''), canal: CANALES[p.canal] ? p.canal : 'camionero',
+    sacosPrimera: n(p.sacosPrimera), sacosSegunda: n(p.sacosSegunda), sacosTercera: n(p.sacosTercera), sacosDescarte: n(p.sacosDescarte), kgSaco: n(p.kgSaco), comprador: String(p.comprador || ''), canal: CANALES[p.canal] ? p.canal : 'camionero',
     calidad: CALIDADES[p.calidad] ? p.calidad : 'mezclada', sacos: n(p.sacos), precio: n(p.precio), cobrado: p.cobrado !== false, mercado: MERCADOS[p.mercado] ? p.mercado : 'coche', producto: String(p.producto || ''),
     duda: String(p.duda || '') + (!finca && tipo !== 'precio' ? (p.duda ? ' ' : '') + 'No se sabe de qué finca es.' : ''), on: true };
 }
@@ -1244,7 +1302,7 @@ function syncProposals() {
     const v = k => g(k) ? g(k).value : undefined;
     p.on = g('on') ? g('on').checked : true; p.fecha = v('fecha') ?? p.fecha; p.desc = v('desc') ?? p.desc;
     if (g('finca')) p.finca = v('finca'); if (g('lote')) p.lote = v('lote'); if (g('cat')) p.cat = v('cat');
-    for (const [k, f] of [['monto', 'monto'], ['cant', 'cantidad'], ['prim', 'sacosPrimera'], ['seg', 'sacosSegunda'], ['kg', 'kgSaco'], ['sacos', 'sacos'], ['precio', 'precio']]) if (g(k)) p[f] = parseNum(v(k));
+    for (const [k, f] of [['monto', 'monto'], ['cant', 'cantidad'], ['prim', 'sacosPrimera'], ['seg', 'sacosSegunda'], ['ter', 'sacosTercera'], ['des', 'sacosDescarte'], ['kg', 'kgSaco'], ['sacos', 'sacos'], ['precio', 'precio']]) if (g(k)) p[f] = parseNum(v(k));
     for (const k of ['unidad', 'comprador', 'canal', 'calidad', 'mercado', 'producto']) if (g(k)) p[k] = v(k);
     if (g('cobrado')) p.cobrado = g('cobrado').checked;
   });
@@ -1279,7 +1337,7 @@ async function guardarPropuestas() {
     if (p.tipo !== 'precio' && !p.finca) return toast('Falta elegir la finca en algún registro.');
     if (p.tipo === 'gasto' && !p.monto) return toast('Falta el monto de algún gasto.');
     if (p.tipo === 'venta' && !(p.sacos && p.precio)) return toast('Falta sacos o precio en alguna venta.');
-    if (p.tipo === 'cosecha' && !(N(p.sacosPrimera) + N(p.sacosSegunda))) return toast('Falta la cantidad de sacos en alguna cosecha.');
+    if (p.tipo === 'cosecha' && !sacosCosecha(p)) return toast('Falta la cantidad de sacos en alguna cosecha.');
     if (p.tipo === 'precio' && !p.precio) return toast('Falta el precio en algún registro de mercado.');
   }
   S.saving = true; render();
@@ -1291,7 +1349,7 @@ async function guardarPropuestas() {
     else {
       d = { tipo: p.tipo, fecha: p.fecha, finca: p.finca, lote: p.lote || '', desc: p.desc };
       if (p.tipo === 'gasto') Object.assign(d, { cat: p.cat, monto: p.monto, cantidad: p.cantidad, unidad: p.unidad });
-      if (p.tipo === 'cosecha') Object.assign(d, { sacosPrimera: N(p.sacosPrimera), sacosSegunda: N(p.sacosSegunda), kgSaco: p.kgSaco || S.cfg.kgSaco });
+      if (p.tipo === 'cosecha') Object.assign(d, { sacosPrimera: N(p.sacosPrimera), sacosSegunda: N(p.sacosSegunda), sacosTercera: N(p.sacosTercera), sacosDescarte: N(p.sacosDescarte), kgSaco: p.kgSaco || S.cfg.kgSaco });
       if (p.tipo === 'venta') Object.assign(d, { comprador: p.comprador, canal: p.canal, calidad: p.calidad, sacos: p.sacos, precio: p.precio, kgSaco: p.kgSaco || S.cfg.kgSaco, cobrado: p.cobrado, monto: Math.round(p.sacos * p.precio * 100) / 100 });
       await S.db.collection('registros').add({ ...d, ...base });
     }

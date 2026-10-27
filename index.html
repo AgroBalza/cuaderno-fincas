@@ -163,6 +163,15 @@ tr.total td { font-weight:700; background:var(--sunk); }
 form.grid, .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:12px; }
 .field { display:flex; flex-direction:column; gap:5px; min-width:0; }
 .field.wide { grid-column:1 / -1; }
+.cos-paso { margin:10px 0 0; font-weight:700; display:flex; align-items:center; gap:10px; }
+.cos-paso b { width:26px; height:26px; border-radius:50%; background:var(--paramo); color:var(--surface); display:grid; place-items:center; font-size:0.85rem; flex:none; }
+.cos-tres { display:grid; grid-template-columns:repeat(auto-fit,minmax(90px,1fr)); gap:8px; }
+.cos-muestra { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 12px; }
+.cos-muestra label { display:flex; flex-direction:column; gap:4px; font-size:0.85rem; color:var(--muted); }
+details.cos-frito { border:1px dashed var(--line-strong); border-radius:12px; padding:10px 12px; }
+details.cos-frito summary { cursor:pointer; font-weight:600; }
+details.cos-frito .hint { margin:8px 0; }
+#r-total { font-weight:600; color:var(--ink); }
 label { font-size:0.8rem; font-weight:700; color:var(--muted); }
 input, select, textarea { font:16px var(--f-body); color:var(--ink); background:var(--sunk); border:1px solid transparent; border-radius:var(--r-s); padding:10px 12px; min-height:46px; width:100%; min-width:0; }
 input:focus, select:focus, textarea:focus { background:var(--surface); border-color:var(--paramo); outline:none; }
@@ -281,7 +290,7 @@ body.out .shell { margin-left:0; }
 <div id="sheet-root"></div>
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="config.js?v=c0e637e4"></script>
-<script type="module" src="app.js?v=c0e637e4"></script>
+<script src="config.js?v=546c3b69"></script>
+<script type="module" src="app.js?v=546c3b69"></script>
 </body>
 </html>

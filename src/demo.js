@@ -117,7 +117,8 @@ export function demoData(hoy, esc = 'hoy') {
     g(150, 'jornales', 240, 'Cosecha y selección');
     if (l.cosecha <= hoy) {
       const tot = Math.round(50 * l.rend), seg = Math.round(tot * vary(0.15, 0.25));
-      reg({ tipo: 'cosecha', fecha: l.cosecha, finca: l.finca, lote: l.id, sacosPrimera: tot - seg, sacosSegunda: seg, kgSaco: 50 });
+      const k = tot % 7, pesos = [48 + (k % 3), 50 + (k % 2), 49 + (k % 4) * 0.5], kg = Math.round(pesos.reduce((a, b) => a + b, 0) / 3 * 10) / 10;
+      reg({ tipo: 'cosecha', fecha: l.cosecha, finca: l.finca, lote: l.id, sacosPrimera: tot - seg, sacosSegunda: seg, sacosTercera: 0, sacosDescarte: Math.round(tot * (0.03 + k * 0.006)), pesos, kgSaco: kg, muestra: { n: 20, gusano: k % 3, verde: k % 2, golpe: (k + 1) % 2, podrida: 0 }, ...(esc !== 'hoy' ? { prueba: { aire: 5, agua: 0.43 + k * 0.004 }, gs: Math.round(5 / (5 - 0.43 - k * 0.004) * 1000) / 1000 } : {}) });
       l.primera = tot - seg; l.segunda = seg;
     } else {
       // Labour already done on plantings still in the ground, so the to-do list looks lived in.
