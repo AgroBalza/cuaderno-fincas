@@ -4,7 +4,7 @@ import { memDb, demoData, ESCENARIOS } from './demo.js';
 // ---------- constants ----------
 const TABS = [
   ['resumen', 'Resumen'], ['registrar', 'Registrar'], ['lotes', 'Lotes y siembra'], ['labores', 'Labores'], ['libro', 'Libro'], ['almacen', 'Almacén de insumos'],
-  ['cobros', 'Por cobrar'], ['cierre', 'Cierre del mes'], ['liquidacion', 'Liquidación'], ['precios', 'Precios'], ['guia', 'Instrucciones'], ['ajustes', 'Ajustes'],
+  ['cobros', 'Por cobrar'], ['cierre', 'Cierre del mes'], ['liquidacion', 'Liquidación'], ['precios', 'Precios'], ['metas', 'Metas'], ['guia', 'Instrucciones'], ['ajustes', 'Ajustes'],
 ];
 const ICONS = {
   resumen: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
@@ -13,6 +13,7 @@ const ICONS = {
   libro: '<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/><path d="M9 8h6"/>',
   liquidacion: '<path d="M12 3v18M7 21h10M5 7h14"/><path d="M5 7l-3 6a3 3 0 0 0 6 0zM19 7l-3 6a3 3 0 0 0 6 0z"/>',
   precios: '<path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/>',
+  metas: '<path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/>',
   guia: '<path d="M10 6h10M10 12h10M10 18h10"/><path d="m3 6 1.5 1.5L7 5M3 12l1.5 1.5L7 11M3 18l1.5 1.5L7 17"/>',
   ajustes: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
   labores: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="m9 15 2 2 4-4"/>',
@@ -151,7 +152,7 @@ const loteName = id => (S.lotes.find(l => l.id === id) || {}).nombre || '';
 const ready = () => S.status === 'ok' && S.loaded.fincas && S.loaded.regs && S.loaded.lotes && S.loaded.cfg;
 const canWrite = () => !!S.db && (S.rol === 'admin' || S.rol === 'encargado');
 const ROLES = { admin: 'Administrador', encargado: 'Encargado de finca', familia: 'Familia (solo ver)', lector: 'Analista (solo ver)' };
-const ROLE_TABS = { encargado: ['resumen', 'registrar', 'libro', 'guia', 'ajustes'], familia: ['resumen', 'lotes', 'labores', 'libro', 'cobros', 'cierre', 'liquidacion', 'precios', 'guia', 'ajustes'] };
+const ROLE_TABS = { encargado: ['resumen', 'registrar', 'libro', 'guia', 'ajustes'], familia: ['resumen', 'lotes', 'labores', 'libro', 'cobros', 'cierre', 'liquidacion', 'precios', 'metas', 'guia', 'ajustes'] };
 ROLE_TABS.lector = ROLE_TABS.familia;
 // Overseers get a short app: start, record, what they recorded, help. Simpler names for them.
 const tabLabel = id => (S.rol === 'encargado' && { resumen: 'Inicio', libro: 'Lo que anoté', guia: 'Ayuda' }[id]) || (TABS.find(t => t[0] === id) || [])[1] || '';
@@ -929,6 +930,46 @@ VIEWS.liquidacion = () => {
     <p class="hint help">${c.baseEncargado === 'precioFinca' ? `El tercio del encargado se calcula sobre la cosecha a precio de finca (${usd(c.precioRef)} el saco) menos cultivo y gestión. Lo que se gana de más vendiendo mejor queda para tierra y dinero.` : 'El tercio del encargado se calcula sobre la utilidad real.'} Si la utilidad es negativa, el encargado no cobra parte y la pérdida la cubren tierra y dinero.</p>
     <div class="panel"><h3>Texto para mandar a la familia</h3><pre class="tpl" id="liq-txt">${esc(txt)}</pre><div class="btns"><button class="btn" data-act="copy" data-src="liq-txt">Copiar</button></div></div></section>`;
 };
+// ---------- metas por etapa (ruta: Granola escalonada + prueba para freír -> restaurantes -> planta) ----------
+const META_ETAPAS = [
+  { n: 'Etapa 2 · Media El Baho para freír y primeros restaurantes', m: ['8 sacos o más por saco sembrado en 2 tandas seguidas de papa para freír', '55% o más de cada cosecha apta para restaurante', '3 restaurantes o más comprando 3 meses seguidos y pagando en 30 días o menos', 'Ganancia por saco a restaurante de $8 o más sobre el precio de puerta de finca, ya pagado flete, selección y entrega', '100 sacos al mes o más a restaurantes', 'Agua confirmada para sembrar en la época seca'] },
+  { n: 'Etapa 3 · Las 3 fincas y 200 sacos al mes', m: ['200 sacos al mes o más a restaurantes durante 6 meses seguidos', '10 clientes o más, o una cadena con contrato', 'La familia gana $20.000 al año o más con el sueldo ya pagado', 'Ningún mes sin papa apta para los clientes'] },
+  { n: 'Etapa 4 · Planta de papa cortada', m: ['Demanda de 400 sacos al mes o más durante 12 meses', 'Los clientes piden papa ya cortada', 'Financiamiento que no ponga en riesgo las fincas'] },
+];
+function metasEtapa1() {
+  const c = S.cfg, fb = (S.fincas.find(f => /baho/i.test(f.id + ' ' + f.nombre)) || S.fincas[0] || {}).id;
+  const regsB = S.regs.filter(r => r.finca === fb);
+  const meses = new Set(regsB.map(r => String(r.fecha).slice(5, 7))).size;
+  const lB = S.lotes.filter(l => l.finca === fb);
+  const costo = stats(fb).costoSaco;
+  const prueba = lB.filter(l => l.variedad && !/granola/i.test(l.variedad)).map(l => ({ l, i: loteInfo(l) })).filter(x => x.i.cosechados);
+  const best = prueba.filter(x => x.i.rend != null).sort((a, b) => b.i.rend - a.i.rend)[0];
+  const cosP = best ? S.regs.filter(r => r.tipo === 'cosecha' && r.lote === best.l.id) : [];
+  const gsL = cosP.map(r => r.gs).filter(Boolean), gsOk = gsL.filter(g => g >= 1.08).length;
+  const tot = sum(cosP, r => N(r.sacosPrimera) + N(r.sacosSegunda) + N(r.sacosTercera) + N(r.sacosDescarte)), ps = sum(cosP, r => N(r.sacosPrimera) + N(r.sacosSegunda));
+  const apta = tot ? ps / tot : null;
+  const v = best ? esc(best.l.variedad) : 'la mejor variedad';
+  return [
+    { t: 'Gastos y ventas de El Baho anotados los 12 meses', ok: meses >= 12, v: `${meses} de 12 meses` },
+    { t: `Costo del cultivo de ${usd(N(c.metaCostoSaco) || 15)} o menos por saco en El Baho`, ok: costo != null && costo <= (N(c.metaCostoSaco) || 15), v: costo == null ? 'sin cosecha todavía' : usd(costo, 2) + ' por saco' },
+    { t: 'Una variedad de prueba con 8 sacos o más por saco sembrado', ok: !!best && best.i.rend >= 8, v: best ? `${v}: ${nf(best.i.rend, 1)}` : 'sin cosecha de prueba' },
+    { t: 'Gravedad de 1,080 o más en 2 de 3 pruebas para freír', ok: gsL.length >= 2 && gsOk >= 2 && gsOk / gsL.length >= 2 / 3, v: gsL.length ? `${gsOk} de ${gsL.length} pruebas` : 'sin pruebas' },
+    { t: '55% o más de la cosecha de prueba en primera y segunda', ok: apta != null && apta >= 0.55, v: apta == null ? '—' : nf(apta * 100) + '%' },
+    { t: 'Muestras a 5 restaurantes o más', ok: N(c.metaRestMuestras) >= 5, v: `${nf(N(c.metaRestMuestras))} de 5`, k: 'metaRestMuestras' },
+    { t: '2 restaurantes o más dispuestos a pagar $45 o más por saco', ok: N(c.metaRestSi) >= 2, v: `${nf(N(c.metaRestSi))} de 2`, k: 'metaRestSi' },
+    { t: '60 sacos o más de semilla propia guardada', ok: N(c.metaSemilla) >= 60, v: `${nf(N(c.metaSemilla))} de 60 sacos`, k: 'metaSemilla' },
+  ];
+}
+VIEWS.metas = () => {
+  if (!ready()) return notReady();
+  const ms = metasEtapa1(), n = ms.filter(m => m.ok).length, edit = S.rol === 'admin';
+  const row = m => `<div class="item meta-i ${m.ok ? 'ok' : ''}"><span class="meta-ck" aria-label="${m.ok ? 'Cumplida' : 'Pendiente'}">${m.ok ? '✓' : ''}</span><div><div class="t">${m.t}</div><div class="s">${m.v}</div></div><div class="a">${m.k && edit ? `<input class="meta-n" inputmode="decimal" data-mt="${m.k}" value="${N(S.cfg[m.k]) || ''}" placeholder="0" aria-label="Cantidad">` : ''}</div></div>`;
+  return `<section><div class="sec-head"><div><p class="eyebrow">${S.year} · Etapa 1</p><h2>Metas para crecer</h2></div><div class="kpi ${n === ms.length ? 'good' : ''}"><div class="kpi-v num">${n} de ${ms.length}</div></div></div>
+    <p class="muted small help">El Baho siembra Granola escalonada y se vende en puerta de finca. Un pedazo de prueba con 3 o 4 variedades para freír sirve para pruebas, muestras a restaurantes y semilla propia. Se pasa a la etapa siguiente solo con todas las metas cumplidas; si no, se repite una vez, y si se falla dos veces se sigue como hoy. Las 5 primeras se calculan solas con lo que se anota; las otras 3 las escribe un administrador.</p>
+    <div class="list">${ms.map(row).join('')}</div>
+    ${META_ETAPAS.map(e => `<details class="panel meta-e"><summary>${e.n}</summary><ul>${e.m.map(x => `<li>${x}</li>`).join('')}</ul></details>`).join('')}
+    <details class="panel meta-e"><summary>Señales de alarma</summary><ul><li>Dos tandas seguidas con menos de 6 sacos por saco sembrado</li><li>Un restaurante que no paga en 45 días</li><li>Costo en efectivo por saco por encima de $20</li><li>Gota en la variedad de prueba</li></ul></details></section>`;
+};
 function liqTexto(L) {
   const lines = [`Liquidación ${S.year} · Agropecuaria Los Granates`, ''];
   for (const { f, q } of L) {
@@ -1433,6 +1474,7 @@ document.addEventListener('change', ev => {
   const el = ev.target;
   if (el.id === 'demo-esc') return entrarDemo(el.value);
   if (el.dataset.pe) return planCampo(el).catch(writeErr);
+  if (el.dataset.mt) return S.db.doc('ajustes/general').update({ [el.dataset.mt]: parseNum(el.value) || 0 }).then(() => toast('Guardado')).catch(writeErr);
   if (el.id === 'f-year') { S.year = +el.value; subscribeRegs(); S.skipRestore = true; return render(); }
   if (el.id === 'f-finca') { S.finca = el.value; lsSet('cf-finca', S.finca); S.skipRestore = true; return render(); }
   if (el.id === 'mb-rol') { const w = document.getElementById('mb-finca-w'); if (w) w.hidden = el.value !== 'encargado'; return; }

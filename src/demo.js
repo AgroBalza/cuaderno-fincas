@@ -44,22 +44,22 @@ export function memDb(seed) {
 
 // Three scenarios, all from the financial model (Modelo financiero, 2026-10-17):
 // - hoy: what the farms do today, Granola sold whole to the truck buyer at the farm, ~1,200 sacks per farm.
-// - freir: a frying variety, yield +10% from better seed and soil work, ~200 sacks a month to Caracas restaurants at $40.
+// - freir: a frying variety (9 sacks per seed sack, ~16 t/ha, the conservative figure from Mérida trials), ~200 sacks a month to Caracas restaurants at $45.
 // - planta: yield +15%, a small plant washes, peels, cuts and vacuum-packs the potatoes (own plus ~400 sacks a month
-//   bought from neighbours at $27) and sells 2.5 kg bags to ~8 restaurant clients at $1.40/kg.
+//   bought from neighbours at $27; yield as freir) and sells 2.5 kg bags to ~8 restaurant clients at $1.40/kg.
 // Every scenario carries cultivation at ~$4,500 per 50 seed sacks and manager pay + trips + admin of $21,240 a year.
 export const ESCENARIOS = {
   hoy: {
     nombre: 'Hoy', largo: 'Como trabajamos hoy',
-    supuestos: ['Papa Granola, unos 1.200 sacos por finca al año.', 'Todo se vende entero al camionero en la finca: primera a ~$27 y segunda a ~$14 (promedio $25).', 'Cultivo a $15 por saco; sueldo, viajes y contador $21.240 al año.'],
+    supuestos: ['Papa Granola, unos 1.200 sacos por finca al año.', 'Todo se vende entero al camionero en la finca: primera a ~$27 y segunda a ~$14 (promedio $25).', 'Cultivo a $15 por saco; sueldo, viajes y contador $21.240 al año.', 'Es un año normal, sin gota fuerte ni precios bajos. Contando los años malos, el promedio es bastante menor.'],
   },
   freir: {
     nombre: 'Para freír', largo: 'Papa para freír a restaurantes de Caracas',
-    supuestos: ['Variedad para freír (Iniafrit), semilla y manejo de suelo mejorados: 10% más sacos.', 'Unos 200 sacos al mes de primera a restaurantes de Caracas a $40, con flete de $4 y selección de $1 por saco.', 'El resto (primera que sobra y segunda) al camionero en la finca.', 'El tercio del encargado se calcula a precio de finca; lo que se gana de más queda para tierra y dinero.'],
+    supuestos: ['Variedad para freír (Iniafrit) con semilla certificada: 9 sacos por saco sembrado (unas 16 t/ha), lo prudente según los ensayos en Mérida.', 'Unos 200 sacos al mes de primera a restaurantes de Caracas a $45 (precio por confirmar con los restaurantes), con flete de $4 y selección de $1 por saco.', 'El resto (primera que sobra y segunda) al camionero en la finca.', 'El tercio del encargado se calcula a precio de finca; lo que se gana de más queda para tierra y dinero.', 'Es un año normal, sin gota fuerte ni precios bajos. Contando los años malos, el promedio es bastante menor.'],
   },
   planta: {
     nombre: 'Papa cortada', largo: 'El futuro: papa cortada en bolsas',
-    supuestos: ['Rendimiento 15% más alto. La primera se lava, pela, corta y empaca al vacío en bolsas de 2,5 kg.', 'Se compran ~400 sacos al mes de papa apta a vecinos a $27.', 'Se vende a ~8 clientes en Caracas a $1,40 el kilo ($3,50 la bolsa); de un saco de 50 kg salen 40 kg cortados.', 'Planta: 6 obreros ($1.500/mes), bolsas y energía $0,10/kg, flete refrigerado $0,12/kg.', 'Préstamo de $105.000 (máquinas, cuarto frío y galpón) a 4 años al 12%: cuota de $2.765 al mes.', 'No incluye impuesto sobre la renta.'],
+    supuestos: ['Papa para freír, 9 sacos por saco sembrado. La primera se lava, pela, corta y empaca al vacío en bolsas de 2,5 kg.', 'Se compran ~400 sacos al mes de papa apta a vecinos a $27.', 'Se vende a ~8 clientes en Caracas a $1,40 el kilo ($3,50 la bolsa); de un saco de 50 kg salen 40 kg cortados.', 'Planta: 6 obreros ($1.500/mes), bolsas y energía $0,10/kg, flete refrigerado $0,12/kg.', 'Préstamo de $105.000 (máquinas, cuarto frío y galpón) a 4 años al 12%: cuota de $2.765 al mes.', 'No incluye impuesto sobre la renta.', 'Es un año normal, sin gota fuerte ni precios bajos. Contando los años malos, el promedio es bastante menor.'],
   },
 };
 const FINCAS = [['el-baho', 'El Baho', 1], ['el-mostrenco', 'El Mostrenco', 2], ['hoyo-el-barro', 'Hoyo El Barro', 3]];
@@ -77,7 +77,7 @@ export function demoData(hoy, esc = 'hoy') {
   const add = (date, n) => { const d = new Date(date + 'T12:00:00'); d.setDate(d.getDate() + n); return iso(d); };
   const ym = (y, m) => `${y}-${String(m).padStart(2, '0')}`;
   const cy = +hoy.slice(0, 4), y0 = cy - 1;
-  const P = { hoy: { rend: 6, variedad: 'Granola' }, freir: { rend: 6.6, variedad: 'Iniafrit (para freír)' }, planta: { rend: 6.9, variedad: 'Iniafrit (para freír)' } }[esc] || { rend: 6, variedad: 'Granola' };
+  const P = { hoy: { rend: 6, variedad: 'Granola' }, freir: { rend: 9, variedad: 'Iniafrit (para freír)' }, planta: { rend: 9, variedad: 'Iniafrit (para freír)' } }[esc] || { rend: 6, variedad: 'Granola' };
   const out = {};
   let n = 0;
   const put = (p, d) => { out[p] = d; };
@@ -155,7 +155,7 @@ export function demoData(hoy, esc = 'hoy') {
           if (sacos <= 0) continue;
           prim -= sacos;
           const cliente = RESTAURANTES[ri++ % RESTAURANTES.length];
-          reg({ tipo: 'venta', fecha, finca: l.finca, lote: l.id, sacos, precio: 40, monto: sacos * 40, comprador: cliente, canal: 'restaurante', calidad: 'primera', ...credito(fecha, cliente, 'Hamburguesas Altamira') });
+          reg({ tipo: 'venta', fecha, finca: l.finca, lote: l.id, sacos, precio: 45, monto: sacos * 45, comprador: cliente, canal: 'restaurante', calidad: 'primera', ...credito(fecha, cliente, 'Hamburguesas Altamira') });
           reg({ tipo: 'gasto', fecha, finca: l.finca, lote: l.id, cat: 'flete', monto: sacos * 4, desc: `Flete a Caracas, ${sacos} sacos (camión del tío)` });
           reg({ tipo: 'gasto', fecha, finca: l.finca, lote: l.id, cat: 'sacos', monto: sacos, desc: `Selección y sacos nuevos, ${sacos} sacos` });
         }
