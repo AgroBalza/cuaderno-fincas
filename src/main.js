@@ -4,7 +4,7 @@ import { memDb, demoData, ESCENARIOS } from './demo.js';
 // ---------- constants ----------
 const TABS = [
   ['resumen', 'Resumen'], ['registrar', 'Registrar'], ['lotes', 'Lotes y siembra'], ['labores', 'Labores'], ['libro', 'Libro'], ['almacen', 'Almacén de insumos'],
-  ['cobros', 'Por cobrar'], ['cierre', 'Cierre del mes'], ['liquidacion', 'Liquidación'], ['precios', 'Precios'], ['metas', 'Metas'], ['supuestos', 'Supuestos'], ['guia', 'Instrucciones'], ['ajustes', 'Ajustes'],
+  ['cobros', 'Por cobrar'], ['cierre', 'Cierre del mes'], ['liquidacion', 'Liquidación'], ['precios', 'Precios'], ['metas', 'Metas'], ['guia', 'Instrucciones'], ['ajustes', 'Ajustes'],
 ];
 const ICONS = {
   resumen: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
@@ -13,7 +13,6 @@ const ICONS = {
   libro: '<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/><path d="M9 8h6"/>',
   liquidacion: '<path d="M12 3v18M7 21h10M5 7h14"/><path d="M5 7l-3 6a3 3 0 0 0 6 0zM19 7l-3 6a3 3 0 0 0 6 0z"/>',
   precios: '<path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/>',
-  supuestos: '<path d="M4 6h10M4 12h16M4 18h7"/><circle cx="17" cy="6" r="2"/><circle cx="14" cy="18" r="2"/>',
   metas: '<path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/>',
   guia: '<path d="M10 6h10M10 12h10M10 18h10"/><path d="m3 6 1.5 1.5L7 5M3 12l1.5 1.5L7 11M3 18l1.5 1.5L7 17"/>',
   ajustes: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
@@ -153,7 +152,7 @@ const loteName = id => (S.lotes.find(l => l.id === id) || {}).nombre || '';
 const ready = () => S.status === 'ok' && S.loaded.fincas && S.loaded.regs && S.loaded.lotes && S.loaded.cfg;
 const canWrite = () => !!S.db && (S.rol === 'admin' || S.rol === 'encargado');
 const ROLES = { admin: 'Administrador', encargado: 'Encargado de finca', familia: 'Familia (solo ver)', lector: 'Analista (solo ver)' };
-const ROLE_TABS = { encargado: ['resumen', 'registrar', 'libro', 'guia', 'ajustes'], familia: ['resumen', 'lotes', 'labores', 'libro', 'cobros', 'cierre', 'liquidacion', 'precios', 'metas', 'supuestos', 'guia', 'ajustes'] };
+const ROLE_TABS = { encargado: ['resumen', 'registrar', 'libro', 'guia', 'ajustes'], familia: ['resumen', 'lotes', 'labores', 'libro', 'cobros', 'cierre', 'liquidacion', 'precios', 'metas', 'guia', 'ajustes'] };
 ROLE_TABS.lector = ROLE_TABS.familia;
 // Overseers get a short app: start, record, what they recorded, help. Simpler names for them.
 const tabLabel = id => (S.rol === 'encargado' && { resumen: 'Inicio', libro: 'Lo que anoté', guia: 'Ayuda' }[id]) || (TABS.find(t => t[0] === id) || [])[1] || '';
@@ -971,123 +970,6 @@ VIEWS.metas = () => {
     ${META_ETAPAS.map(e => `<details class="panel meta-e"><summary>${e.n}</summary><ul>${e.m.map(x => `<li>${x}</li>`).join('')}</ul></details>`).join('')}
     <details class="panel meta-e"><summary>Señales de alarma</summary><ul><li>Dos tandas seguidas con menos de 6 sacos por saco sembrado</li><li>Un restaurante que no paga en 45 días</li><li>Costo en efectivo por saco por encima de $20</li><li>Gota en la variedad de prueba</li></ul></details></section>`;
 };
-// ---------- supuestos y caminos (cada tema en su ventana; el reporte junta todo) ----------
-// Defaults come from the viability model (28-oct-2026). Each value can be marked as confirmed.
-const SUP_GRUPOS = [
-  { id: 'prod', n: 'Producción', f: [
-    ['fincas', 'Fincas con papa', 3, '', 'Las tres fincas.'],
-    ['semilla', 'Sacos de semilla por finca al año', 200, 'sacos', 'Dato de la familia.'],
-    ['rendGranola', 'Sacos por saco sembrado, Granola', 6, '', 'Dato de la familia: 200 sacos dan 1.200. Unas 11 t/ha, igual que la zona.'],
-    ['rendFreir', 'Sacos por saco sembrado, papa para freír', 9, '', 'Cálculo prudente (16 t/ha). En ensayos de Mérida dio 37 t/ha; la prueba de El Baho lo confirma.'],
-    ['apto', 'Cosecha apta para freír', 55, '%', 'Tamaño y gravedad de 1,080 o más.'],
-    ['perdida', 'Cosecha perdida en promedio', 11, '%', 'Gota, granizo y sequía, promedio de varios años.'],
-  ] },
-  { id: 'cost', n: 'Costos', f: [
-    ['fijo', 'Gasto en efectivo fijo por finca al año', 15000, '$', 'Abono, químicos, labores y semilla. Con 1.200 sacos da los $15 por saco de hoy.'],
-    ['porSaco', 'Gasto por saco cosechado', 2.5, '$', 'Cosecha, saco y carga.'],
-    ['gestion', 'Sueldo, viajes y contador al año', 21240, '$', 'Para las tres fincas.'],
-  ] },
-  { id: 'finca', n: 'Venta en finca', f: [
-    ['precioFinca', 'Precio del saco en la finca', 25, '$', 'Lo que paga el camionero por la Granola. Cambia mucho: de $16 a $32.'],
-    ['descFreir', 'Descuento a la papa para freír en la finca', 8, '%', 'En la bolsa agrícola la Única se pagó 10–15% menos que la Granola (feb-2024).'],
-  ] },
-  { id: 'rest', n: 'Restaurantes', f: [
-    ['precioRest', 'Precio que paga el restaurante por saco', 45, '$', 'En Coche la Granola está a $37–39 por 50 kg. La congelada equivale a $120–165.'],
-    ['sacosMes', 'Sacos al mes a restaurantes', 200, 'sacos', 'Unos 6 a 8 locales.'],
-    ['fleteRest', 'Flete a Caracas por saco', 4, '$', 'Camión del tío, tarifa normal.'],
-    ['selRest', 'Selección y empaque por saco', 1.5, '$', ''],
-    ['entRest', 'Entrega en Caracas por saco', 2, '$', ''],
-    ['mermaRest', 'Merma y crédito', 7, '%', 'Papa que se daña y 30 días de crédito.'],
-  ] },
-  { id: 'kelly', n: "Kelly's", f: [
-    ['kgK', 'Precio por kilo en su planta', 0.75, '$', 'Sin dato: hay que preguntarlo. Con este precio queda parecido a los restaurantes.'],
-    ['fleteK', 'Flete a su planta por saco', 4, '$', 'Planta en San Antonio de los Altos (Miranda).'],
-    ['aceptaK', 'Parte de la cosecha que compran', 55, '%', 'La papa que cumple sus normas.'],
-    ['visitasK', 'Costo anual de cumplir sus normas', 2000, '$', 'Visitas, análisis, registros y certificaciones. Estimado.'],
-  ], txt: [['estadoK', 'Cómo va el contacto', 'Sin contactar']] },
-  { id: 'pepsi', n: 'PepsiCo', f: [
-    ['kgP', 'Precio por kilo en su planta', 0.6, '$', 'Sin dato. Es papa para chips (Atlantic, Panda) con semilla de ellos.'],
-    ['fleteP', 'Flete a su planta por saco', 4, '$', 'Compran en Lara y Mérida.'],
-    ['aceptaP', 'Parte de la cosecha que compran', 70, '%', 'Papa redonda de tamaño para chips.'],
-    ['visitasP', 'Costo anual de cumplir sus normas', 1500, '$', 'Estimado. Ellos dan capacitación.'],
-  ], txt: [['estadoP', 'Cómo va el contacto', 'Sin contactar']] },
-];
-const SUP_DEF = Object.fromEntries(SUP_GRUPOS.flatMap(g => [...g.f.map(x => [x[0], x[2]]), ...(g.txt || []).map(x => [x[0], x[2]])]));
-const fv = (v, u) => u === '$' ? usd(v, v % 1 ? 2 : 0) : nf(v, v % 1 ? 1 : 0) + (u ? ' ' + u : '');
-const sv = k => (S.sup && S.sup[k] !== undefined && S.sup[k] !== '' ? S.sup[k] : SUP_DEF[k]);
-// One typical year for the three farms, before risk. Returns what the family keeps under each path.
-function caminos(o = {}) {
-  const v = k => o[k] !== undefined ? o[k] : N(sv(k)), pct = k => v(k) / 100;
-  const fincas = v('fincas'), sem = v('semilla'), kg = N(S.cfg.kgSaco) || 50, encP = N(S.cfg.pctTrabajo) / 100 || 1 / 3;
-  const costos = s => fincas * v('fijo') + v('porSaco') * s + v('gestion');
-  const cerrar = (n, sacos, ventas, extraCost = 0, det = '') => { const c = costos(sacos) + extraCost, u = ventas - c, enc = Math.max(0, u) * encP; return { n, sacos, ventas, costos: c, util: u, fam: u - enc, det }; };
-  const sG = fincas * sem * v('rendGranola') * (1 - pct('perdida'));
-  const sF = fincas * sem * v('rendFreir') * (1 - pct('perdida')), pF = v('precioFinca') * (1 - pct('descFreir'));
-  const netoR = v('precioRest') * (1 - pct('mermaRest')) - v('fleteRest') - v('selRest') - v('entRest');
-  const rs = Math.min(v('sacosMes') * 12, sF * pct('apto'));
-  const netoK = v('kgK') * kg - v('fleteK'), ks = sF * pct('aceptaK');
-  const netoP = v('kgP') * kg - v('fleteP'), ps = sF * pct('aceptaP');
-  return [
-    cerrar('Hoy: Granola en la finca', sG, sG * v('precioFinca'), 0, `${nf(sG)} sacos a ${usd(v('precioFinca'))}`),
-    cerrar('Para freír + restaurantes', sF, rs * netoR + (sF - rs) * pF, 0, `${nf(rs)} sacos a restaurantes (quedan ${usd(netoR, 2)} c/u), el resto en la finca`),
-    cerrar("Para freír + Kelly's", sF, ks * netoK + (sF - ks) * pF, v('visitasK'), `${nf(ks)} sacos a Kelly's (quedan ${usd(netoK, 2)} c/u), el resto en la finca`),
-    cerrar('Papa de chips + PepsiCo', sF, ps * netoP + (sF - ps) * v('precioFinca'), v('visitasP'), `${nf(ps)} sacos a PepsiCo (quedan ${usd(netoP, 2)} c/u), el resto en la finca`),
-  ];
-}
-// Price per kilo at which Kelly's leaves the family as much as restaurants.
-function kgEquilibrio() {
-  const objetivo = caminos()[1].fam; let lo = 0, hi = 5;
-  for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; if (caminos({ kgK: m })[2].fam < objetivo) lo = m; else hi = m; }
-  return (lo + hi) / 2;
-}
-function supReal() {
-  const ls = S.lotes.filter(l => String(l.siembra || '').startsWith(String(S.year)) && N(l.sacosSemilla)).map(l => ({ l, i: loteInfo(l) })).filter(x => x.i.cosechados);
-  const rend = g => { const xs = ls.filter(x => g(x.l.variedad || '')); const sem = sum(xs, x => N(x.l.sacosSemilla)); return sem ? sum(xs, x => x.i.cosechados) / sem : null; };
-  const st = stats('all');
-  return { rendGranola: rend(v => /granola/i.test(v)), rendFreir: rend(v => v && !/granola/i.test(v)), porSacoTotal: st.costoSaco, precioFinca: st.precioProm };
-}
-VIEWS.supuestos = () => {
-  if (!ready()) return notReady();
-  const g = S.supG || 'prod', edit = S.rol === 'admin' && !!S.db, real = supReal();
-  const pills = `<div class="medios" role="group" aria-label="Temas">${[...SUP_GRUPOS, { id: 'reporte', n: 'Reporte' }].map(x => `<button type="button" class="medio" data-act="sup-g" data-v="${x.id}" aria-pressed="${x.id === g}">${esc(x.n)}</button>`).join('')}</div>`;
-  if (g === 'reporte') return `<section><div class="sec-head"><div><p class="eyebrow">${S.year}</p><h2>Reporte de supuestos y caminos</h2></div></div>${pills}${supReporte(real)}</section>`;
-  const G = SUP_GRUPOS.find(x => x.id === g);
-  const realTxt = { rendGranola: real.rendGranola, rendFreir: real.rendFreir, precioFinca: real.precioFinca };
-  const row = ([k, n, d, u, h]) => { const ok = S.sup && S.sup[k + '_ok'], r = realTxt[k];
-    return `<div class="item sup-i"><span class="chip ${ok ? 'c-sembrado' : 'c-plan'}">${ok ? 'Confirmado' : 'Estimado'}</span><div><div class="t">${esc(n)}</div><div class="s">${h ? `<span class="help">${esc(h)}</span>` : ''}${r != null ? ` <b>Real ${S.year}: ${u === '$' ? usd(r, 2) : nf(r, 1)}</b>` : ''}</div></div>
-      <div class="a sup-a">${edit ? `<input class="meta-n" inputmode="decimal" data-sup="${k}" value="${esc(String(sv(k)))}" aria-label="${esc(n)}"><small>${esc(u)}</small><label class="sup-ok"><input type="checkbox" data-supok="${k}" ${ok ? 'checked' : ''}> confirmado</label>` : `<b class="num">${fv(N(sv(k)), u)}</b>`}</div></div>`; };
-  const txt = (G.txt || []).map(([k, n]) => `<div class="field wide">${fld('sup-' + k, n, edit ? `<input id="sup-${k}" data-sup="${k}" data-txt="1" value="${esc(String(sv(k)))}">` : `<p>${esc(String(sv(k)))}</p>`)}</div>`).join('');
-  return `<section><div class="sec-head"><div><p class="eyebrow">Supuestos</p><h2>${esc(G.n)}</h2></div></div>${pills}
-    <p class="muted small help">Cada número es un supuesto del plan. Cuando se confirme con datos reales o con el comprador, márcalo como confirmado. El Reporte junta todos los temas con lo anotado en la app y compara los caminos.</p>
-    <div class="list">${G.f.map(row).join('')}</div>${txt}</section>`;
-};
-function supReporte(real) {
-  const C = caminos(), best = C.slice(1).reduce((a, b) => b.fam > a.fam ? b : a), eq = kgEquilibrio(), ms = metasEtapa1(), nOk = ms.filter(m => m.ok).length;
-  const pend = SUP_GRUPOS.flatMap(g => g.f.filter(x => !(S.sup && S.sup[x[0] + '_ok'])).map(x => `${g.n}: ${x[1]}`));
-  const fila = c => `<div class="item"><span class="av ${c === best ? 't-cosecha' : 't-precio'}">${c === best ? '★' : ''}</span><div><div class="t">${esc(c.n)}</div><div class="s">${esc(c.det)} · ventas ${usd(c.ventas)} · gastos ${usd(c.costos)}</div></div><div class="a"><b class="num ${c.fam < 0 ? 'neg' : ''}">${usd(c.fam)}</b><small>familia</small></div></div>`;
-  const txt = supTexto(C, eq, nOk, ms.length, real, pend);
-  return `<div class="panel"><h3>Los caminos en un año normal, las tres fincas</h3>
-    <div class="list">${C.map(fila).join('')}</div>
-    <p class="hint">Familia = lo que queda después de gastos, sueldo y viajes, y el tercio del encargado. Es un año normal; contando los años malos el promedio es menor. <b>Kelly's deja lo mismo que los restaurantes si paga ${usd(eq, 2)} el kilo en su planta.</b></p></div>
-    <div class="kpis">${kpi('Metas de la etapa 1', `${nOk} de ${ms.length}`)}${kpi(`Sacos por saco sembrado ${S.year}`, real.rendGranola == null && real.rendFreir == null ? '—' : [real.rendGranola != null ? 'Granola ' + nf(real.rendGranola, 1) : '', real.rendFreir != null ? 'Freír ' + nf(real.rendFreir, 1) : ''].filter(Boolean).join(' · '))}${kpi(`Costo del cultivo por saco ${S.year}`, real.porSacoTotal == null ? '—' : usd(real.porSacoTotal, 2))}${kpi(`Precio promedio vendido ${S.year}`, real.precioFinca == null ? '—' : usd(real.precioFinca, 2))}
-    </div>
-    <div class="panel"><h3>Contactos</h3><p>Kelly's: ${esc(String(sv('estadoK')))}<br>PepsiCo: ${esc(String(sv('estadoP')))}</p></div>
-    <details class="panel meta-e"><summary>Falta confirmar (${pend.length})</summary><ul>${pend.map(x => `<li>${esc(x)}</li>`).join('')}</ul></details>
-    <details class="panel meta-e"><summary>Texto del reporte para mandar</summary><pre class="tpl" id="sup-txt">${esc(txt)}</pre><div class="btns"><button class="btn" data-act="copy" data-src="sup-txt">Copiar</button></div></details>`;
-}
-function supTexto(C, eq, nOk, nM, real, pend) {
-  const L = [`Reporte de supuestos · Agropecuaria Los Granates · ${S.year}`, '', 'Caminos en un año normal (tres fincas, después de sueldo, viajes y tercio del encargado):'];
-  C.forEach(c => L.push(`- ${c.n}: ${usd(c.fam)} para la familia (${nf(c.sacos)} sacos, ventas ${usd(c.ventas)}).`));
-  L.push(`Kelly's deja lo mismo que los restaurantes si paga ${usd(eq, 2)} el kilo en su planta.`, '');
-  L.push(`Metas de la etapa 1: ${nOk} de ${nM} cumplidas.`);
-  if (real.rendGranola != null) L.push(`Granola: ${nf(real.rendGranola, 1)} sacos por saco sembrado.`);
-  if (real.rendFreir != null) L.push(`Papa para freír: ${nf(real.rendFreir, 1)} sacos por saco sembrado.`);
-  if (real.porSacoTotal != null) L.push(`Costo del cultivo: ${usd(real.porSacoTotal, 2)} por saco.`);
-  L.push('', `Contactos: Kelly's, ${sv('estadoK')}; PepsiCo, ${sv('estadoP')}.`, '', 'Supuestos:');
-  SUP_GRUPOS.forEach(g => g.f.forEach(([k, n, , u]) => L.push(`- ${g.n} · ${n}: ${fv(N(sv(k)), u)}${S.sup && S.sup[k + '_ok'] ? ' (confirmado)' : ' (estimado)'}`)));
-  L.push('', `Falta confirmar: ${pend.length} supuestos.`);
-  return L.join('\n');
-}
 function liqTexto(L) {
   const lines = [`Liquidación ${S.year} · Agropecuaria Los Granates`, ''];
   for (const { f, q } of L) {
@@ -1543,7 +1425,6 @@ document.addEventListener('click', async ev => {
       case 'edit': { const r = S.regs.find(x => x.id === id); if (!r) break; S.editing = id; S.regTipo = r.tipo; S.skipRestore = true; go('registrar'); break; }
       case 'cancel-edit': S.editing = null; S.skipRestore = true; render(); break;
       case 'new-precio': S.regTipo = 'precio'; S.editing = null; go('registrar'); break;
-      case 'sup-g': S.supG = b.dataset.v; S.skipRestore = true; render(); break;
       case 'plan-f': S.planF = b.dataset.v; S.skipRestore = true; render(); break;
       case 'plan-y': S.planY = (S.planY || S.year) + +b.dataset.v; S.skipRestore = true; render(); break;
       case 'plan-add': await planAgregar(); break;
@@ -1593,8 +1474,6 @@ document.addEventListener('change', ev => {
   const el = ev.target;
   if (el.id === 'demo-esc') return entrarDemo(el.value);
   if (el.dataset.pe) return planCampo(el).catch(writeErr);
-  if (el.dataset.sup) return S.db.doc('ajustes/supuestos').set({ [el.dataset.sup]: el.dataset.txt ? el.value.trim() : parseNum(el.value) }, { merge: true }).then(() => toast('Guardado')).catch(writeErr);
-  if (el.dataset.supok) return S.db.doc('ajustes/supuestos').set({ [el.dataset.supok + '_ok']: el.checked }, { merge: true }).then(() => toast(el.checked ? 'Marcado como confirmado' : 'Marcado como estimado')).catch(writeErr);
   if (el.dataset.mt) return S.db.doc('ajustes/general').update({ [el.dataset.mt]: parseNum(el.value) || 0 }).then(() => toast('Guardado')).catch(writeErr);
   if (el.id === 'f-year') { S.year = +el.value; subscribeRegs(); S.skipRestore = true; return render(); }
   if (el.id === 'f-finca') { S.finca = el.value; lsSet('cf-finca', S.finca); S.skipRestore = true; return render(); }
@@ -2037,7 +1916,6 @@ function subscribeStatic() {
   const db = S.db, on = u => S.unsubs.push(u);
   on(db.collection('fincas').onSnapshot(s => { if (s.empty && S.rol === 'admin' && !s.fromCache && !S.seeded) sembrarInicio();
     S.fincas = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => N(a.orden) - N(b.orden)); S.loaded.fincas = true; render(); }, snapErr));
-  on(db.doc('ajustes/supuestos').onSnapshot(s => { S.sup = s.exists ? s.data() : {}; render(); }, () => { S.sup = {}; }));
   on(db.doc('ajustes/general').onSnapshot(s => { S.cfg = { ...DEF, ...(s.exists ? s.data() : {}) }; S.loaded.cfg = true; render(); }, snapErr));
   on(db.collection('lotes').limit(2000).onSnapshot(s => { S.lotes = s.docs.map(d => ({ id: d.id, ...d.data() })); S.loaded.lotes = true; render(); }, snapErr));
   on(db.collection('labores').limit(5000).onSnapshot(s => { S.labores = s.docs.map(d => ({ id: d.id, ...d.data() })); S.loaded.labores = true; render(); }, snapErr));

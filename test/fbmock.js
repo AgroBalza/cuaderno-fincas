@@ -13,7 +13,7 @@ function query(path, filters=[], ord=null, lim=1000){
 }
 function docRef(path){ return { id:path.split('/').pop(), path,
   get: async()=>({id:path.split('/').pop(), exists:store.has(path), data:()=>store.get(path), metadata:{}}),
-  set: async(d,o)=>{store.set(path,{...(o&&o.merge?store.get(path)||{}:{}),...JSON.parse(JSON.stringify(d))}); notify();},
+  set: async(d)=>{store.set(path,JSON.parse(JSON.stringify(d))); notify();},
   update: async(d)=>{ if(!store.has(path)) throw {code:'invalid_argument'}; store.set(path,{...store.get(path),...d}); notify();},
   delete: async()=>{store.delete(path); notify();},
   onSnapshot(next){ const s={fire:()=>next({id:path.split('/').pop(),exists:store.has(path),data:()=>store.get(path),metadata:{}})}; subs.push(s); setTimeout(s.fire,5); return ()=>{}; },
