@@ -1981,6 +1981,22 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   navigator.serviceWorker.addEventListener('controllerchange', () => { if (had && !reloaded) { reloaded = true; location.reload(); } });
   navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(r => r.update()).catch(() => { });
 }
+// A phone that keeps the app open in the background never reloads, so it would keep the old version.
+// When the app comes back to the front (and every 30 minutes), ask the server which version is current.
+const miVersion = ((document.querySelector('script[src*="app.js"]') || {}).src || '').split('v=')[1] || '';
+async function buscarVersion() {
+  if (!miVersion || !navigator.onLine || document.getElementById('nueva-ver')) return;
+  try {
+    const t = await (await fetch('index.html', { cache: 'no-store' })).text(), v = (t.match(/app\.js\?v=([\w.-]+)/) || [])[1];
+    if (!v || v === miVersion) return;
+    const ocupado = S.view === 'registrar' || (document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
+    if (!ocupado) { location.reload(); return; }
+    const b = document.createElement('button'); b.id = 'nueva-ver'; b.className = 'nueva-ver'; b.textContent = 'Hay una versión nueva · Toca para actualizar';
+    b.onclick = () => { saveDraft && saveDraft(); location.reload(); }; document.body.appendChild(b);
+  } catch { }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') buscarVersion(); });
+setInterval(buscarVersion, 30 * 60 * 1000);
 
 (() => {
   const cfg = window.CUADERNO_CONFIG || {};
