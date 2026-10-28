@@ -33,7 +33,7 @@ export function memDb(seed) {
     const snap = () => ({ id: path.split('/').pop(), exists: store.has(path), data: () => store.get(path) });
     return {
       id: path.split('/').pop(),
-      set: async d => { store.set(path, copy(d)); later(notify); },
+      set: async (d, o) => { store.set(path, { ...(o && o.merge ? store.get(path) || {} : {}), ...copy(d) }); later(notify); },
       update: async d => { store.set(path, { ...(store.get(path) || {}), ...copy(d) }); later(notify); },
       delete: async () => { store.delete(path); later(notify); },
       onSnapshot: next => { const s = () => next(snap()); subs.add(s); later(s); return () => subs.delete(s); },

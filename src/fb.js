@@ -50,7 +50,7 @@ export function initFb(config, onWriteError, onPending) {
     const r = doc(fs, path);
     return {
       id: r.id,
-      set: d => bg(setDoc(r, d)),
+      set: (d, o) => bg(o ? setDoc(r, d, o) : setDoc(r, d)),
       update: d => bg(updateDoc(r, d)),
       delete: () => bg(deleteDoc(r)),
       onSnapshot: (next, err) => listen(r, s => ({ id: s.id, exists: s.exists(), data: () => s.data() }), next, err),
