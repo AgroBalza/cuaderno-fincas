@@ -55,8 +55,8 @@ body::before { content:""; position:fixed; inset:0 0 auto; height:env(safe-area-
 .appbar { position:sticky; top:env(safe-area-inset-top, 0px); z-index:20; background:color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter:saturate(1.4) blur(10px); -webkit-backdrop-filter:saturate(1.4) blur(10px); border-bottom:1px solid var(--line); }
 .appbar-in { padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); padding-block:10px; display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; max-width:1100px; margin:0 auto; }
 .appbar-title { flex:1 1 auto; min-width:0; display:flex; align-items:center; gap:10px; }
-.logo { width:44px; height:36px; border-radius:10px; background:var(--hero); color:#D9A57E; display:grid; place-items:center; flex:none; }
-.logo svg { width:24px; height:24px; } .logo svg.mono { width:auto; height:17px; }
+.logo { width:40px; height:40px; border-radius:50%; background:transparent; color:#D9A57E; display:grid; place-items:center; flex:none; }
+.logo img.seal { width:36px; height:36px; display:block; }
 .appbar-title .t1 { font-family:var(--f-display); font-weight:700; font-size:1.2rem; line-height:1.1; margin:0; }
 .appbar-title .t0 { font-size:0.74rem; color:var(--muted); line-height:1.2; margin:0; } .appbar-title .t0.brand { font-family:var(--f-brand); font-weight:700; font-size:0.92rem; color:var(--papa); letter-spacing:.01em; }
 .filters { display:flex; gap:6px; flex:0 1 auto; min-width:0; }
@@ -354,7 +354,7 @@ details.box > .in { padding:0 16px 16px; display:flex; flex-direction:column; ga
 .gate h1 { font-family:var(--f-brand); font-weight:700; font-size:2.1rem; margin:8px 0 0; letter-spacing:.005em; }
 .gate .panel { width:100%; text-align:left; margin-top:14px; }
 .gate .hint { margin-top:6px; }
-.logo.big { width:96px; height:76px; border-radius:22px; } .logo.big svg.mono { height:34px; }
+.logo.big { width:120px; height:120px; } .logo.big img.seal { width:120px; height:120px; }
 body.out .side, body.out .appbar, body.out .bottom { display:none; }
 .demo-bar { display:flex; align-items:center; justify-content:center; gap:12px; padding:7px max(16px, env(safe-area-inset-left, 0px)); background:var(--papa); color:#17191E; font-size:.84rem; line-height:1.25; text-align:center; }
 .demo-bar[hidden] { display:none; }
@@ -377,7 +377,7 @@ body.out .shell { margin-left:0; }
 <aside class="side" id="side" aria-label="Secciones"></aside>
 <div class="shell">
   <header class="appbar"><div class="demo-bar" id="demo-bar" hidden></div><div class="appbar-in">
-    <div class="appbar-title"><span class="logo" data-go="resumen" role="button" aria-label="Ir al inicio"><svg viewBox="-13.3 25.9 216.9 108.1" class="mono" aria-hidden="true"><defs><mask id="lb-m" maskUnits="userSpaceOnUse" x="-13.3" y="25.9" width="216.9" height="108.1"><rect x="-13.3" y="25.9" width="216.9" height="108.1" fill="#fff"/><rect x="101.1" y="28.6" width="38.1" height="45.5" fill="#000"/></mask></defs><path d="M-9.3 91.1L-9.3 86.5L19.2 46.5L26.6 46.5L26.6 86.2Q29.4 86.2 31.2 85.8Q33.0 85.4 34 84.6Q35.0 83.8 35.4 82.4Q35.8 81.0 35.8 78.7L35.8 78.7L38.7 78.7L38.7 97.7L35.8 97.7Q35.8 95.6 35.4 94.3Q35.0 92.9 34 92.2Q33.0 91.5 31.2 91.2Q29.4 90.9 26.6 90.8L26.6 90.8L26.6 93.2Q26.6 96.0 26.9 98.0Q27.1 100.0 27.9 101.4Q28.7 102.8 30.1 103.5Q31.6 104.2 33.8 104.2L33.8 104.2L33.8 107.4L7.1 107.4L7.1 104.2Q9.8 104.2 11.5 103.4Q13.2 102.7 14.1 101.4Q15.0 100.0 15.3 98.2Q15.6 96.3 15.6 93.8L15.6 93.8L15.6 91.1L-9.3 91.1ZM15.6 86.2L15.6 61.0L15.3 61.0L-2.7 86.2L15.6 86.2Z" fill="currentColor"/><path d="M91.1 124.8L91.1 130L44.7 130L44.7 124.8Q49.1 124.7 51.8 124.0Q54.4 123.2 55.9 121.3Q57.3 119.3 57.8 115.8Q58.3 112.2 58.3 106.1L58.3 106.1L58.3 53.8Q58.3 48.4 57.9 44.8Q57.4 41.2 56.1 39.1Q54.8 37.0 52.4 36.2Q50.0 35.4 46.0 35.1L46.0 35.1L46.0 29.9L89.8 29.9L89.8 35.1Q85.8 35.4 83.4 36.2Q81.0 37.0 79.7 39.1Q78.3 41.2 77.9 44.8Q77.4 48.4 77.4 53.8L77.4 53.8L77.4 106.1Q77.4 112.2 77.9 115.8Q78.3 119.3 79.8 121.3Q81.3 123.2 84.0 124.0Q86.7 124.7 91.1 124.8L91.1 124.8Z" fill="currentColor"/><path d="M155.4 130L105.4 130L105.4 124.8Q109.8 124.7 112.5 124.0Q115.1 123.4 116.6 121.8Q118.1 120.3 118.6 117.4Q119.2 114.5 119.2 110.0L119.2 110.0L119.2 49.9Q119.2 45.4 118.8 42.6Q118.4 39.8 117.1 38.2Q115.9 36.5 113.8 35.9Q111.6 35.4 108.1 35.1L108.1 35.1L108.1 29.9L149.8 29.9Q169.5 29.9 180.1 36.2Q190.7 42.5 190.7 54.2L190.7 54.2Q190.7 69.7 168.4 76.0L168.4 76.0L168.4 76.6Q175.6 76.6 181.4 78.6Q187.2 80.6 191.2 84.2Q195.2 87.9 197.4 92.8Q199.6 97.8 199.6 103.6L199.6 103.6Q199.6 110.2 196.4 115.2Q193.3 120.1 187.3 123.5L187.3 123.5Q175.7 130 155.4 130L155.4 130ZM156.3 122.1L156.3 122.1Q177.3 122.1 177.3 103.2L177.3 103.2Q177.3 91.7 169.7 86.3L169.7 86.3Q165.8 83.6 159.7 82.4Q153.5 81.3 144.5 81.3L144.5 81.3L138.3 81.3L138.3 107.3Q138.3 115.3 142.4 118.7Q146.6 122.1 156.3 122.1ZM138.3 73.4L145.9 73.4Q151.8 73.4 156.1 72.3Q160.4 71.2 163.4 69.2L163.4 69.2Q169.6 64.9 169.6 55.8L169.6 55.8Q169.6 46.3 164.9 42.1Q160.2 37.8 149.8 37.8L149.8 37.8L140.6 37.8Q138.3 37.8 138.3 40.0L138.3 40.0L138.3 73.4Z" fill="currentColor" mask="url(#lb-m)"/><path d="M108.9 29.9 H140.1 V38.5 H108.9 Z M107.6 73.3 H140.1 V81.1 H107.6 Z" fill="currentColor"/></svg></span><div style="min-width:0"><p class="t0 brand">Agropecuaria Los Granates</p><h1 class="t1" id="appbar-t">Resumen</h1></div><button class="help-t" type="button" data-act="ayuda" aria-label="Mostrar u ocultar explicaciones" title="Explicaciones">?</button></div>
+    <div class="appbar-title"><span class="logo" data-go="resumen" role="button" aria-label="Ir al inicio"><img src="logo.png" alt="" class="seal"></span><div style="min-width:0"><p class="t0 brand">Agropecuaria Los Granates</p><h1 class="t1" id="appbar-t">Resumen</h1></div><button class="help-t" type="button" data-act="ayuda" aria-label="Mostrar u ocultar explicaciones" title="Explicaciones">?</button></div>
     <span class="net" id="net" hidden>Sin señal · se guarda en el teléfono</span><div class="filters"><label class="pill"><select id="f-year" aria-label="Año"></select></label><label class="pill"><select id="f-finca" aria-label="Finca"><option value="all">Las tres fincas</option></select></label></div>
   </div></header>
   <main class="view" id="view"></main>
@@ -386,7 +386,7 @@ body.out .shell { margin-left:0; }
 <div id="sheet-root"></div>
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="config.js?v=d439b091"></script>
-<script type="module" src="app.js?v=d439b091"></script>
+<script src="config.js?v=e6f031ff"></script>
+<script type="module" src="app.js?v=e6f031ff"></script>
 </body>
 </html>
