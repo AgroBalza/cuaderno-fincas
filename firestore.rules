@@ -1,7 +1,7 @@
 rules_version = '2';
 // Quién puede leer y escribir en el Cuaderno de las Fincas.
 // admin: todo · jefe (se ve como Encargado): ve las tres fincas, anota y planifica
-// encargado (se ve como Obrero): solo su finca · familia y lector (Claude): solo ver.
+// encargado (se ve como Obrero): solo sus fincas · familia y lector (Claude): solo ver.
 service cloud.firestore {
   match /databases/{database}/documents {
     function signed() { return request.auth != null && request.auth.token.email != null; }
@@ -16,9 +16,10 @@ service cloud.firestore {
     function staff() { return admin() || jefe(); }
     function viewer() { return rol() in ['admin', 'jefe', 'familia', 'lector']; }
     function anyone() { return rol() in ['admin', 'jefe', 'encargado', 'familia', 'lector']; }
-    function miFinca() { return m().finca; }
-    function newIsMine() { return request.resource.data.finca == miFinca(); }
-    function oldIsMine() { return resource.data.finca == miFinca(); }
+    // Un obrero puede tener varias fincas (lista 'fincas'); los usuarios viejos solo tienen 'finca'.
+    function misFincas() { return m().get('fincas', [m().get('finca', '')]); }
+    function newIsMine() { return request.resource.data.finca in misFincas(); }
+    function oldIsMine() { return resource.data.finca in misFincas(); }
 
     match /miembros/{email} {
       allow read: if admin() || (signed() && email == em());

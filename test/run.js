@@ -24,8 +24,9 @@ async function session(w,dark,email,tag){
  return {p,ctx};
 }
 let {p,ctx}=await session(390,false,'luis@x.com','admin390');
-await p.fill('#mb-email','tio@x.com');await p.fill('#mb-nombre','Tío');await p.fill('#mb-tel','0414 1234567');await p.click('#mb-form button[type=submit]');await p.waitForTimeout(200);
+await p.fill('#mb-email','tio@x.com');await p.fill('#mb-nombre','Tío');await p.fill('#mb-tel','0414 1234567');await p.check('input[name="mb-finca"][value="hoyo-el-barro"]');await p.click('#mb-form button[type=submit]');await p.waitForTimeout(200);
 console.log('wa',await p.evaluate(()=>document.querySelector('.aviso a.primary')?.href));
+console.log('tio doc',await p.evaluate(()=>JSON.stringify(window.__store.get('miembros/tio@x.com'))));
 console.log('miembros',await p.evaluate(()=>[...window.__store.keys()].filter(k=>k.startsWith('miembros/')).join(',')));
 await ctx.close();
 ({p,ctx}=await session(1200,true,'luis@x.com','admin1200')); await ctx.close();
@@ -36,6 +37,9 @@ console.log('enc reg fincas',await p.evaluate(()=>[...document.querySelectorAll(
 await p.fill('#r-monto','40');await p.click('#reg-form button[type=submit]');await p.waitForTimeout(200);
 await p.screenshot({path:'test/enc-after.png'});
 await ctx.close();
+({p,ctx}=await session(390,false,'juan@x.com','obr2'));
+console.log('obr2',await p.evaluate(()=>document.querySelector('.obr .eyebrow')?.textContent));await p.evaluate(()=>[...document.querySelectorAll('[data-tab="registrar"]')].find(e=>e.offsetParent).click());await p.waitForTimeout(150);
+console.log('obr2 fincas',await p.evaluate(()=>[...document.querySelectorAll('#r-finca option')].map(o=>o.value).join(',')));await ctx.close();
 ({p,ctx}=await session(390,false,'papa@x.com','fam390')); await ctx.close();
 ({p,ctx}=await session(390,false,'jefe@x.com','jefe390'));
 console.log('jefe plan',await p.evaluate(()=>{[...document.querySelectorAll('[data-tab="lotes"]')].find(e=>e.offsetParent)?.click();return 1}));await p.waitForTimeout(200);console.log('jefe planform',await p.evaluate(()=>!!document.querySelector('#plan-form, .plan, [data-act="lote-new"]')));await ctx.close();

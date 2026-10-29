@@ -26,7 +26,7 @@ window.__fbMock=(c,e,p)=>{window.__onPending=p;return {db,auth};};
 window.CUADERNO_CONFIG={firebase:{},administradores:['luis@x.com']};
 // seed
 const put=(p,d)=>store.set(p,d);
-put('miembros/pedro@x.com',{nombre:'Pedro',rol:'encargado',finca:'el-baho'});put('miembros/papa@x.com',{nombre:'Papá',rol:'familia'});put('miembros/jefe@x.com',{nombre:'Tío',rol:'jefe'});
+put('miembros/pedro@x.com',{nombre:'Pedro',rol:'encargado',finca:'el-baho'});put('miembros/papa@x.com',{nombre:'Papá',rol:'familia'});put('miembros/jefe@x.com',{nombre:'Tío',rol:'jefe'});put('miembros/juan@x.com',{nombre:'Juan',rol:'encargado',fincas:['el-baho','el-mostrenco'],finca:'el-baho'});
 put('fincas/el-baho',{nombre:'El Baho',ha:14,encargado:'',orden:1}); put('fincas/el-mostrenco',{nombre:'El Mostrenco',ha:14,encargado:'',orden:2}); put('fincas/hoyo-el-barro',{nombre:'Hoyo El Barro',ha:14,encargado:'',orden:3});
 put('ajustes/general',{kgSaco:50,metaSacosFinca:1200,metaCostoSaco:15,precioRef:25,cicloDias:150,pctTrabajo:33.33,pctTierra:33.33,pctDinero:33.34,prorrateo:'iguales',baseEncargado:'utilidad'});
 put('lotes/l1',{nombre:'Tanda 1 · 2026',finca:'el-baho',variedad:'Granola',siembra:'2026-03-01',cicloDias:150,sacosSemilla:50,estado:'sembrado'});

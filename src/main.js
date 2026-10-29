@@ -134,7 +134,7 @@ const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { } };
 // ---------- state ----------
 const S = {
   status: 'connecting', db: null, user: null, sample: null, downloads: null, imagesOk: false,
-  uid: null, canAdmin: false, rol: null, miFinca: '', auth: 'checking', loginMode: 'in', loginErr: '', loginBusy: false, miembros: [], unsubs: [], online: navigator.onLine !== false,
+  uid: null, canAdmin: false, rol: null, misFincas: [], auth: 'checking', loginMode: 'in', loginErr: '', loginBusy: false, miembros: [], unsubs: [], online: navigator.onLine !== false,
   year: new Date().getFullYear(), finca: lsGet('cf-finca') || 'all', view: 'resumen',
   fincas: [], lotes: [], regs: [], precios: [], cfg: { ...DEF }, labores: [], cierres: [], pend: [],
   almacen: [], almMode: 'compra',
@@ -155,7 +155,7 @@ const canWrite = () => !!S.db && (S.rol === 'admin' || S.rol === 'jefe' || S.rol
 const canPlan = () => S.canAdmin || S.rol === 'jefe';
 // Internal key 'encargado' is the obrero (simple view, one farm); 'jefe' is shown as Encargado.
 const ROLES = { admin: 'Administrador', jefe: 'Encargado', encargado: 'Obrero', familia: 'Familia (solo ver)', lector: 'Analista (solo ver)' };
-const ROLE_SUB = { admin: 'todo', jefe: 've y anota todo', encargado: 'solo su finca' };
+const ROLE_SUB = { admin: 'todo', jefe: 've y anota todo', encargado: 'solo sus fincas' };
 const ROLE_TABS = { encargado: ['resumen', 'registrar', 'libro', 'guia', 'ajustes'], familia: ['resumen', 'lotes', 'labores', 'libro', 'cobros', 'cierre', 'liquidacion', 'precios', 'metas', 'guia', 'ajustes'] };
 ROLE_TABS.lector = ROLE_TABS.familia;
 ROLE_TABS.jefe = ['registrar', ...ROLE_TABS.familia];
@@ -387,9 +387,9 @@ function renderHeader() {
   if (ysel.dataset.k !== yopts) { ysel.innerHTML = yopts; ysel.dataset.k = yopts; }
   ysel.value = String(S.year);
   const fsel = $('#f-finca');
-  const fopts = S.rol === 'encargado' ? S.fincas.filter(f => f.id === S.miFinca).map(f => `<option value="${esc(f.id)}">${esc(f.nombre)}</option>`).join('') : `<option value="all">Las tres fincas</option>` + S.fincas.map(f => `<option value="${esc(f.id)}">${esc(f.nombre)}</option>`).join('');
+  const fopts = S.rol === 'encargado' ? S.fincas.filter(f => S.misFincas.includes(f.id)).map(f => `<option value="${esc(f.id)}">${esc(f.nombre)}</option>`).join('') : `<option value="all">Las tres fincas</option>` + S.fincas.map(f => `<option value="${esc(f.id)}">${esc(f.nombre)}</option>`).join('');
   if (fsel.dataset.k !== fopts) { fsel.innerHTML = fopts; fsel.dataset.k = fopts; }
-  if (S.rol === 'encargado') S.finca = S.miFinca;
+  if (S.rol === 'encargado') S.finca = obreroFinca();
   else if (S.finca !== 'all' && S.fincas.length && !S.fincas.some(f => f.id === S.finca)) S.finca = 'all';
   const nt = $('#net'), ps = S.demo ? 0 : N(S.porSubir);
   if (nt) { nt.hidden = S.demo || (S.online && !ps); const tx = !S.online ? `Sin señal${ps ? ` · ${ps} por subir` : ' · se guarda en el teléfono'}` : `Subiendo ${ps}…`; if (nt.textContent !== tx) nt.textContent = tx; }
@@ -423,7 +423,7 @@ async function resolveNames() {
 // ---------- small renderers ----------
 const kpi = (l, v, s, cls = '') => `<div class="kpi ${cls}"><span class="kpi-l">${l}</span><span class="kpi-v">${v}</span><span class="kpi-s">${s || '&nbsp;'}</span></div>`;
 const opt = (v, n, sel) => `<option value="${esc(v)}" ${String(sel) === String(v) ? 'selected' : ''}>${esc(n)}</option>`;
-function fincaOptions(sel, withGeneral) { if (S.rol === 'encargado') return S.fincas.filter(f => f.id === S.miFinca).map(f => opt(f.id, f.nombre, sel)).join(''); return S.fincas.map(f => opt(f.id, f.nombre, sel)).join('') + (withGeneral ? opt('general', 'Todas las fincas (gasto general)', sel) : ''); }
+function fincaOptions(sel, withGeneral) { if (S.rol === 'encargado') return S.fincas.filter(f => S.misFincas.includes(f.id)).map(f => opt(f.id, f.nombre, sel)).join(''); return S.fincas.map(f => opt(f.id, f.nombre, sel)).join('') + (withGeneral ? opt('general', 'Todas las fincas (gasto general)', sel) : ''); }
 function loteOptions(sel) {
   const ls = [...S.lotes].sort((a, b) => String(b.siembra || '').localeCompare(String(a.siembra || '')));
   return `<option value="">Sin lote</option>` + ls.map(l => `<option value="${esc(l.id)}" data-finca="${esc(l.finca)}" ${sel === l.id ? 'selected' : ''}>${esc(l.nombre)} · ${esc(fincaName(l.finca))}</option>`).join('');
@@ -433,7 +433,11 @@ function catOptions(sel, simple) { if (simple) return CATS.filter(c => CATS_OBRE
 const fld = (id, label, inner, cls = '') => `<div class="field ${cls}"><label for="${id}">${label}</label>${inner}</div>`;
 const inp = (id, val, attrs = '') => `<input id="${id}" name="${id}" value="${esc(val ?? '')}" ${attrs}>`;
 const numIn = (id, val, ph = '') => inp(id, val, `inputmode="decimal" autocomplete="off" placeholder="${ph}"`);
-function defaultFinca() { return S.finca !== 'all' ? S.finca : (S.fincas[0] || {}).id || ''; }
+function defaultFinca() { return S.finca !== 'all' ? S.finca : S.rol === 'encargado' ? S.misFincas[0] || '' : (S.fincas[0] || {}).id || ''; }
+// An obrero may have several farms; their data is already limited to those, so 'all' shows just theirs.
+const obreroFinca = () => S.misFincas.length === 1 ? S.misFincas[0] : 'all';
+const listaY = xs => xs.length > 1 ? xs.slice(0, -1).join(', ') + ' y ' + xs[xs.length - 1] : xs.join('');
+const misFincasTxt = () => listaY(S.misFincas.map(fincaName));
 function notReady() {
   if (S.status === 'noconfig') return `<div class="notice"><strong>Falta conectar la base de datos.</strong><p>Hay que poner los datos de Firebase en config.js.</p></div>`;
   return `<div class="skel"></div><div class="skel"></div><p class="muted small">Abriendo…</p>`;
@@ -449,7 +453,7 @@ function obreroHome() {
   const big = (t, n, h) => `<button class="obr-btn" data-go="registrar" data-nt="${t}"><span class="tile t-${t}">${icon(t)}</span><span><b>${n}</b><small>${h}</small></span></button>`;
   const g = sem.filter(r => r.tipo === 'gasto'), v = sem.filter(r => r.tipo === 'venta'), c = sem.filter(esCosecha);
   const linea = [g.length ? `${g.length} ${g.length === 1 ? 'gasto' : 'gastos'} por ${usd(sum(g, r => r.monto))}` : '', c.length ? `${sacosTxt(sum(c, sacosCosecha))} cosechados` : '', v.length ? `${v.length} ${v.length === 1 ? 'venta' : 'ventas'} por ${usd(sum(v, r => r.monto))}` : ''].filter(Boolean);
-  let out = `<section class="obr"><p class="eyebrow">${esc(fincaName(S.miFinca))}</p><h2>Hola${nombre ? ', ' + esc(nombre) : ''}. ¿Qué vas a anotar?</h2>
+  let out = `<section class="obr"><p class="eyebrow">${esc(misFincasTxt())}</p><h2>Hola${nombre ? ', ' + esc(nombre) : ''}. ¿Qué vas a anotar?</h2>
     <div class="obr-grid">${big('gasto', 'Un gasto', 'Jornales, abono, fumigación, flete…')}${big('cosecha', 'Una cosecha', 'Los sacos que se sacaron hoy')}${big('venta', 'Una venta', 'Lo que se vendió y a cuánto')}</div>
     <p class="muted small">${linea.length ? 'Esta semana anotaste ' + linea.join(', ') + '.' : 'Esta semana todavía no has anotado nada.'}</p></section>`;
   const ult = S.regs.slice(0, 6);
@@ -557,7 +561,7 @@ VIEWS.registrar = () => {
   const t = S.regTipo, ed = S.editing ? S.regs.find(r => r.id === S.editing) || S.precios.find(p => p.id === S.editing) : null;
   const e = ed || {};
   const df = e.finca || S.prefFinca || defaultFinca(), simple = S.rol === 'encargado';
-  out += `<section><div class="sec-head"><div><p class="eyebrow">${ed ? 'Corrigiendo un registro' : simple ? esc(fincaName(S.miFinca)) : 'A mano'}</p><h2>${ed ? 'Editar registro' : 'Nuevo registro'}</h2></div>${ed ? `<button class="btn" data-act="cancel-edit">Cancelar</button>` : ''}</div>
+  out += `<section><div class="sec-head"><div><p class="eyebrow">${ed ? 'Corrigiendo un registro' : simple ? esc(misFincasTxt()) : 'A mano'}</p><h2>${ed ? 'Editar registro' : 'Nuevo registro'}</h2></div>${ed ? `<button class="btn" data-act="cancel-edit">Cancelar</button>` : ''}</div>
     ${ed ? '' : `<div class="seg" role="group" aria-label="Tipo de registro" style="grid-template-columns:repeat(${S.canAdmin ? 5 : 3},minmax(0,1fr))">${[['gasto', 'Gasto'], ['cosecha', 'Cosecha'], ['venta', 'Venta'], ['insumo', 'Insumo'], ['precio', 'Precio']].filter(x => (x[0] !== 'precio' && x[0] !== 'insumo') || S.canAdmin).map(([k, n]) => `<button data-tipo="${k}" aria-pressed="${t === k}"><span class="tile t-${k}">${icon(k)}</span>${n}</button>`).join('')}</div>`}`;
   out += draftBar();
   if (t === 'insumo' && !ed) return out + (S.loaded.almacen ? almForm() + `<div class="btns"><button class="btn ghost" data-go="almacen">Ver lo que hay en el almacén →</button></div>` : notReady()) + '</section>';
@@ -1086,7 +1090,7 @@ VIEWS.ajustes = () => {
   let out = `<section><div class="sec-head"><div><p class="eyebrow">Configuración</p><h2>Ajustes</h2></div></div>
     <div class="panel"><h3>Tamaño de la letra</h3><p class="small muted help">También puedes abrir o cerrar dos dedos sobre la pantalla. Solo crece el contenido; los botones de abajo quedan igual.</p><div class="btns">${[[1, 'Normal'], [1.15, 'Grande'], [1.3, 'Muy grande']].map(([z, n]) => `<button class="btn ${Math.abs(zoomV - z) < 0.05 ? 'primary' : ''}" data-act="zoom" data-v="${z}">${n}</button>`).join('')}</div></div>
     ${S.demo ? `<div class="panel"><h3>Modo demostración</h3><p class="small">Estás viendo una operación simulada con los números del plan: tres fincas, cuatro siembras al año en cada una, unos 200 sacos al mes a restaurantes a $40 y el resto al camionero. Lo que anotes aquí no se guarda.</p><div class="btns"><button class="btn primary" data-act="demo-salir">Salir de la demostración</button></div></div>`
-    : `<div class="panel"><h3>Tu cuenta</h3><p class="small">${esc(S.names[S.email] || '')} ${esc(S.email || '')}<br><span class="muted">${esc(ROLES[S.rol] || '')}${S.rol === 'encargado' ? ' · ' + esc(fincaName(S.miFinca)) : ''}</span></p><div class="btns"><button class="btn" data-act="logout">${icon('salir', 's')}Cerrar sesión</button>${S.rol !== 'encargado' ? `<button class="btn" data-act="demo">Ver demostración</button>` : ''}</div><p class="hint help">La demostración muestra la app llena con números simulados del plan, para presentarla. No toca tus datos.</p></div>`}`;
+    : `<div class="panel"><h3>Tu cuenta</h3><p class="small">${esc(S.names[S.email] || '')} ${esc(S.email || '')}<br><span class="muted">${esc(ROLES[S.rol] || '')}${S.rol === 'encargado' ? ' · ' + esc(misFincasTxt()) : ''}</span></p><div class="btns"><button class="btn" data-act="logout">${icon('salir', 's')}Cerrar sesión</button>${S.rol !== 'encargado' ? `<button class="btn" data-act="demo">Ver demostración</button>` : ''}</div><p class="hint help">La demostración muestra la app llena con números simulados del plan, para presentarla. No toca tus datos.</p></div>`}`;
   if (!adm) return out + `<div class="notice"><p>Solo el administrador puede cambiar las metas, el reparto y los usuarios.</p></div></section>`;
   out += `<form class="panel" id="cfg-form"><h3>Fincas</h3>
       ${S.fincas.map(f => `<div class="grid">${fld('fc-n-' + f.id, 'Nombre', inp('fc-n-' + f.id, f.nombre, dis))}${fld('fc-ha-' + f.id, 'Hectáreas', numIn('fc-ha-' + f.id, f.ha).replace('<input', `<input ${dis}`))}${fld('fc-e-' + f.id, 'Encargado', inp('fc-e-' + f.id, f.encargado, dis + ' placeholder="Nombre"'))}</div>`).join('')}
@@ -1797,23 +1801,25 @@ async function guardarPropuestas() {
 function usuariosHtml() {
   const ms = [...S.miembros].sort((a, b) => (a.rol + a.id).localeCompare(b.rol + b.id));
   return `<div class="panel"><h3>Usuarios</h3>
-    <p class="small muted help">Agrega aquí el correo de cada persona. Le llega un correo con un enlace para entrar de una vez; después entra con ese mismo correo. <b>Administrador</b>: maneja todo, también usuarios y ajustes. <b>Encargado</b>: ve las tres fincas, anota y planifica. <b>Obrero</b>: solo su finca, con la vista sencilla. La familia y el analista solo pueden ver.</p>
+    <p class="small muted help">Agrega aquí el correo de cada persona. Le llega un correo con un enlace para entrar de una vez; después entra con ese mismo correo. <b>Administrador</b>: maneja todo, también usuarios y ajustes. <b>Encargado</b>: ve las tres fincas, anota y planifica. <b>Obrero</b>: solo las fincas que le marques, con la vista sencilla. La familia y el analista solo pueden ver.</p>
     ${avisoHtml()}
-    ${ms.length ? `<div class="list">${ms.map(m => `<div class="item tapable${S.confirm === 'mb:' + m.id ? ' open' : ''}"><span class="av t-lab">${icon('usuario', 's')}</span><div><div class="t">${esc(m.nombre || m.id)}</div><div class="s">${esc(m.id)} · ${esc(ROLES[m.rol] || m.rol)}${m.rol === 'encargado' ? ' · ' + esc(fincaName(m.finca)) : ''}${m.tel ? ' · ' + esc(m.tel) : ''}</div></div><div class="a">${m.avisado ? '<span class="chip">Avisado</span>' : ''}</div>
+    ${ms.length ? `<div class="list">${ms.map(m => `<div class="item tapable${S.confirm === 'mb:' + m.id ? ' open' : ''}"><span class="av t-lab">${icon('usuario', 's')}</span><div><div class="t">${esc(m.nombre || m.id)}</div><div class="s">${esc(m.id)} · ${esc(ROLES[m.rol] || m.rol)}${m.rol === 'encargado' ? ' · ' + esc(listaY(fincasDe(m).map(fincaName))) : ''}${m.tel ? ' · ' + esc(m.tel) : ''}</div></div><div class="a">${m.avisado ? '<span class="chip">Avisado</span>' : ''}</div>
       <div class="acts tap">${S.confirm === 'mb:' + m.id ? `<button class="btn danger" data-act="mb-del" data-id="${esc(m.id)}">Sí, quitar</button><button class="btn ghost" data-act="confirm-no">No</button>` : `<button class="btn ghost" data-act="mb-wa" data-id="${esc(m.id)}">WhatsApp</button><button class="btn ghost" data-act="mb-invite" data-id="${esc(m.id)}">Reenviar correo</button><button class="btn ghost danger" data-act="confirm" data-k="mb:${esc(m.id)}">Quitar acceso</button>`}</div></div>`).join('')}</div>` : '<p class="muted small">Todavía no has agregado a nadie.</p>'}
     <form id="mb-form" class="grid">
       ${fld('mb-email', 'Correo', inp('mb-email', '', 'type="email" autocomplete="off" required placeholder="nombre@gmail.com"'))}
       ${fld('mb-nombre', 'Nombre', inp('mb-nombre', '', 'placeholder="Ej.: Pedro"'))}
       ${fld('mb-rol', 'Tipo de usuario', `<select id="mb-rol">${Object.entries(ROLES).map(([k, n]) => opt(k, ROLE_SUB[k] ? n + ' · ' + ROLE_SUB[k] : n, 'encargado')).join('')}</select>`)}
       ${fld('mb-tel', 'WhatsApp', inp('mb-tel', '', 'type="tel" autocomplete="off" placeholder="0414 1234567"'))}
-      <div class="field" id="mb-finca-w"><label for="mb-finca">Finca</label><select id="mb-finca">${S.fincas.map(f => opt(f.id, f.nombre, '')).join('')}</select></div>
+      <div class="field wide" id="mb-finca-w"><label>Fincas</label><div class="checks">${S.fincas.map((f, i) => `<label class="check"><input type="checkbox" name="mb-finca" value="${esc(f.id)}" ${i === 0 ? 'checked' : ''}> ${esc(f.nombre)}</label>`).join('')}</div></div>
       <div class="field wide"><div class="btns"><button class="btn primary" type="submit">Agregar usuario</button></div></div>
     </form></div>`;
 }
 async function guardarMiembro() {
   const email = val('mb-email').trim().toLowerCase(), rol = val('mb-rol');
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return toast('Escribe un correo válido.');
-  const d = { nombre: val('mb-nombre').trim(), rol, finca: rol === 'encargado' ? val('mb-finca') : '', tel: val('mb-tel').trim(), agregado: new Date().toISOString(), agregadoPor: S.email };
+  const fincas = rol === 'encargado' ? [...document.querySelectorAll('input[name="mb-finca"]:checked')].map(x => x.value) : [];
+  if (rol === 'encargado' && !fincas.length) return toast('Marca al menos una finca.');
+  const d = { nombre: val('mb-nombre').trim(), rol, fincas, finca: fincas[0] || '', tel: val('mb-tel').trim(), agregado: new Date().toISOString(), agregadoPor: S.email };
   await S.db.doc('miembros/' + email).set(d);
   ['mb-email', 'mb-nombre', 'mb-tel'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   await avisarMiembro(email, d.nombre, d.tel);
@@ -1823,6 +1829,8 @@ const appUrl = () => location.origin + location.pathname;
 function avisoTexto(nombre) {
   return `Hola${nombre ? ' ' + nombre : ''}. Te agregué a la app de gestión de Agropecuaria Los Granates. Ábrela aquí: ${appUrl()} . Entra con este mismo correo: toca "Primera vez: crear cuenta" o usa el enlace que te llegó al correo.`;
 }
+// Members saved before multi-farm support only have 'finca'.
+function fincasDe(m) { return m && Array.isArray(m.fincas) && m.fincas.length ? m.fincas : m && m.finca ? [m.finca] : []; }
 // Venezuelan numbers typed as 0414..., 414... or +58 414... become 58414... for wa.me.
 function waNum(tel) {
   let d = String(tel || '').replace(/\D/g, '');
@@ -1920,12 +1928,18 @@ function subscribeRegs() {
   const y = S.year;
   if (S.rol === 'encargado') {
     // Rules only let an overseer read their own farm, so the query filters by farm and the year is cut here.
-    S.unsubRegs = S.db.collection('registros').where('finca', '==', S.miFinca).limit(5000).onSnapshot(s => {
-      const all = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(r => isoOk(r.fecha));
+    // One listener per farm; their results are merged.
+    const por = {};
+    const subs = S.misFincas.map(fid => S.db.collection('registros').where('finca', '==', fid).limit(5000).onSnapshot(s => {
+      por[fid] = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(r => isoOk(r.fecha));
+      if (Object.keys(por).length < S.misFincas.length) return;
+      const all = Object.values(por).flat();
       S.regs = all.filter(r => r.fecha.startsWith(String(S.year))).sort((a, b) => b.fecha.localeCompare(a.fecha));
       S.pend = all.filter(r => r.tipo === 'venta' && r.cobrado === false);
       S.loaded.regs = true; S.loaded.pend = true; render();
-    }, snapErr);
+    }, snapErr));
+    if (!subs.length) { S.regs = []; S.pend = []; S.loaded.regs = true; S.loaded.pend = true; }
+    S.unsubRegs = () => subs.forEach(u => u());
     return;
   }
   S.unsubRegs = S.db.collection('registros').where('fecha', '>=', `${y}-01-01`).where('fecha', '<=', `${y}-12-31`).orderBy('fecha', 'desc').limit(3000)
@@ -1957,7 +1971,7 @@ function arrancar() {
   stopSubs();
   S.loaded = { fincas: false, lotes: false, regs: false, precios: false, cfg: false, labores: false, cierres: false, pend: false };
   S.canAdmin = S.rol === 'admin';
-  if (S.rol === 'encargado') S.finca = S.miFinca;
+  if (S.rol === 'encargado') S.finca = obreroFinca();
   S.status = 'ok';
   subscribeStatic(); subscribeRegs(); render();
 }
@@ -2044,9 +2058,9 @@ setInterval(buscarVersion, 30 * 60 * 1000);
     unsubMe = S.db.doc('miembros/' + u.email).onSnapshot(s => {
       if (S.demo) return;
       const m = s.exists ? s.data() : null;
-      const rol = m && ROLES[m.rol] ? m.rol : 'none', finca = (m && m.finca) || '';
+      const rol = m && ROLES[m.rol] ? m.rol : 'none', fincas = fincasDe(m);
       if (m && m.nombre) S.names[u.email] = m.nombre;
-      if (rol !== S.rol || finca !== S.miFinca) { S.rol = rol; S.miFinca = finca; if (rol !== 'none') arrancar(); else { stopSubs(); render(); } }
+      if (rol !== S.rol || fincas.join() !== S.misFincas.join()) { S.rol = rol; S.misFincas = fincas; if (rol !== 'none') arrancar(); else { stopSubs(); render(); } }
     }, () => { S.rol = 'none'; render(); });
   });
   render();
