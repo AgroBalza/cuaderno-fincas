@@ -360,7 +360,7 @@ function renderHeader() {
   const cur = S.view;
   const tabName = tabLabel(cur);
   const tEl = $('#appbar-t'); if (tEl.textContent !== tabName) tEl.textContent = tabName;
-  const side = `<div class="side-brand" data-go="resumen" title="Ir al inicio"><span class="logo">${LOGO}</span><div><b>Agropecuaria Los Granates</b><small>Cuaderno de las fincas</small></div></div>
+  const side = `<div class="side-brand" data-go="resumen" title="Ir al inicio"><span class="logo">${LOGO}</span><div><b>Agropecuaria Los Granates</b><small>Gestión de fincas</small></div></div>
     ${canWrite() ? `<button class="sn cta" data-tab="registrar">${icon('registrar')}Registrar</button>` : '<div style="height:8px"></div>'}
     ${TABS.filter(t => t[0] !== 'registrar' && tabOk(t[0])).map(([id]) => `<button class="sn" data-tab="${id}" ${cur === id ? 'aria-current="page"' : ''}>${icon(id)}${tabLabel(id)}</button>`).join('')}
     <div class="side-foot">Santo Domingo, Mérida</div>`;
@@ -431,7 +431,7 @@ const numIn = (id, val, ph = '') => inp(id, val, `inputmode="decimal" autocomple
 function defaultFinca() { return S.finca !== 'all' ? S.finca : (S.fincas[0] || {}).id || ''; }
 function notReady() {
   if (S.status === 'noconfig') return `<div class="notice"><strong>Falta conectar la base de datos.</strong><p>Hay que poner los datos de Firebase en config.js.</p></div>`;
-  return `<div class="skel"></div><div class="skel"></div><p class="muted small">Abriendo el cuaderno…</p>`;
+  return `<div class="skel"></div><div class="skel"></div><p class="muted small">Abriendo…</p>`;
 }
 function readonlyNote() { return canWrite() ? '' : `<div class="notice"><strong>Solo puedes ver.</strong><p>Para registrar datos, pídele a Luis que te cambie el tipo de usuario.</p></div>`; }
 
@@ -630,7 +630,7 @@ VIEWS.lotes = () => {
   const ls = S.lotes.filter(l => (f === 'all' || l.finca === f)).filter(l => { const i = loteInfo(l); const a = l.siembra || '', b = i.lastCos || i.est || a; return a.slice(0, 4) <= String(y) && b.slice(0, 4) >= String(y); })
     .sort((a, b) => (a.finca + a.siembra).localeCompare(b.finca + b.siembra));
   let out = `<section><div class="sec-head"><div><p class="eyebrow">${y}</p><h2>Lotes y siembra escalonada</h2></div>${canWrite() ? `<div class="btns"><button class="btn primary" data-act="lote-new">Nuevo lote</button></div>` : ''}</div>
-    <p class="muted small help">Cada lote es una tanda de siembra. El cuaderno calcula cuándo se cosecha cada una y cuánto rindió.</p>`;
+    <p class="muted small help">Cada lote es una tanda de siembra. La app calcula cuándo se cosecha cada una y cuánto rindió.</p>`;
   if (S.editingLote) out += loteForm();
   out += `<div class="panel">${ls.length ? timeline(ls) : `<p class="muted">No hay lotes en ${y}${f === 'all' ? '' : ' para ' + esc(fincaName(f))}.</p>`}
     <div class="legend"><span><i style="background:var(--sunk);border:1px dashed var(--muted)"></i>Planificado</span><span><i style="background:var(--paramo)"></i>Sembrado</span><span><i style="background:var(--papa)"></i>Cosechado</span><span><i style="background:var(--bad);width:2px"></i>Hoy</span></div></div></section>`;
@@ -1018,7 +1018,7 @@ const SUGERENCIAS_WA = '34672323220';
 function sugerenciaUrl() {
   const tab = (TABS.find(t => t[0] === S.view) || [])[1] || S.view;
   const quien = S.names[S.email] || S.email || '';
-  const txt = `Idea o error en el Cuaderno de las Fincas\nPantalla: ${tab}${S.finca && S.finca !== 'all' ? ' · ' + fincaName(S.finca) : ''}\nDe: ${quien}\n\nQué pasó o qué se puede mejorar:\n`;
+  const txt = `Idea o error en la app de Los Granates\nPantalla: ${tab}${S.finca && S.finca !== 'all' ? ' · ' + fincaName(S.finca) : ''}\nDe: ${quien}\n\nQué pasó o qué se puede mejorar:\n`;
   return `https://wa.me/${SUGERENCIAS_WA}?text=${encodeURIComponent(txt)}`;
 }
 const paso = (titulo, pasos, nota = '') => `<details class="how"><summary>${titulo}</summary><div class="how-b"><ol>${pasos.map(x => `<li>${x}</li>`).join('')}</ol>${nota ? `<p class="hint">${nota}</p>` : ''}</div></details>`;
@@ -1388,7 +1388,7 @@ ${fincas}
 <h2>En el año hasta ${MESES_L[D.m - 1].toLowerCase()}</h2><table>${row('Ventas', usd(D.ytd.ventas))}${row('Gastos', usd(D.ytd.gastos))}${row('Utilidad', usd(D.ytd.utilidad))}${row('Sacos cosechados', `${nf(D.ytd.sacos)} de ${nf(D.metaHoy)} de la meta a esta fecha`)}</table>
 ${lotes ? `<h2>Lotes</h2><ul>${lotes}</ul>` : ''}
 <h2>Para estar pendientes</h2><table>${row('Por cobrar', `${usd(D.porCobrar)}${D.vencido ? ` (${usd(D.vencido)} vencido)` : ''}`)}${row('Lotes sobre el presupuesto', D.sobre.length ? D.sobre.map(x => e(x.l.nombre)).join(', ') : 'Ninguno')}${row('Labores atrasadas', nf(D.labAtras))}</table>
-<footer>Preparado el ${fdateY(today())} con el Cuaderno de las Fincas.</footer></body></html>`;
+<footer>Preparado el ${fdateY(today())} con la app de gestión de Agropecuaria Los Granates.</footer></body></html>`;
 }
 async function descargarCierre() {
   const D = cierreData(S.cierreMes);
@@ -1548,7 +1548,7 @@ function writeErr(e) {
   console.error(e);
   const code = e && e.code;
   if (code === 'permission-denied' || code === 'invalid_argument') toast('No se guardó: tu usuario no tiene permiso para eso.');
-  else if (code === 'quota_exceeded') toast('El cuaderno está lleno. Hay que borrar registros viejos.');
+  else if (code === 'quota_exceeded') toast('La base de datos está llena. Hay que borrar registros viejos.');
   else if (code === 'resource_exhausted') toast('Demasiados cambios seguidos. Espera un momento.');
   else toast('No se pudo guardar. Revisa la conexión y prueba otra vez.');
   S.saving = false; render();
@@ -1814,7 +1814,7 @@ async function guardarMiembro() {
 // The app link that opens the app; the invite email from Firebase carries a one-tap sign-in version of it.
 const appUrl = () => location.origin + location.pathname;
 function avisoTexto(nombre) {
-  return `Hola${nombre ? ' ' + nombre : ''}. Te agregué al Cuaderno de las Fincas de Agropecuaria Los Granates. Ábrelo aquí: ${appUrl()} . Entra con este mismo correo: toca "Primera vez: crear cuenta" o usa el enlace que te llegó al correo.`;
+  return `Hola${nombre ? ' ' + nombre : ''}. Te agregué a la app de gestión de Agropecuaria Los Granates. Ábrelo aquí: ${appUrl()} . Entra con este mismo correo: toca "Primera vez: crear cuenta" o usa el enlace que te llegó al correo.`;
 }
 async function avisarMiembro(email, nombre) {
   try {
@@ -1865,11 +1865,11 @@ function authMsg(e) {
 }
 function gateHtml() {
   const logo = `<span class="logo big" aria-hidden="true">${LOGO}</span>`;
-  if (S.status === 'noconfig') return `<div class="gate">${logo}<h1>Cuaderno de las Fincas</h1>${notReady()}<button type="button" class="btn ghost" data-act="demo">Ver demostración con números simulados</button></div>`;
-  if (S.auth === 'checking' || (S.auth === 'in' && !S.rol)) return `<div class="gate">${logo}<h1>Cuaderno de las Fincas</h1><p class="muted">Abriendo…</p></div>`;
+  if (S.status === 'noconfig') return `<div class="gate">${logo}<h1>Agropecuaria Los Granates</h1>${notReady()}<button type="button" class="btn ghost" data-act="demo">Ver demostración con números simulados</button></div>`;
+  if (S.auth === 'checking' || (S.auth === 'in' && !S.rol)) return `<div class="gate">${logo}<h1>Agropecuaria Los Granates</h1><p class="muted">Abriendo…</p></div>`;
   if (S.auth === 'in' && S.rol === 'none') return `<div class="gate">${logo}<h1>Todavía no tienes acceso</h1><p class="muted">Entraste como ${esc(S.email)}, pero ese correo no está en la lista de usuarios. Pídele a Luis que te agregue con este mismo correo.</p><div class="btns"><button class="btn" data-act="logout">Salir</button></div></div>`;
   const up = S.loginMode === 'up';
-  return `<div class="gate">${logo}<h1>Agropecuaria Los Granates</h1><p class="muted">Cuaderno de las fincas</p>
+  return `<div class="gate">${logo}<h1>Agropecuaria Los Granates</h1><p class="muted">Gestión de fincas</p>
     <form class="panel" id="login-form">
       ${up ? fld('lg-nombre', 'Tu nombre', inp('lg-nombre', '', 'autocomplete="name"')) : ''}
       ${fld('lg-email', 'Correo', inp('lg-email', '', 'type="email" autocomplete="email" required'))}
