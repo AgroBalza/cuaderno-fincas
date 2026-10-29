@@ -24,7 +24,8 @@ async function session(w,dark,email,tag){
  return {p,ctx};
 }
 let {p,ctx}=await session(390,false,'luis@x.com','admin390');
-await p.fill('#mb-email','tio@x.com');await p.fill('#mb-nombre','Tío');await p.click('#mb-form button[type=submit]');await p.waitForTimeout(200);
+await p.fill('#mb-email','tio@x.com');await p.fill('#mb-nombre','Tío');await p.fill('#mb-tel','0414 1234567');await p.click('#mb-form button[type=submit]');await p.waitForTimeout(200);
+console.log('wa',await p.evaluate(()=>document.querySelector('.aviso a.primary')?.href));
 console.log('miembros',await p.evaluate(()=>[...window.__store.keys()].filter(k=>k.startsWith('miembros/')).join(',')));
 await ctx.close();
 ({p,ctx}=await session(1200,true,'luis@x.com','admin1200')); await ctx.close();
@@ -36,6 +37,8 @@ await p.fill('#r-monto','40');await p.click('#reg-form button[type=submit]');awa
 await p.screenshot({path:'test/enc-after.png'});
 await ctx.close();
 ({p,ctx}=await session(390,false,'papa@x.com','fam390')); await ctx.close();
+({p,ctx}=await session(390,false,'jefe@x.com','jefe390'));
+console.log('jefe plan',await p.evaluate(()=>{[...document.querySelectorAll('[data-tab="lotes"]')].find(e=>e.offsetParent)?.click();return 1}));await p.waitForTimeout(200);console.log('jefe planform',await p.evaluate(()=>!!document.querySelector('#plan-form, .plan, [data-act="lote-new"]')));await ctx.close();
 ({p,ctx}=await session(390,false,'nadie@x.com','none390')); await p.screenshot({path:'test/none.png'}); await ctx.close();
 console.log('errs',JSON.stringify(errs));
 await b.close();srv.close();})();

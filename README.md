@@ -4,7 +4,7 @@ App de gestión de las fincas de papa de Agropecuaria Los Granates (El Baho, El 
 
 - Funciona sin señal: guarda en el teléfono y sincroniza con Firebase cuando vuelve el internet.
 - Se instala en el teléfono desde el navegador (Safari: Compartir > Agregar a pantalla de inicio).
-- Usuarios: administrador, encargado (solo su finca), familia y analista (solo ver). Los permisos están en `firestore.rules`.
+- Usuarios: administrador (todo), encargado (clave `jefe`: ve las tres fincas, anota y planifica), obrero (clave `encargado`: solo su finca, vista sencilla), familia y analista (solo ver). Los permisos están en `firestore.rules`.
 
 ## Desarrollo
 

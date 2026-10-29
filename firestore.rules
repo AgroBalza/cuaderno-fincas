@@ -1,6 +1,7 @@
 rules_version = '2';
 // Quién puede leer y escribir en el Cuaderno de las Fincas.
-// admin: todo · encargado: solo su finca · familia y lector (Claude): solo ver.
+// admin: todo · jefe (se ve como Encargado): ve las tres fincas, anota y planifica
+// encargado (se ve como Obrero): solo su finca · familia y lector (Claude): solo ver.
 service cloud.firestore {
   match /databases/{database}/documents {
     function signed() { return request.auth != null && request.auth.token.email != null; }
@@ -11,8 +12,10 @@ service cloud.firestore {
     function rol() { return owner() ? 'admin' : (hasM() ? m().rol : 'none'); }
     function admin() { return rol() == 'admin'; }
     function enc() { return rol() == 'encargado'; }
-    function viewer() { return rol() in ['admin', 'familia', 'lector']; }
-    function anyone() { return rol() in ['admin', 'encargado', 'familia', 'lector']; }
+    function jefe() { return rol() == 'jefe'; }
+    function staff() { return admin() || jefe(); }
+    function viewer() { return rol() in ['admin', 'jefe', 'familia', 'lector']; }
+    function anyone() { return rol() in ['admin', 'jefe', 'encargado', 'familia', 'lector']; }
     function miFinca() { return m().finca; }
     function newIsMine() { return request.resource.data.finca == miFinca(); }
     function oldIsMine() { return resource.data.finca == miFinca(); }
@@ -23,24 +26,24 @@ service cloud.firestore {
     }
     match /fincas/{id} { allow read: if anyone(); allow write: if admin(); }
     match /ajustes/{id} { allow read: if anyone(); allow write: if admin(); }
-    match /precios/{id} { allow read: if anyone(); allow write: if admin(); }
+    match /precios/{id} { allow read: if anyone(); allow write: if staff(); }
     match /cierres/{id} { allow read: if viewer(); allow write: if admin(); }
     match /registros/{id} {
       allow read: if viewer() || (enc() && oldIsMine());
-      allow create: if admin() || (enc() && newIsMine());
-      allow update: if admin() || (enc() && oldIsMine() && newIsMine());
-      allow delete: if admin() || (enc() && oldIsMine());
+      allow create: if staff() || (enc() && newIsMine());
+      allow update: if staff() || (enc() && oldIsMine() && newIsMine());
+      allow delete: if staff() || (enc() && oldIsMine());
     }
     match /lotes/{id} {
       allow read: if anyone();
-      allow create: if admin() || (enc() && newIsMine());
-      allow update: if admin() || (enc() && oldIsMine() && newIsMine());
-      allow delete: if admin();
+      allow create: if staff() || (enc() && newIsMine());
+      allow update: if staff() || (enc() && oldIsMine() && newIsMine());
+      allow delete: if staff();
     }
     match /labores/{id} {
       allow read: if anyone();
-      allow create, update: if admin() || (enc() && newIsMine());
-      allow delete: if admin() || (enc() && oldIsMine());
+      allow create, update: if staff() || (enc() && newIsMine());
+      allow delete: if staff() || (enc() && oldIsMine());
     }
   }
 }
