@@ -3,7 +3,7 @@ import { initFb } from './fb.js';
 import { memDb, demoData, ESCENARIOS } from './demo.js';
 // ---------- constants ----------
 const TABS = [
-  ['resumen', 'Resumen'], ['registrar', 'Registrar'], ['lotes', 'Lotes y siembra'], ['labores', 'Labores'], ['libro', 'Libro'], ['almacen', 'Almacén de insumos'],
+  ['resumen', 'Inicio'], ['numeros', 'Resumen del año'], ['registrar', 'Anotar'], ['lotes', 'Lotes y siembra'], ['labores', 'Labores'], ['libro', 'Libro'], ['almacen', 'Almacén de insumos'],
   ['cobros', 'Por cobrar'], ['cierre', 'Cierre del mes'], ['liquidacion', 'Liquidación'], ['precios', 'Precios'], ['metas', 'Metas'], ['guia', 'Instrucciones'], ['ajustes', 'Ajustes'],
 ];
 const ICONS = {
@@ -156,12 +156,27 @@ const canPlan = () => S.canAdmin || S.rol === 'jefe';
 // Internal key 'encargado' is the obrero (simple view, one farm); 'jefe' is shown as Encargado.
 const ROLES = { admin: 'Administrador', jefe: 'Encargado', encargado: 'Obrero', familia: 'Familia (solo ver)', lector: 'Analista (solo ver)' };
 const ROLE_SUB = { admin: 'todo', jefe: 've y anota todo', encargado: 'solo sus fincas' };
-const ROLE_TABS = { encargado: ['resumen', 'registrar', 'libro', 'guia', 'ajustes'], familia: ['resumen', 'lotes', 'labores', 'libro', 'cobros', 'cierre', 'liquidacion', 'precios', 'metas', 'guia', 'ajustes'] };
+const ROLE_TABS = { encargado: ['resumen', 'registrar', 'libro', 'guia', 'ajustes'], familia: ['resumen', 'numeros', 'lotes', 'labores', 'libro', 'cobros', 'cierre', 'liquidacion', 'precios', 'metas', 'guia', 'ajustes'] };
 ROLE_TABS.lector = ROLE_TABS.familia;
 ROLE_TABS.jefe = ['registrar', ...ROLE_TABS.familia];
 // Overseers get a short app: start, record, what they recorded, help. Simpler names for them.
 const tabLabel = id => (S.rol === 'encargado' && { resumen: 'Inicio', libro: 'Lo que anoté', guia: 'Ayuda' }[id]) || (TABS.find(t => t[0] === id) || [])[1] || '';
 const tabOk = id => { const r = ROLE_TABS[S.rol]; return !r || r.includes(id); };
+// Four places instead of thirteen: each groups its screens, shown as tabs at the top.
+const NAV = [
+  { id: 'inicio', n: 'Inicio', ic: 'resumen', v: ['resumen'] },
+  { id: 'fincas', n: 'Fincas', ic: 'lotes', v: ['lotes', 'labores'] },
+  { id: 'movs', n: 'Movimientos', ic: 'libro', v: ['libro', 'cobros'] },
+  { id: 'numeros', n: 'Números', ic: 'precios', v: ['numeros', 'liquidacion', 'cierre', 'precios', 'metas', 'almacen'] },
+];
+const SUB_N = { lotes: 'Siembra', labores: 'Labores', libro: 'Todo lo anotado', cobros: 'Por cobrar', numeros: 'Resumen', liquidacion: 'Reparto', cierre: 'Cierre del mes', precios: 'Precios', metas: 'Metas', almacen: 'Almacén' };
+const navOf = v => NAV.find(g => g.v.includes(v));
+const navFirst = g => g.v.find(tabOk) || 'resumen';
+function subtabsHtml() {
+  const g = navOf(S.view); if (!g || S.rol === 'encargado') return '';
+  const vs = g.v.filter(tabOk); if (vs.length < 2) return '';
+  return `<nav class="subtabs" aria-label="${esc(g.n)}">${vs.map(v => `<button data-tab="${v}" ${v === S.view ? 'aria-current="page"' : ''}>${SUB_N[v]}</button>`).join('')}</nav>`;
+}
 
 // ---------- calculations ----------
 function shareOf(f) {
@@ -249,10 +264,12 @@ function doRender() {
   if (S.auth !== 'in' || !S.rol || S.rol === 'none') { S.sheet = false; const sr = $('#sheet-root'); if (sr) { sr.innerHTML = ''; sr.dataset.k = 'false'; } document.documentElement.classList.remove('lock'); v.innerHTML = gateHtml(); return; }
   if (!tabOk(S.view)) S.view = 'resumen';
   document.body.classList.toggle('enc', S.rol === 'encargado');
+  // Year and farm filters only where they change what is shown.
+  document.body.classList.toggle('nofil', ['resumen', 'registrar', 'guia', 'ajustes'].includes(S.view));
   renderHeader();
   let html;
   try { html = (VIEWS[S.view] || VIEWS.resumen)(); } catch (e) { console.error(e); html = `<div class="notice">Algo falló al mostrar esta sección: ${esc(e.message)}</div>`; }
-  v.innerHTML = pendienteHtml() + html;
+  v.innerHTML = pendienteHtml() + subtabsHtml() + html;
   syncLotes(v);
   if (keep) restoreForm(v, keep);
   if ($('#plan-rows')) { planRows(); if (keep) restoreForm(v, keep); }
@@ -363,21 +380,25 @@ function pendienteHtml() {
 }
 function renderHeader() {
   const cur = S.view;
-  const tabName = tabLabel(cur);
+  const g = navOf(cur), tabName = S.rol !== 'encargado' && g ? g.n : tabLabel(cur);
   const tEl = $('#appbar-t'); if (tEl.textContent !== tabName) tEl.textContent = tabName;
   const side = `<div class="side-brand" data-go="resumen" title="Ir al inicio"><span class="logo">${LOGO}</span><div><b>Agropecuaria Los Granates</b><small>Gestión de fincas</small></div></div>
-    ${canWrite() ? `<button class="sn cta" data-tab="registrar">${icon('registrar')}Registrar</button>` : '<div style="height:8px"></div>'}
-    ${TABS.filter(t => t[0] !== 'registrar' && tabOk(t[0])).map(([id]) => `<button class="sn" data-tab="${id}" ${cur === id ? 'aria-current="page"' : ''}>${icon(id)}${tabLabel(id)}</button>`).join('')}
-    <div class="side-foot">Santo Domingo, Mérida</div>`;
+    ${canWrite() ? `<button class="sn cta" data-tab="registrar">${icon('registrar')}Anotar</button>` : '<div style="height:8px"></div>'}
+    ${S.rol === 'encargado' ? TABS.filter(t => t[0] !== 'registrar' && tabOk(t[0])).map(([id]) => `<button class="sn" data-tab="${id}" ${cur === id ? 'aria-current="page"' : ''}>${icon(id)}${tabLabel(id)}</button>`).join('')
+    : NAV.filter(n => n.v.some(tabOk)).map(n => `<button class="sn" data-tab="${navFirst(n)}" ${g === n ? 'aria-current="page"' : ''}>${icon(n.ic)}${n.n}</button>`).join('')}
+    <div class="side-foot"><button class="sn" data-tab="guia" ${cur === 'guia' ? 'aria-current="page"' : ''}>${icon('guia')}Instrucciones</button><button class="sn" data-tab="ajustes" ${cur === 'ajustes' ? 'aria-current="page"' : ''}>${icon('ajustes')}Ajustes</button><span>Santo Domingo, Mérida</span></div>`;
   const hk = cur + '|' + S.rol;
   const sd = $('#side'); if (sd.dataset.k !== hk) { sd.innerHTML = side; sd.dataset.k = hk; }
-  const more = ['labores', 'almacen', 'cobros', 'cierre', 'liquidacion', 'precios', 'guia', 'ajustes'].filter(tabOk);
   const enc = S.rol === 'encargado';
+  const more = (enc ? ['guia', 'ajustes'] : ['ajustes', 'guia']).filter(tabOk);
   const bt = (id, label, extra = '') => `<button class="bt ${extra}" data-tab="${id}" ${cur === id || (id === 'mas' && more.includes(cur)) ? 'aria-current="page"' : ''}>${extra === 'fab' ? `<span class="fab-c">${icon('registrar')}</span>` : icon(id)}<span>${label}</span></button>`;
-  const bottom = `<div class="bottom-in">${bt('resumen', 'Inicio')}${enc ? bt('guia', 'Ayuda') : bt('lotes', 'Lotes')}${canWrite() ? bt('registrar', 'Registrar', 'fab') : bt('cierre', 'Cierre')}${bt('libro', enc ? 'Lo anotado' : 'Libro')}${bt('mas', 'Más')}</div>`;
+  const nb = n => `<button class="bt" data-tab="${navFirst(n)}" ${g === n ? 'aria-current="page"' : ''}>${icon(n.ic)}<span>${n.n}</span></button>`;
+  const ns = NAV.filter(n => n.v.some(tabOk));
+  const bottom = enc ? `<div class="bottom-in">${bt('resumen', 'Inicio')}${bt('guia', 'Ayuda')}${bt('registrar', 'Anotar', 'fab')}${bt('libro', 'Lo anotado')}${bt('mas', 'Más')}</div>`
+    : `<div class="bottom-in" style="grid-template-columns:repeat(${ns.length + (canWrite() ? 1 : 0)},1fr)">${ns.slice(0, 2).map(nb).join('')}${canWrite() ? bt('registrar', 'Anotar', 'fab') : ''}${ns.slice(2).map(nb).join('')}</div>`;
   const bm = $('#bottom'); if (bm.dataset.k !== hk) { bm.innerHTML = bottom; bm.dataset.k = hk; }
   const sr = $('#sheet-root');
-  const sheet = S.sheet ? `<div class="scrim" data-act="sheet-close"></div><div class="sheet" role="dialog" aria-label="Más secciones"><div class="grab"></div><div class="sheet-list">${more.map(id => `<button data-tab="${id}"><span class="ic">${icon(id)}</span><span>${tabLabel(id)}<small>${TAB_SUB[id] || ''}</small></span></button>`).join('')}<a href="${sugerenciaUrl()}" target="_blank" rel="noopener"><span class="ic">${icon('guia')}</span><span>Enviar una idea o un error<small>Por WhatsApp a Luis</small></span></a>${S.demo ? `<button data-act="demo-salir"><span class="ic">${icon('salir')}</span><span>Salir de la demostración<small>Volver a tus datos reales</small></span></button>` : `<button data-act="logout"><span class="ic">${icon('salir')}</span><span>Cerrar sesión<small>${esc(S.email || '')}</small></span></button>`}</div></div>` : '';
+  const sheet = S.sheet ? `<div class="scrim" data-act="sheet-close"></div><div class="sheet" role="dialog" aria-label="Menú"><div class="grab"></div><div class="sheet-list">${more.map(id => `<button data-tab="${id}"><span class="ic">${icon(id)}</span><span>${tabLabel(id)}<small>${TAB_SUB[id] || ''}</small></span></button>`).join('')}<a href="${sugerenciaUrl()}" target="_blank" rel="noopener"><span class="ic">${icon('guia')}</span><span>Enviar una idea o un error<small>Por WhatsApp a Luis</small></span></a>${S.demo ? `<button data-act="demo-salir"><span class="ic">${icon('salir')}</span><span>Salir de la demostración<small>Volver a tus datos reales</small></span></button>` : `<button data-act="logout"><span class="ic">${icon('salir')}</span><span>Cerrar sesión<small>${esc(S.email || '')}</small></span></button>`}</div></div>` : '';
   if (sr.dataset.k !== String(!!S.sheet)) { sr.innerHTML = sheet; sr.dataset.k = String(!!S.sheet); document.documentElement.classList.toggle('lock', !!S.sheet); }
   const cy = new Date().getFullYear(), ys = new Set([S.year]);
   for (let y = Math.min(2024, cy - 2); y <= cy + 10; y++) ys.add(y);
@@ -460,16 +481,61 @@ function obreroHome() {
   out += `<section><div class="sec-head"><h3>Lo último que anotaste</h3>${ult.length ? '<button class="btn ghost" data-go="libro">Ver todo →</button>' : ''}</div>${ult.length ? `<div class="list">${ult.map(itemHtml).join('')}</div>` : '<p class="muted">Aquí vas a ver lo que anotes. Si te equivocas, tocas Editar y lo corriges.</p>'}</section>`;
   return out;
 }
+// Start screen: what to record, what needs doing, and one number for the year. The details live in Números.
 VIEWS.resumen = () => {
   if (!ready()) return notReady();
   if (S.rol === 'encargado') return obreroHome();
+  const f = 'all', st = stats(f), c = S.cfg, hoy = today();
+  const meta = (S.fincas.length || 3) * N(c.metaSacosFinca), pct = meta ? Math.min(100, st.sacos / meta * 100) : 0;
+  const { alerts, proximas } = alertas(f, st);
+  const nombre = (S.names[S.email] || '').split(' ')[0], hr = new Date().getHours();
+  const saludo = hr < 12 ? 'Buenos días' : hr < 19 ? 'Buenas tardes' : 'Buenas noches';
+  const quick = (t, n) => `<button class="qa" data-go="registrar" data-nt="${t}"><span class="tile t-${t}">${icon(t)}</span><b>${n}</b></button>`;
+  let out = `<section class="home-top"><p class="eyebrow">${fdateY(hoy)}</p><h2>${saludo}${nombre ? ', ' + esc(nombre) : ''}</h2></section>`;
+  if (canWrite()) out += `<section><div class="qa-row">${quick('gasto', 'Gasto')}${quick('cosecha', 'Cosecha')}${quick('venta', 'Venta')}</div></section>`;
+  out += `<section><button class="hero hero-btn" data-tab="numeros">
+      <div><div class="hl">Utilidad ${S.year} · las tres fincas</div><div class="hv">${usd(st.utilidad)}</div><div class="hs">Ventas ${usd(st.ventas)} · Gastos ${usd(st.gastos)}</div></div>
+      <div style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between;gap:8px" class="hs"><span>${nf(st.sacos)} de ${nf(meta)} sacos de la meta</span><span class="num">${nf(pct)}%</span></div><div class="bar"><i style="width:${pct.toFixed(1)}%"></i></div></div>
+      <span class="hero-more">Ver los números ›</span></button></section>`;
+  const top = alerts.slice(0, S.homeAll ? 99 : 4);
+  out += `<div class="split"><section><div class="sec-head"><h3>Para hacer</h3>${alerts.length ? `<span class="chip">${alerts.length}</span>` : ''}</div>${alerts.length ? `<div class="list todo">${top.map(([cls, t, go, b]) => `<button class="todo-i ${cls}" data-go="${go}"><span class="ai">${icon(cls === 'info' ? 'precio' : cls === 'bad' ? 'alerta' : 'reloj', 's')}</span><span class="tx">${t}<small>${b}</small></span><span class="chev">›</span></button>`).join('')}</div>${alerts.length > top.length ? `<button class="btn ghost" data-act="home-all">Ver ${alerts.length - top.length} más</button>` : ''}` : `<div class="empty"><p class="muted">Todo al día. No hay nada pendiente.</p></div>`}</section><div>`;
+  if (proximas.length) out += `<section><div class="sec-head"><h3>Próximas cosechas</h3><button class="btn ghost" data-tab="lotes">Ver siembra ›</button></div><div class="list">${proximas.map(({ l, i }) => { const d = daysBetween(hoy, i.est); return `<div class="item"><span class="av t-cosecha">${icon('cosecha', 's')}</span><div><div class="t">${esc(l.nombre)} · ${esc(fincaName(l.finca))}</div><div class="s">${esc(l.variedad || 'papa')} · ${fdate(i.est)}</div></div><div class="a">${d < 0 ? `<span class="chip c-warn">hace ${-d} días</span>` : `<span class="muted small">en ${d} días</span>`}</div></div>`; }).join('')}</div></section>`;
+  const ult = S.regs.slice(0, 4);
+  out += `<section><div class="sec-head"><h3>Lo último anotado</h3>${ult.length ? '<button class="btn ghost" data-tab="libro">Ver todo ›</button>' : ''}</div>${ult.length ? `<div class="list">${ult.map(itemHtml).join('')}</div>` : `<div class="empty"><p class="muted">Todavía no hay nada anotado en ${S.year}. Empieza con los botones de arriba.</p></div>`}</section></div></div>`;
+  if (S.demo) out += demoPanel();
+  return out;
+};
+
+// What needs attention, most urgent first: [class, text, screen, button].
+function alertas(f, st) {
+  const c = S.cfg;
+  const hoy = today();
+  const lotesF = S.lotes.filter(l => f === 'all' || l.finca === f);
+  const proximas = lotesF.filter(l => l.estado === 'sembrado').map(l => ({ l, i: loteInfo(l) })).filter(x => x.i.est && !x.i.cosechados).sort((a, b) => a.i.est.localeCompare(b.i.est)).slice(0, 3);
+  const alerts = [];
+  lotesF.filter(l => l.estado === 'sembrado').forEach(l => { const i = loteInfo(l); if (i.est && i.est < hoy && !i.cosechados) alerts.push(['bad', `${esc(l.nombre)} (${esc(fincaName(l.finca))}) debía cosecharse el ${fdate(i.est)} y no tiene cosecha registrada.`, 'registrar', 'Registrar cosecha']); });
+  lotesF.filter(l => l.estado === 'plan' && l.siembra && l.siembra < hoy).slice(0, 4).forEach(l => alerts.push(['', `El plan decía sembrar ${esc(l.nombre)} (${esc(fincaName(l.finca))}) el ${fdate(l.siembra)}. ¿Ya se sembró?`, 'lotes', 'Ver lotes']));
+  lotesF.forEach(l => { const i = loteInfo(l); if (i.aprovechable != null && i.aprovechable < 0.9 && i.lastCos && i.lastCos >= addDays(hoy, -60)) alerts.push(['bad', `En ${esc(l.nombre)} (${esc(fincaName(l.finca))}) se botó ${nf((1 - i.aprovechable) * 100)}% de la cosecha. Revisa la causa en las notas y la muestra.`, 'lotes', 'Ver lote']); });
+  if (st.stock > 0) alerts.push(['', `Quedan ${sacosTxt(st.stock)} cosechados sin venta registrada.`, 'registrar', 'Registrar venta']);
+  { const pend = S.pend.filter(r => r.tipo === 'venta' && !r.cobrado && (f === 'all' || r.finca === f)), lim = N(c.diasCredito) || 15; const venc = sum(pend.filter(r => daysBetween(r.fecha, hoy) > lim), r => r.monto), tot = sum(pend, r => r.monto);
+    if (tot > 0) alerts.push([venc ? 'bad' : '', venc ? `Hay ${usd(venc)} en ventas vencidas, de ${usd(tot)} por cobrar.` : `Hay ${usd(tot)} en ventas por cobrar.`, 'cobros', 'Ver cobros']); }
+  lotesF.filter(l => l.estado === 'sembrado').forEach(l => { const i = loteInfo(l); if (i.pctPres > 1) alerts.push(['bad', `${esc(l.nombre)} (${esc(fincaName(l.finca))}) ya gastó ${usd(i.gasto)}, ${nf(i.pctPres * 100)}% de su presupuesto de ${usd(i.presup)}.`, 'lotes', 'Ver lote']); else if (i.pctPres > 0.85 && i.est && i.est > hoy) alerts.push(['', `${esc(l.nombre)} (${esc(fincaName(l.finca))}) va en ${nf(i.pctPres * 100)}% del presupuesto y faltan ${daysBetween(hoy, i.est)} días para cosechar.`, 'lotes', 'Ver lote']); });
+  { const g = labGroups(labItems(), hoy); if (g.atras.length) alerts.unshift(['bad', `${g.atras.length === 1 ? 'Hay 1 labor atrasada' : `Hay ${g.atras.length} labores atrasadas`} en el campo.`, 'labores', 'Ver labores']); else if (g.semana.length) alerts.push(['info', `Esta semana ${g.semana.length === 1 ? 'toca 1 labor' : `tocan ${g.semana.length} labores`}. Manda el mensaje a los encargados.`, 'labores', 'Ver labores']); }
+  { const d = new Date(); if (S.year === d.getFullYear() && d.getMonth() > 0 && S.loaded.cierres) { const m = d.getMonth(), pref = `${S.year}-${String(m).padStart(2, '0')}`; if (!S.cierres.some(x => x.id === cierreId(S.year, m, f) && x.cerrado) && S.regs.some(r => r.fecha.startsWith(pref))) alerts.push(['info', `Falta cerrar ${MESES_L[m - 1].toLowerCase()} y mandar el reporte a la familia.`, 'cierre', 'Hacer el cierre']); } }
+  const lastCoche = S.precios.filter(p => p.mercado === 'coche').map(p => p.fecha).sort().pop();
+  if (S.canAdmin && (!lastCoche || daysBetween(lastCoche, hoy) > 14)) alerts.push(['info', lastCoche ? `El último precio de Coche es del ${fdate(lastCoche)}. Anota el de esta semana.` : 'Todavía no hay precios de Coche anotados. Anotarlo cada semana muestra cuándo conviene vender.', 'registrar', 'Anotar precio']);
+  return { alerts, proximas };
+}
+
+VIEWS.numeros = () => {
+  if (!ready()) return notReady();
   const f = S.finca, st = stats(f), c = S.cfg;
   const nF = f === 'all' ? (S.fincas.length || 3) : 1;
   const meta = nF * N(c.metaSacosFinca);
   const titulo = f === 'all' ? 'Las tres fincas' : fincaName(f);
   const vacio = !S.regs.length;
   const pct = meta ? Math.min(100, st.sacos / meta * 100) : 0;
-  let out = `${S.demo ? demoPanel() : ""}<section><div class="hero">
+  let out = `<section><div class="hero">
       <div><div class="hl">Utilidad ${S.year} · ${esc(titulo)}</div><div class="hv">${usd(st.utilidad)}</div><div class="hs">Ventas menos todos los gastos, incluidos sueldo y viajes</div></div>
       <div style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between;gap:8px" class="hs"><span>${nf(st.sacos)} de ${nf(meta)} sacos de la meta</span><span class="num">${nf(pct)}%</span></div><div class="bar"><i style="width:${pct.toFixed(1)}%"></i></div></div>
       <div class="hero-row"><div><span>Ventas</span><b>${usd(st.ventas)}</b></div><div><span>Gastos</span><b>${usd(st.gastos)}</b></div><div><span>Sacos vendidos</span><b>${nf(st.sacosV)}</b></div></div>
@@ -501,24 +567,6 @@ VIEWS.resumen = () => {
       </tbody></table></div><p class="hint help">Los gastos generales (sueldo, viajes, contador) se reparten entre las fincas ${S.cfg.prorrateo === 'sacos' ? 'según los sacos que cosechó cada una' : 'en partes iguales'}. Se cambia en Ajustes.</p></section>`;
   }
 
-  // agenda + alerts
-  const hoy = today();
-  const lotesF = S.lotes.filter(l => f === 'all' || l.finca === f);
-  const proximas = lotesF.filter(l => l.estado === 'sembrado').map(l => ({ l, i: loteInfo(l) })).filter(x => x.i.est && !x.i.cosechados).sort((a, b) => a.i.est.localeCompare(b.i.est)).slice(0, 3);
-  const alerts = [];
-  lotesF.filter(l => l.estado === 'sembrado').forEach(l => { const i = loteInfo(l); if (i.est && i.est < hoy && !i.cosechados) alerts.push(['bad', `${esc(l.nombre)} (${esc(fincaName(l.finca))}) debía cosecharse el ${fdate(i.est)} y no tiene cosecha registrada.`, 'registrar', 'Registrar cosecha']); });
-  lotesF.filter(l => l.estado === 'plan' && l.siembra && l.siembra < hoy).slice(0, 4).forEach(l => alerts.push(['', `El plan decía sembrar ${esc(l.nombre)} (${esc(fincaName(l.finca))}) el ${fdate(l.siembra)}. ¿Ya se sembró?`, 'lotes', 'Ver lotes']));
-  lotesF.forEach(l => { const i = loteInfo(l); if (i.aprovechable != null && i.aprovechable < 0.9 && i.lastCos && i.lastCos >= addDays(hoy, -60)) alerts.push(['bad', `En ${esc(l.nombre)} (${esc(fincaName(l.finca))}) se botó ${nf((1 - i.aprovechable) * 100)}% de la cosecha. Revisa la causa en las notas y la muestra.`, 'lotes', 'Ver lote']); });
-  if (st.stock > 0) alerts.push(['', `Quedan ${sacosTxt(st.stock)} cosechados sin venta registrada.`, 'registrar', 'Registrar venta']);
-  { const pend = S.pend.filter(r => r.tipo === 'venta' && !r.cobrado && (f === 'all' || r.finca === f)), lim = N(c.diasCredito) || 15; const venc = sum(pend.filter(r => daysBetween(r.fecha, hoy) > lim), r => r.monto), tot = sum(pend, r => r.monto);
-    if (tot > 0) alerts.push([venc ? 'bad' : '', venc ? `Hay ${usd(venc)} en ventas vencidas, de ${usd(tot)} por cobrar.` : `Hay ${usd(tot)} en ventas por cobrar.`, 'cobros', 'Ver cobros']); }
-  lotesF.filter(l => l.estado === 'sembrado').forEach(l => { const i = loteInfo(l); if (i.pctPres > 1) alerts.push(['bad', `${esc(l.nombre)} (${esc(fincaName(l.finca))}) ya gastó ${usd(i.gasto)}, ${nf(i.pctPres * 100)}% de su presupuesto de ${usd(i.presup)}.`, 'lotes', 'Ver lote']); else if (i.pctPres > 0.85 && i.est && i.est > hoy) alerts.push(['', `${esc(l.nombre)} (${esc(fincaName(l.finca))}) va en ${nf(i.pctPres * 100)}% del presupuesto y faltan ${daysBetween(hoy, i.est)} días para cosechar.`, 'lotes', 'Ver lote']); });
-  { const g = labGroups(labItems(), hoy); if (g.atras.length) alerts.unshift(['bad', `${g.atras.length === 1 ? 'Hay 1 labor atrasada' : `Hay ${g.atras.length} labores atrasadas`} en el campo.`, 'labores', 'Ver labores']); else if (g.semana.length) alerts.push(['info', `Esta semana ${g.semana.length === 1 ? 'toca 1 labor' : `tocan ${g.semana.length} labores`}. Manda el mensaje a los encargados.`, 'labores', 'Ver labores']); }
-  { const d = new Date(); if (S.year === d.getFullYear() && d.getMonth() > 0 && S.loaded.cierres) { const m = d.getMonth(), pref = `${S.year}-${String(m).padStart(2, '0')}`; if (!S.cierres.some(x => x.id === cierreId(S.year, m, f) && x.cerrado) && S.regs.some(r => r.fecha.startsWith(pref))) alerts.push(['info', `Falta cerrar ${MESES_L[m - 1].toLowerCase()} y mandar el reporte a la familia.`, 'cierre', 'Hacer el cierre']); } }
-  const lastCoche = S.precios.filter(p => p.mercado === 'coche').map(p => p.fecha).sort().pop();
-  if (S.canAdmin && (!lastCoche || daysBetween(lastCoche, hoy) > 14)) alerts.push(['info', lastCoche ? `El último precio de Coche es del ${fdate(lastCoche)}. Anota el de esta semana.` : 'Todavía no hay precios de Coche anotados. Anotarlo cada semana muestra cuándo conviene vender.', 'registrar', 'Anotar precio']);
-  out += `<div class="split"><section><h3>Próximas cosechas</h3>${proximas.length ? `<div class="list">${proximas.map(({ l, i }) => { const d = daysBetween(hoy, i.est); return `<div class="item"><span class="av t-cosecha">${icon('cosecha', 's')}</span><div><div class="t">${esc(l.nombre)}</div><div class="s">${esc(fincaName(l.finca))} · ${esc(l.variedad || 'papa')} · cosecha ${fdate(i.est)}</div></div><div class="a">${d < 0 ? `<span class="chip c-warn">hace ${-d} días</span>` : `<span class="muted small">en ${d} días</span>`}</div></div>`; }).join('')}</div>` : `<div class="empty"><p class="muted">No hay lotes sembrados. Crea los lotes de la siembra escalonada en "Lotes y siembra".</p><button class="btn" data-go="lotes">Ir a lotes</button></div>`}</section>
-    <section><h3>Pendientes</h3>${alerts.length ? `<div class="alerts">${alerts.map(([cls, t, go, b]) => `<div class="alert ${cls}"><span class="ai">${icon(cls === 'info' ? 'precio' : cls === 'bad' ? 'alerta' : 'reloj', 's')}</span><span>${t}</span><button class="btn ghost" data-go="${go}">${b} →</button></div>`).join('')}</div>` : `<p class="muted">Nada pendiente.</p>`}</section></div>`;
   return out;
 };
 
@@ -561,12 +609,12 @@ VIEWS.registrar = () => {
   const t = S.regTipo, ed = S.editing ? S.regs.find(r => r.id === S.editing) || S.precios.find(p => p.id === S.editing) : null;
   const e = ed || {};
   const df = e.finca || S.prefFinca || defaultFinca(), simple = S.rol === 'encargado';
-  out += `<section><div class="sec-head"><div><p class="eyebrow">${ed ? 'Corrigiendo un registro' : simple ? esc(misFincasTxt()) : 'A mano'}</p><h2>${ed ? 'Editar registro' : 'Nuevo registro'}</h2></div>${ed ? `<button class="btn" data-act="cancel-edit">Cancelar</button>` : ''}</div>
+  out += `<section>${ed || simple ? `<div class="sec-head"><div><p class="eyebrow">${ed ? 'Corrigiendo un registro' : esc(misFincasTxt())}</p><h2>${ed ? 'Editar registro' : 'Nuevo registro'}</h2></div>${ed ? `<button class="btn" data-act="cancel-edit">Cancelar</button>` : ''}</div>` : ''}
     ${ed ? '' : `<div class="seg" role="group" aria-label="Tipo de registro" style="grid-template-columns:repeat(${S.canAdmin ? 5 : 3},minmax(0,1fr))">${[['gasto', 'Gasto'], ['cosecha', 'Cosecha'], ['venta', 'Venta'], ['insumo', 'Insumo'], ['precio', 'Precio']].filter(x => (x[0] !== 'precio' && x[0] !== 'insumo') || S.canAdmin).map(([k, n]) => `<button data-tipo="${k}" aria-pressed="${t === k}"><span class="tile t-${k}">${icon(k)}</span>${n}</button>`).join('')}</div>`}`;
   out += draftBar();
   if (t === 'insumo' && !ed) return out + (S.loaded.almacen ? almForm() + `<div class="btns"><button class="btn ghost" data-go="almacen">Ver lo que hay en el almacén →</button></div>` : notReady()) + '</section>';
   out += `<form class="panel" id="reg-form" data-tipo="${t}"><div class="grid">
-    ${fld('r-fecha', 'Fecha', inp('r-fecha', e.fecha || today(), 'type="date" required'))}`;
+    ${t === 'precio' ? fld('r-fecha', 'Fecha', inp('r-fecha', e.fecha || today(), 'type="date" required')) : ''}`;
   if (t === 'precio') {
     out += fld('r-mercado', 'Mercado', `<select id="r-mercado">${Object.entries(MERCADOS).map(([k, n]) => opt(k, n, e.mercado || 'coche')).join('')}</select>`)
       + fld('r-producto', 'Producto', inp('r-producto', e.producto || 'Papa andina blanca', 'list="dl-prod"') + `<datalist id="dl-prod"><option value="Papa andina blanca"><option value="Papa Granola"><option value="Papa María Bonita"><option value="Papa amarilla"></datalist>`)
@@ -574,8 +622,11 @@ VIEWS.registrar = () => {
       + fld('r-kg', 'Kilos del saco', numIn('r-kg', e.kgSaco ?? 45, '45'))
       + fld('r-desc', 'Fuente', inp('r-desc', e.desc, 'placeholder="Ej.: llamada a un mayorista, 2001online"'), 'wide');
   } else {
-    out += fld('r-finca', 'Finca', `<select id="r-finca" data-act-change="finca">${fincaOptions(df, t === 'gasto')}</select>`)
-      + fld('r-lote', !simple ? 'Lote' : t === 'cosecha' ? 'Lote (la tanda que se sacó)' : 'Lote (si sabes cuál)', `<select id="r-lote" data-lote-for="r-finca">${loteOptions(e.lote || S.prefLote || '')}</select>`);
+    // Date, farm and lot come filled in; they sit as one row of chips that open when tapped.
+    out += `<div class="field wide ctx" role="group" aria-label="Fecha, finca y lote">
+      <label class="chip-in" title="Fecha">${icon('labores', 's')}${inp('r-fecha', e.fecha || today(), 'type="date" required aria-label="Fecha"')}</label>
+      <label class="chip-in" title="Finca">${icon('lotes', 's')}<select id="r-finca" data-act-change="finca" aria-label="Finca">${fincaOptions(df, t === 'gasto')}</select></label>
+      <label class="chip-in" title="Lote">${icon('cosecha', 's')}<select id="r-lote" data-lote-for="r-finca" aria-label="Lote">${loteOptions(e.lote || S.prefLote || '')}</select></label></div>`;
     if (t === 'gasto') {
       out += pagoBox('r', 'r-monto', '¿Cuánto y cómo se pagó?', e.medio || (ed ? 'efectivo' : ''), esBs(e.medio) ? e.montoBs : e.monto, e.tasa, { big: true })
         + `<div class="field wide catf"><label>¿En qué?</label>${catGrid(e.cat || 'jornales', simple)}</div>`
@@ -883,13 +934,11 @@ VIEWS.libro = () => {
     .filter(r => !q || [r.desc, r.comprador, (CAT_BY[r.cat] || {}).n, loteName(r.lote), fincaName(r.finca)].join(' ').toLowerCase().includes(q));
   const gastos = sum(rs.filter(r => r.tipo === 'gasto'), r => r.monto), ventas = sum(rs.filter(r => r.tipo === 'venta'), r => r.monto), sacos = sum(rs.filter(esCosecha), sacosCosecha);
   let out = `<section><div class="sec-head"><div><p class="eyebrow">${S.year}${f !== 'all' ? ' · ' + esc(fincaName(f)) : ''}</p><h2>Libro de registros</h2></div><div class="btns">${S.downloads ? `<button class="btn" data-act="csv">Descargar para Excel</button>` : ''}</div></div>
-    <div class="grid">
-      ${fld('lb-tipo', 'Mostrar', `<select id="lb-tipo" data-libro="tipo">${[['all', 'Todo'], ['gasto', 'Gastos'], ['cosecha', 'Cosechas'], ['venta', 'Ventas'], ['cobrar', 'Ventas por cobrar']].map(([k, n]) => opt(k, n, L.tipo)).join('')}</select>`)}
-      ${fld('lb-mes', 'Mes', `<select id="lb-mes" data-libro="mes"><option value="all">Todo el año</option>${MESES_L.map((m, i) => opt(i + 1, m, L.mes)).join('')}</select>`)}
-      ${fld('lb-q', 'Buscar', inp('lb-q', L.q, 'data-libro="q" placeholder="abono, Pedro, Tanda 2…" autocomplete="off"'))}
-    </div>
+    <div class="lb-f">${inp('lb-q', L.q, 'data-libro="q" placeholder="Buscar: abono, Pedro, Tanda 2…" autocomplete="off" aria-label="Buscar" type="search"')}
+      <div class="ctx"><label class="chip-in"><select id="lb-tipo" data-libro="tipo" aria-label="Mostrar">${[['all', 'Todo'], ['gasto', 'Gastos'], ['cosecha', 'Cosechas'], ['venta', 'Ventas'], ['cobrar', 'Por cobrar']].map(([k, n]) => opt(k, n, L.tipo)).join('')}</select></label>
+      <label class="chip-in"><select id="lb-mes" data-libro="mes" aria-label="Mes"><option value="all">Todo el año</option>${MESES_L.map((m, i) => opt(i + 1, m, L.mes)).join('')}</select></label></div></div>
     <p class="small muted num">${rs.length} registros · gastos ${usd(gastos)} · ventas ${usd(ventas)} · ${sacosTxt(sacos)} cosechados</p>`;
-  if (!rs.length) { out += `<div class="empty"><p class="muted">${S.regs.length ? 'Ningún registro coincide con el filtro.' : `Todavía no hay registros de ${S.year}.`}</p>${canWrite() ? '<button class="btn primary" data-go="registrar">Registrar</button>' : ''}</div></section>`; return out; }
+  if (!rs.length) { out += `<div class="empty"><p class="muted">${S.regs.length ? 'Ningún registro coincide con el filtro.' : `Todavía no hay registros de ${S.year}.`}</p>${canWrite() ? '<button class="btn primary" data-go="registrar">Anotar</button>' : ''}</div></section>`; return out; }
   out += `<div class="list">`;
   let curM = null;
   const lim = S.libroN || 60;
@@ -1043,19 +1092,19 @@ VIEWS.guia = () => {
     ${paso('Probar sin dañar nada', ['En Ajustes toca <b>Ver demostración</b>, o en la pantalla de entrada <b>Ver demostración con números simulados</b>.', 'Toca y anota lo que quieras: nada de eso se guarda.', 'Arriba puedes cambiar entre los tres escenarios.', 'Toca <b>Salir</b> en la franja de arriba para volver a tus datos.'])}
   </div></section>`;
   if (anota) out += `<section><h3>Lo de todos los días</h3><div class="how-list">
-    ${paso('Anotar un gasto', ['Toca <b>Registrar</b> (el botón del centro) y elige <b>Gasto</b>.', 'Revisa la fecha y elige la <b>finca</b>. Si el gasto es de una tanda, elige también el <b>lote</b>.', 'Elige la <b>categoría</b>: jornales, semilla, fertilizante, agroquímicos, flete…', 'Escribe el <b>monto</b> en dólares y, en <b>Detalle</b>, qué fue. Por ejemplo: "4 jornales de aporque".', 'Toca <b>Guardar gasto</b>.'], 'Todo pago se anota el mismo día, aunque sea pequeño. Si hay factura o nota, guarda la foto.')}
-    ${!esc_ ? paso('Anotar una cosecha', ['Al final del día, toca <b>Registrar</b> y elige <b>Cosecha</b>. Una por lote y por día.', '<b>Cuenta los sacos</b> de cada clase: primera, segunda, tercera (pequeña) y descarte (la que se bota).', '<b>Pesa 3 sacos</b> de primera, cualquiera, y escribe los kilos.', 'Toca <b>Guardar cosecha</b> y escribe el <b>código</b> que te da la app en la guía del camión.']) : paso('Anotar una cosecha', ['Al final del día, toca <b>Registrar</b> y elige <b>Cosecha</b>. Una cosecha por lote y por día.', 'Elige la finca y el <b>lote</b> (la tanda que se sacó).', '<b>Cuenta los sacos</b> de cada clase: primera, segunda, tercera (pequeña) y descarte (la que se bota).', '<b>Pesa 3 sacos</b> de primera, cualquiera, y escribe los kilos.', '<b>Agarra 20 papas al azar</b> de varios sacos y cuenta cuántas tienen gusano, están verdes, golpeadas o podridas.', 'Toca <b>Guardar cosecha</b> y escribe el <b>código</b> que te da la app en la guía del camión.'], 'Así lo hacen las grandes empresas: cada carga sabe de qué lote salió, cuánto pesa y qué calidad tiene. Si un comprador se queja, sabemos de dónde vino esa papa.')}
-    ${paso('Anotar una venta', ['Toca <b>Registrar</b> y elige <b>Venta</b>.', 'Escribe los <b>sacos vendidos</b> y el <b>precio por saco</b>. El total sale solo.', 'Escribe el <b>comprador</b> y elige <b>a quién se vendió</b>: camionero, Coche o restaurante.', 'Si ya pagó, déjalo como cobrado. Si queda debiendo, márcalo como <b>por cobrar</b>.', 'Toca <b>Guardar venta</b>.'])}
-    ${!esc_ ? '' : paso('Marcar las labores del campo', ['Abre <b>Labores</b>. Ahí está lo que toca esta semana y lo atrasado.', 'Cuando la hagas, toca <b>Hecha</b>.', 'Si se tiene que mover, toca <b>Cambiar fecha</b>. Si no hace falta, toca <b>No aplica</b>.', 'Para una labor que no está en la lista, agrégala con <b>Guardar labor</b>.'])}
-    ${paso('Corregir un error', [`Abre ${esc_ ? 'el <b>Libro</b>' : '<b>Lo que anoté</b>'} y busca el registro (puedes filtrar por mes o escribir en Buscar).`, 'Toca <b>Editar</b>, corrige y guarda.', 'Si sobra, toca <b>Borrar</b> y confirma.'], 'Nunca anotes lo mismo dos veces para corregir: se duplican los números.')}
+    ${paso('Anotar un gasto', ['Toca <b>Anotar</b> (el botón del centro) y elige <b>Gasto</b>.', 'Revisa la fecha y elige la <b>finca</b>. Si el gasto es de una tanda, elige también el <b>lote</b>.', 'Elige la <b>categoría</b>: jornales, semilla, fertilizante, agroquímicos, flete…', 'Escribe el <b>monto</b> en dólares y, en <b>Detalle</b>, qué fue. Por ejemplo: "4 jornales de aporque".', 'Toca <b>Guardar gasto</b>.'], 'Todo pago se anota el mismo día, aunque sea pequeño. Si hay factura o nota, guarda la foto.')}
+    ${!esc_ ? paso('Anotar una cosecha', ['Al final del día, toca <b>Anotar</b> y elige <b>Cosecha</b>. Una por lote y por día.', '<b>Cuenta los sacos</b> de cada clase: primera, segunda, tercera (pequeña) y descarte (la que se bota).', '<b>Pesa 3 sacos</b> de primera, cualquiera, y escribe los kilos.', 'Toca <b>Guardar cosecha</b> y escribe el <b>código</b> que te da la app en la guía del camión.']) : paso('Anotar una cosecha', ['Al final del día, toca <b>Anotar</b> y elige <b>Cosecha</b>. Una cosecha por lote y por día.', 'Elige la finca y el <b>lote</b> (la tanda que se sacó).', '<b>Cuenta los sacos</b> de cada clase: primera, segunda, tercera (pequeña) y descarte (la que se bota).', '<b>Pesa 3 sacos</b> de primera, cualquiera, y escribe los kilos.', '<b>Agarra 20 papas al azar</b> de varios sacos y cuenta cuántas tienen gusano, están verdes, golpeadas o podridas.', 'Toca <b>Guardar cosecha</b> y escribe el <b>código</b> que te da la app en la guía del camión.'], 'Así lo hacen las grandes empresas: cada carga sabe de qué lote salió, cuánto pesa y qué calidad tiene. Si un comprador se queja, sabemos de dónde vino esa papa.')}
+    ${paso('Anotar una venta', ['Toca <b>Anotar</b> y elige <b>Venta</b>.', 'Escribe los <b>sacos vendidos</b> y el <b>precio por saco</b>. El total sale solo.', 'Escribe el <b>comprador</b> y elige <b>a quién se vendió</b>: camionero, Coche o restaurante.', 'Si ya pagó, déjalo como cobrado. Si queda debiendo, márcalo como <b>por cobrar</b>.', 'Toca <b>Guardar venta</b>.'])}
+    ${!esc_ ? '' : paso('Marcar las labores del campo', ['Abre <b>Fincas › Labores</b>. Ahí está lo que toca esta semana y lo atrasado.', 'Cuando la hagas, toca <b>Hecha</b>.', 'Si se tiene que mover, toca <b>Cambiar fecha</b>. Si no hace falta, toca <b>No aplica</b>.', 'Para una labor que no está en la lista, agrégala con <b>Guardar labor</b>.'])}
+    ${paso('Corregir un error', [`Abre ${esc_ ? 'el <b>Movimientos</b>' : '<b>Lo que anoté</b>'} y busca el registro (puedes filtrar por mes o escribir en Buscar).`, 'Toca <b>Editar</b>, corrige y guarda.', 'Si sobra, toca <b>Borrar</b> y confirma.'], 'Nunca anotes lo mismo dos veces para corregir: se duplican los números.')}
   </div></section>`;
   if (esc_) out += `<section><h3>Lo del gerente</h3><div class="how-list">
-    ${paso('Cada lunes', ['Revisa en el <b>Libro</b> lo que anotaron los encargados la semana pasada.', 'En <b>Precios</b>, anota el precio de Coche y el de la finca de esa semana.', 'En <b>Labores</b>, toca <b>Copiar para WhatsApp</b> y mándale a cada encargado lo que le toca.'])}
-    ${paso('Cada viernes: cobrar', ['Abre <b>Por cobrar</b>. Arriba ves cuánto está vencido.', 'En cada cliente con deuda toca <b>Copiar recordatorio</b> y pégalo en WhatsApp.', 'Cuando pague, toca <b>Cobrada</b> en esa venta, o <b>Pagó todo</b>.'])}
-    ${paso('Cada fin de mes: el cierre', ['Abre <b>Cierre del mes</b> y revisa las cifras del mes.', 'Escribe el comentario del gerente: qué pasó, qué salió bien y qué hay que mejorar.', 'Toca <b>Guardar y cerrar el mes</b>.', 'Toca <b>Copiar para WhatsApp</b> o <b>Descargar reporte</b> y mándalo a la familia.'])}
-    ${paso('Al terminar una cosecha', ['En <b>Lotes y siembra</b>, toca <b>Ya se cosechó</b> en esa tanda.', 'Compara cuánto rindió por saco de semilla y cuánto costó frente a su presupuesto.'])}
-    ${paso('Cada fin de año', ['Abre <b>Liquidación</b> y revisa la utilidad y el reparto de cada finca.', 'Toca <b>Copiar</b> y manda el texto a la familia.', 'En <b>Lotes y siembra</b>, con <b>Planificar la siembra</b>, crea las tandas del año siguiente.'])}
-    ${paso('Comprar y entregar insumos', ['Cuando compres, abre <b>Almacén de insumos</b>, toca <b>Compra</b> y anota el producto, la cantidad y lo que costó.', 'Cuando lleves algo a una finca, toca <b>Entrega</b>, elige el producto, la cantidad, la finca y el lote.', 'La app pasa ese gasto a la finca y al lote al costo de compra, y descuenta lo que queda guardado.'], 'Así el encargado no tiene que anotar los insumos: solo los jornales y lo que pague él.')}
+    ${paso('Cada lunes', ['Revisa en el <b>Movimientos</b> lo que anotaron los encargados la semana pasada.', 'En <b>Números › Precios</b>, anota el precio de Coche y el de la finca de esa semana.', 'En <b>Fincas › Labores</b>, toca <b>Copiar para WhatsApp</b> y mándale a cada encargado lo que le toca.'])}
+    ${paso('Cada viernes: cobrar', ['Abre <b>Movimientos › Por cobrar</b>. Arriba ves cuánto está vencido.', 'En cada cliente con deuda toca <b>Copiar recordatorio</b> y pégalo en WhatsApp.', 'Cuando pague, toca <b>Cobrada</b> en esa venta, o <b>Pagó todo</b>.'])}
+    ${paso('Cada fin de mes: el cierre', ['Abre <b>Números › Cierre del mes</b> y revisa las cifras del mes.', 'Escribe el comentario del gerente: qué pasó, qué salió bien y qué hay que mejorar.', 'Toca <b>Guardar y cerrar el mes</b>.', 'Toca <b>Copiar para WhatsApp</b> o <b>Descargar reporte</b> y mándalo a la familia.'])}
+    ${paso('Al terminar una cosecha', ['En <b>Fincas › Siembra</b>, toca <b>Ya se cosechó</b> en esa tanda.', 'Compara cuánto rindió por saco de semilla y cuánto costó frente a su presupuesto.'])}
+    ${paso('Cada fin de año', ['Abre <b>Números › Reparto</b> y revisa la utilidad y el reparto de cada finca.', 'Toca <b>Copiar</b> y manda el texto a la familia.', 'En <b>Fincas › Siembra</b>, con <b>Planificar la siembra</b>, crea las tandas del año siguiente.'])}
+    ${paso('Comprar y entregar insumos', ['Cuando compres, abre <b>Números › Almacén</b>, toca <b>Compra</b> y anota el producto, la cantidad y lo que costó.', 'Cuando lleves algo a una finca, toca <b>Entrega</b>, elige el producto, la cantidad, la finca y el lote.', 'La app pasa ese gasto a la finca y al lote al costo de compra, y descuenta lo que queda guardado.'], 'Así el encargado no tiene que anotar los insumos: solo los jornales y lo que pague él.')}
     ${paso('Agregar a alguien', ['En <b>Ajustes</b>, baja a <b>Usuarios</b>.', 'Escribe su correo y su nombre, y elige el tipo: <b>Encargado</b> (anota en su finca), <b>Familia</b> (solo ve) o <b>Administrador</b>.', 'Toca <b>Agregar usuario</b>. Le llega un correo con un enlace para entrar de una vez.'])}
   </div></section>
   <section class="prose"><h3>Las cifras que hay que mirar</h3><ul>
@@ -1065,7 +1114,7 @@ VIEWS.guia = () => {
     <li><strong>Utilidad por finca</strong>, con datos y no con impresiones.</li>
     <li><strong>Ventas por cobrar</strong>: cobrar a tiempo importa tanto como vender.</li></ul></section>`;
   if (!anota) out += `<section><h3>Para ver cómo van las fincas</h3><div class="how-list">
-    ${paso('Ver los números', ['<b>Resumen</b>: la utilidad del año, las ventas, los gastos y cada finca.', '<b>Cierre del mes</b>: el reporte de cada mes con el comentario del gerente.', '<b>Liquidación</b>: cuánto dejó cada finca y cómo se reparte.', 'Arriba puedes cambiar el <b>año</b> y elegir <b>una finca</b> o las tres.'])}
+    ${paso('Ver los números', ['<b>Números</b>: la utilidad del año, las ventas, los gastos y cada finca.', '<b>Números › Cierre del mes</b>: el reporte de cada mes con el comentario del gerente.', '<b>Números › Reparto</b>: cuánto dejó cada finca y cómo se reparte.', 'Arriba puedes cambiar el <b>año</b> y elegir <b>una finca</b> o las tres.'])}
   </div></section>`;
   out += `<section class="prose"><h3>Reglas sencillas</h3><ul>
     <li>Cada gasto va a una finca. Si es de todas (sueldo, viajes, contador), va como gasto general y la app lo reparte.</li>
@@ -1421,6 +1470,7 @@ document.addEventListener('click', async ev => {
   try {
     switch (act) {
       case 'confirm': S.confirm = b.dataset.k; render(); break;
+      case 'home-all': S.homeAll = true; render(); break;
       case 'ayuda': document.body.classList.toggle('ayuda'); lsSet('cf-ayuda', document.body.classList.contains('ayuda') ? '1' : ''); b.setAttribute('aria-pressed', String(document.body.classList.contains('ayuda'))); break;
       case 'libro-mas': S.libroN = (S.libroN || 60) + 60; render(); break;
       case 'draft-del': clearDraft(); S.skipRestore = true; render(); break;

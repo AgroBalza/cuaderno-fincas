@@ -5,7 +5,7 @@ const srv=http.createServer((q,r)=>{let f=q.url.split('?')[0];if(f==='/')f='/ind
  r.writeHead(200,{'content-type':f.endsWith('.js')?'text/javascript':f.endsWith('.html')?'text/html':f.endsWith('.png')?'image/png':'application/octet-stream'});r.end(body);}).listen(8765);
 (async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium'});
 const errs=[];
-const views=['resumen','registrar','lotes','labores','libro','almacen','cobros','cierre','liquidacion','precios','guia','ajustes'];
+const views=['resumen','numeros','registrar','lotes','labores','libro','almacen','cobros','cierre','liquidacion','precios','guia','ajustes'];
 async function session(w,dark,email,tag){
  const ctx=await b.newContext({viewport:{width:w,height:900},colorScheme:dark?'dark':'light',serviceWorkers:'block'});await ctx.route('https://ve.dolarapi.com/**',r=>r.fulfill({status:200,headers:{'access-control-allow-origin':'*','content-type':'application/json'},body:'[{"fuente":"oficial","promedio":887.3},{"fuente":"paralelo","promedio":997.87}]'}));const p=await ctx.newPage();
  p.on('pageerror',e=>errs.push(tag+' '+e.message));p.on('console',m=>{if(m.type()==='error')errs.push(tag+' '+m.text())});
@@ -13,7 +13,8 @@ async function session(w,dark,email,tag){
  await p.screenshot({path:`test/login-${tag}.png`});
  await p.fill('#lg-email',email);await p.fill('#lg-pass','secreto');await p.click('#login-form button[type=submit]');await p.waitForTimeout(500);
  const vis=[];
- for(const v of views){const ok=await p.evaluate(v=>{const els=[...document.querySelectorAll(`[data-tab="${v}"]`)];const e=els.find(e=>e.offsetParent);if(e){e.click();return true}if(document.querySelector('.bt[data-tab="mas"]')&&getComputedStyle(document.querySelector('#bottom')).display!=='none'){document.querySelector('.bt[data-tab="mas"]').click();return 'mas'}return false},v);
+ for(const v of views){if(await p.evaluate(v=>{const PAR={almacen:'numeros',cierre:'numeros',liquidacion:'numeros',precios:'numeros',metas:'numeros',labores:'lotes',cobros:'libro'};const vis=x=>[...document.querySelectorAll(`[data-tab="${x}"]`)].find(e=>e.offsetParent);if(!vis(v)&&PAR[v]&&vis(PAR[v])){vis(PAR[v]).click();return true}return false},v))await p.waitForTimeout(150);
+ const ok=await p.evaluate(v=>{const vis=x=>[...document.querySelectorAll(`[data-tab="${x}"]`)].find(e=>e.offsetParent);const e=vis(v);if(e){e.click();return true}const m=[...document.querySelectorAll('[data-tab="mas"]')].find(e=>e.offsetParent);if(m){m.click();return 'mas'}return false},v);
    if(ok==='mas'){await p.waitForTimeout(100);const ok2=await p.evaluate(v=>{const e=document.querySelector(`.sheet [data-tab="${v}"]`);if(e){e.click();return true}document.querySelector('.scrim')?.click();return false},v);if(!ok2){await p.waitForTimeout(100);continue}}
    else if(!ok) continue;
    await p.waitForTimeout(200);vis.push(v);
