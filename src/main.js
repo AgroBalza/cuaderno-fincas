@@ -73,8 +73,8 @@ const CAT_CORTO = { semilla: 'Semilla', fertilizante: 'Abono', agroquimicos: 'Fu
 const MEDIOS = [['efectivo', 'Efectivo $'], ['zelle', 'Zelle'], ['usdt', 'USDT'], ['bcv', 'Bs BCV'], ['paralelo', 'Bs paralelo'], ['eur', 'Euros €']];
 // What the payment buttons show: one Bolívares button, then the rate to use. Old records may still carry 'eur'.
 const MEDIOS_BTN = [['efectivo', 'Efectivo $'], ['zelle', 'Zelle'], ['usdt', 'USDT'], ['bs', 'Bolívares']];
-const BSV = [['bcv-usd', 'BCV $', 'bcv', 'usd'], ['bcv-eur', 'BCV €', 'bcv', 'eur'], ['par', 'Paralelo', 'paralelo', 'usd']];
-const bsvKey = (m, ref) => m === 'paralelo' ? 'par' : ref === 'eur' ? 'bcv-eur' : 'bcv-usd';
+const BSV = [['bcv-usd', 'BCV $', 'bcv', 'usd'], ['bcv-eur', 'BCV €', 'bcv', 'eur'], ['par-usd', 'Paralelo $', 'paralelo', 'usd'], ['par-eur', 'Paralelo €', 'paralelo', 'eur']];
+const bsvKey = (m, ref) => (m === 'paralelo' ? 'par' : 'bcv') + (ref === 'eur' ? '-eur' : '-usd');
 const MEDIO_N = Object.fromEntries(MEDIOS);
 const esBs = m => m === 'bcv' || m === 'paralelo';
 // Euros are kept in dollars too: the rate is dollars per euro, from the BCV's euro and dollar rates.
@@ -83,7 +83,8 @@ const conTasa = m => esBs(m) || esEur(m);
 // The amount as it was typed: Bs, € or $.
 // A bolívar payment can use the rate in dollars (Bs per $) or in euros (Bs per €). Either way the books stay in dollars.
 const tasaKey = (m, ref) => ref === 'eur' ? (m === 'paralelo' ? 'eurPar' : 'eurBcv') : m;
-const eurUsd = () => N(S.tasas.eur) || (N(S.tasas.eurBcv) && N(S.tasas.bcv) ? S.tasas.eurBcv / S.tasas.bcv : 0);
+// Dollars per euro on the same market (BCV or parallel), to turn a Bs-per-euro rate into Bs per dollar.
+const eurUsd = m => { const t = S.tasas; if (m === 'paralelo') return N(t.eurPar) && N(t.paralelo) ? t.eurPar / t.paralelo : 0; return N(t.eurBcv) && N(t.bcv) ? t.eurBcv / t.bcv : N(t.eur); };
 const montoOrig = (e, k) => esBs(e.medio) ? e[k + 'Bs'] : esEur(e.medio) ? e[k + 'Eur'] : e[k];
 const nfBs = x => N(x).toLocaleString('es-VE', { maximumFractionDigits: 2 });
 const medioTxt = r => !r.medio ? '' : esEur(r.medio) ? `€ ${nfBs(r.precioEur || r.montoEur)}${r.precioEur ? ' el saco' : ''} a $ ${nfBs(r.tasa)} por € (BCV)` : esBs(r.medio) ? `Bs ${nfBs(r.precioBs || r.montoBs)}${r.precioBs ? ' el saco' : ''} a ${nfBs(r.ref === 'eur' ? r.tasaEur : r.tasa)} Bs/${r.ref === 'eur' ? '€' : '$'} (${r.medio === 'bcv' ? 'BCV' : 'paralelo'})` : MEDIO_N[r.medio] || '';
@@ -295,7 +296,7 @@ function doRender() {
 function ventaTotal() {
   const t = $('#r-total'); if (!t || S.regTipo !== 'venta') return;
   const s = parseNum(val('r-sacos')), p = parseNum(val('r-precio')), m = val('rv-medio'), tasa = parseNum(val('rv-tasa'));
-  const ref = val('rv-ref') === 'eur', t$ = ref ? (eurUsd() ? tasa / eurUsd() : 0) : tasa;
+  const ref = val('rv-ref') === 'eur', t$ = ref ? (eurUsd(m) ? tasa / eurUsd(m) : 0) : tasa;
   const pu = esBs(m) ? (t$ ? p / t$ : 0) : esEur(m) ? p * tasa : p;
   t.textContent = s && pu ? `Total: ${usd(s * pu)}${esBs(m) ? ` (Bs ${nfBs(s * p)})` : esEur(m) ? ` (€ ${nfBs(s * p)})` : ''}` : '';
 }
@@ -309,7 +310,7 @@ function tasaSrc(m, ref) {
 // p prefixes the ids (p-medio, p-tasa…); amtId is the amount input, in Bs or $ depending on the choice.
 function pagoBox(p, amtId, label, medio, amt, tasa, opts = {}) {
   const md = medio || lsGet('cf-medio-' + p) || (p === 'r' ? lsGet('cf-medio') : '') || 'efectivo', bs = esBs(md), eu = esEur(md);
-  const ref = md === 'paralelo' ? 'usd' : opts.ref || lsGet('cf-ref-' + p) || 'usd', tv = bs && ref === 'eur' ? opts.tasaEur : tasa;
+  const ref = opts.ref || lsGet('cf-ref-' + p) || 'usd', tv = bs && ref === 'eur' ? opts.tasaEur : tasa;
   return `<div class="field wide pago ${opts.big ? 'amt' : ''}" data-p="${p}" data-amt="${amtId}"><label for="${amtId}">${label}</label><input type="hidden" id="${p}-medio" value="${esc(md)}"><input type="hidden" id="${p}-ref" value="${esc(ref)}">
     <div class="medios">${MEDIOS_BTN.map(([k, n]) => `<button type="button" class="medio" data-medio="${k}" aria-pressed="${k === md || (k === 'bs' && bs)}">${n}</button>`).join('')}</div>
     <div class="amt-in ${opts.big ? '' : 'sm'}"><span id="${p}-pre" class="pre">${bs ? 'Bs' : eu ? '€' : '$'}</span>${numIn(amtId, amt, opts.ph || '0')}${opts.suf ? `<small class="suf">${opts.suf}</small>` : ''}</div>
@@ -328,7 +329,7 @@ function leerPago(p, amtId, what) {
   lsSet('cf-ref-' + p, ref); if (esBs(medio)) lsSet('cf-bsv-' + p, bsvKey(medio, ref));
   if (S.tasas[k] !== tasa) { S.tasas = { ...S.tasas, [k]: tasa, fecha: val('r-fecha') || val('a-fecha') || today(), auto: false }; lsSet('cf-tasas', JSON.stringify(S.tasas)); }
   if (ref === 'eur') {
-    const eu = eurUsd(); if (!eu) return { err: 'Falta la tasa del euro en dólares. Usa la tasa en Bs/$ o abre la app con señal.' };
+    const eu = eurUsd(medio); if (!eu) return { err: 'Falta la tasa del euro en dólares. Usa la tasa en Bs/$ o abre la app con señal.' };
     const t$ = Math.round(tasa / eu * 100) / 100;
     return { medio, valor, usd: Math.round(valor / t$ * 100) / 100, bs: valor, eur: null, tasa: t$, tasaEur: tasa, ref };
   }
@@ -346,13 +347,13 @@ function syncMedio() {
     const row = box.querySelector('.tasa-row'); if (row) row.hidden = !bs && !eu;
     const ti = document.getElementById(p + '-tasa'); if (ti) ti.placeholder = eu ? '$ por €' : ref === 'eur' ? 'Bs por €' : 'Bs por $';
     const src = document.getElementById(p + '-src'); if (src) src.textContent = tasaSrc(m, ref);
-    const cv = document.getElementById(p + '-conv'); if (cv) { const a = parseNum(val(box.dataset.amt)), t = parseNum(val(p + '-tasa')); const t$ = ref === 'eur' ? (eurUsd() ? t / eurUsd() : 0) : t; cv.textContent = a && t ? (bs ? (t$ ? `= ${usd(a / t$, 2)}` : '') : eu ? `= ${usd(a * t, 2)}` : '') : ''; }
+    const cv = document.getElementById(p + '-conv'); if (cv) { const a = parseNum(val(box.dataset.amt)), t = parseNum(val(p + '-tasa')); const t$ = ref === 'eur' ? (eurUsd(m) ? t / eurUsd(m) : 0) : t; cv.textContent = a && t ? (bs ? (t$ ? `= ${usd(a / t$, 2)}` : '') : eu ? `= ${usd(a * t, 2)}` : '') : ''; }
   });
 }
 // Today's BCV and parallel rates to prefill Bolívar payments. If there is no signal, the last ones are kept.
 async function cargarTasas() {
   if (!navigator.onLine) return;
-  const hoy = today(); if (S.tasas.auto && S.tasas.fecha === hoy && Date.now() - N(S.tasas.ts) < 3 * 3600e3) return;
+  const hoy = today(); if (S.tasas.auto && S.tasas.fecha === hoy && N(S.tasas.eurBcv) && N(S.tasas.eurPar) && Date.now() - N(S.tasas.ts) < 3 * 3600e3) return;
   try {
     const ctl = new AbortController(); setTimeout(() => ctl.abort(), 6000);
     // ve.dolarapi.com publishes the BCV's official rates (dollar and euro) and the parallel average.
@@ -360,7 +361,9 @@ async function cargarTasas() {
     const g = (l, f) => N(((Array.isArray(l) ? l : []).find(x => x.fuente === f) || {}).promedio);
     const bcv = Math.round(g(js, 'oficial') * 100) / 100, paralelo = Math.round(g(js, 'paralelo') * 100) / 100, eurBcv = Math.round(g(je, 'oficial') * 100) / 100, eurPar = Math.round(g(je, 'paralelo') * 100) / 100;
     if (bcv > 0 && paralelo > 0) {
-      S.tasas = { bcv, paralelo, fecha: hoy, auto: true, ts: Date.now(), ...(eurBcv > 0 ? { eurBcv, eurPar: eurPar || S.tasas.eurPar, eur: Math.round(eurBcv / bcv * 10000) / 10000 } : { eurBcv: S.tasas.eurBcv, eurPar: S.tasas.eurPar, eur: S.tasas.eur }) };
+      S.tasas = { bcv, paralelo, fecha: hoy, auto: true, ts: Date.now(), eurBcv: eurBcv || S.tasas.eurBcv, eurPar: eurPar || S.tasas.eurPar };
+      // Refresh the rate shown in an open form if the user has not typed one.
+      document.querySelectorAll('.pago').forEach(box => { const p = box.dataset.p, m = val(p + '-medio'), t = document.getElementById(p + '-tasa'); if (t && esBs(m) && !t.value) { const k = tasaKey(m, val(p + '-ref')); if (S.tasas[k]) t.value = String(S.tasas[k]).replace('.', ','); } });
       lsSet('cf-tasas', JSON.stringify(S.tasas)); syncMedio();
     }
   } catch { /* no signal or service down: keep last rates */ }
@@ -1502,7 +1505,8 @@ document.addEventListener('click', async ev => {
     const h = document.getElementById(p + '-medio'); if (h) h.value = m;
     const hr = document.getElementById(p + '-ref'); if (hr) hr.value = ref;
     const t = document.getElementById(p + '-tasa'), rk = tasaKey(m, esBs(m) ? ref : '');
-    if (t && conTasa(m) && S.tasas[rk]) t.value = String(S.tasas[rk]).replace('.', ',');
+    // Each rate has its own value; if this one is not known yet the field is left empty instead of keeping the previous one.
+    if (t && conTasa(m)) t.value = S.tasas[rk] ? String(S.tasas[rk]).replace('.', ',') : '';
     syncMedio(); ventaTotal(); saveDraft(); return;
   }
   if (b.dataset.cat) { const h = $('#r-cat'); if (h) h.value = b.dataset.cat; syncCats(); saveDraft(); return; }
