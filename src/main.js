@@ -70,7 +70,11 @@ const CAT_BY = Object.fromEntries(CATS.map(c => [c.id, c]));
 // Short names and icons for the tap-to-choose grid on the expense form.
 const CAT_CORTO = { semilla: 'Semilla', fertilizante: 'Abono', agroquimicos: 'Fumigación', jornales: 'Jornales', riego: 'Riego', maquinaria: 'Gasoil y máquina', otros_cultivo: 'Otro del campo', sacos: 'Sacos', flete: 'Flete', otros_venta: 'Otro de venta', compra_papa: 'Papa comprada', planta: 'Planta', sueldo: 'Sueldo', viajes: 'Viajes', admin: 'Contador', otros_gestion: 'Otro de gestión' };
 // How an expense was paid. Bolívar payments keep the Bs amount and the rate; the dollar amount (monto) is what every total uses.
-const MEDIOS = [['efectivo', 'Efectivo $'], ['zelle', 'Zelle'], ['usdt', 'USDT'], ['eur', 'Euros €'], ['bcv', 'Bs BCV'], ['paralelo', 'Bs paralelo']];
+const MEDIOS = [['efectivo', 'Efectivo $'], ['zelle', 'Zelle'], ['usdt', 'USDT'], ['bcv', 'Bs BCV'], ['paralelo', 'Bs paralelo'], ['eur', 'Euros €']];
+// What the payment buttons show: one Bolívares button, then the rate to use. Old records may still carry 'eur'.
+const MEDIOS_BTN = [['efectivo', 'Efectivo $'], ['zelle', 'Zelle'], ['usdt', 'USDT'], ['bs', 'Bolívares']];
+const BSV = [['bcv-usd', 'BCV $', 'bcv', 'usd'], ['bcv-eur', 'BCV €', 'bcv', 'eur'], ['par', 'Paralelo', 'paralelo', 'usd']];
+const bsvKey = (m, ref) => m === 'paralelo' ? 'par' : ref === 'eur' ? 'bcv-eur' : 'bcv-usd';
 const MEDIO_N = Object.fromEntries(MEDIOS);
 const esBs = m => m === 'bcv' || m === 'paralelo';
 // Euros are kept in dollars too: the rate is dollars per euro, from the BCV's euro and dollar rates.
@@ -305,11 +309,11 @@ function tasaSrc(m, ref) {
 // p prefixes the ids (p-medio, p-tasa…); amtId is the amount input, in Bs or $ depending on the choice.
 function pagoBox(p, amtId, label, medio, amt, tasa, opts = {}) {
   const md = medio || lsGet('cf-medio-' + p) || (p === 'r' ? lsGet('cf-medio') : '') || 'efectivo', bs = esBs(md), eu = esEur(md);
-  const ref = opts.ref || lsGet('cf-ref-' + p) || 'usd', tv = bs && ref === 'eur' ? opts.tasaEur : tasa;
+  const ref = md === 'paralelo' ? 'usd' : opts.ref || lsGet('cf-ref-' + p) || 'usd', tv = bs && ref === 'eur' ? opts.tasaEur : tasa;
   return `<div class="field wide pago ${opts.big ? 'amt' : ''}" data-p="${p}" data-amt="${amtId}"><label for="${amtId}">${label}</label><input type="hidden" id="${p}-medio" value="${esc(md)}"><input type="hidden" id="${p}-ref" value="${esc(ref)}">
-    <div class="medios">${MEDIOS.map(([k, n]) => `<button type="button" class="medio" data-medio="${k}" aria-pressed="${k === md}">${n}</button>`).join('')}</div>
+    <div class="medios">${MEDIOS_BTN.map(([k, n]) => `<button type="button" class="medio" data-medio="${k}" aria-pressed="${k === md || (k === 'bs' && bs)}">${n}</button>`).join('')}</div>
     <div class="amt-in ${opts.big ? '' : 'sm'}"><span id="${p}-pre" class="pre">${bs ? 'Bs' : eu ? '€' : '$'}</span>${numIn(amtId, amt, opts.ph || '0')}${opts.suf ? `<small class="suf">${opts.suf}</small>` : ''}</div>
-    <div class="tasa-row" ${bs || eu ? '' : 'hidden'}><label for="${p}-tasa">Tasa</label><span class="refs" ${bs ? '' : 'hidden'}><button type="button" class="medio" data-ref="usd">Bs/$</button><button type="button" class="medio" data-ref="eur">Bs/€</button></span>${numIn(p + '-tasa', tv || S.tasas[tasaKey(md, bs ? ref : '')] || '', eu ? '$ por €' : ref === 'eur' ? 'Bs por €' : 'Bs por $')}<span id="${p}-conv" class="conv"></span></div>
+    <div class="tasa-row" ${bs || eu ? '' : 'hidden'}><label for="${p}-tasa">Tasa</label><span class="refs" ${bs ? '' : 'hidden'}>${BSV.map(([k, n]) => `<button type="button" class="medio" data-bsv="${k}" aria-pressed="${bs && bsvKey(md, ref) === k}">${n}</button>`).join('')}</span>${numIn(p + '-tasa', tv || S.tasas[tasaKey(md, bs ? ref : '')] || '', eu ? '$ por €' : ref === 'eur' ? 'Bs por €' : 'Bs por $')}<span id="${p}-conv" class="conv"></span></div>
     <span class="hint" id="${p}-src">${tasaSrc(md, ref)}</span></div>`;
 }
 // Reads a payment block. Returns { medio, valor (as typed), usd, bs, tasa } or { err }.
@@ -321,7 +325,7 @@ function leerPago(p, amtId, what) {
   if (!valor) return { err: `Pon ${what} en ${esEur(medio) ? 'euros' : 'bolívares'}.` };
   if (!(tasa > 0)) return { err: 'Pon la tasa a la que se pagó.' };
   const ref = esBs(medio) && val(p + '-ref') === 'eur' ? 'eur' : 'usd', k = tasaKey(medio, ref === 'eur' ? 'eur' : '');
-  lsSet('cf-ref-' + p, ref);
+  lsSet('cf-ref-' + p, ref); if (esBs(medio)) lsSet('cf-bsv-' + p, bsvKey(medio, ref));
   if (S.tasas[k] !== tasa) { S.tasas = { ...S.tasas, [k]: tasa, fecha: val('r-fecha') || val('a-fecha') || today(), auto: false }; lsSet('cf-tasas', JSON.stringify(S.tasas)); }
   if (ref === 'eur') {
     const eu = eurUsd(); if (!eu) return { err: 'Falta la tasa del euro en dólares. Usa la tasa en Bs/$ o abre la app con señal.' };
@@ -335,9 +339,9 @@ function syncMedio() {
   document.querySelectorAll('.pago').forEach(box => {
     const p = box.dataset.p, h = document.getElementById(p + '-medio'); if (!h) return;
     const m = h.value, bs = esBs(m), eu = esEur(m), ref = bs && val(p + '-ref') === 'eur' ? 'eur' : 'usd';
-    box.querySelectorAll('[data-ref]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.ref === ref)));
+    box.querySelectorAll('[data-bsv]').forEach(x => x.setAttribute('aria-pressed', String(bs && x.dataset.bsv === bsvKey(m, ref))));
     const rf = box.querySelector('.refs'); if (rf) rf.hidden = !bs;
-    box.querySelectorAll('[data-medio]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.medio === m)));
+    box.querySelectorAll('[data-medio]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.medio === m || (x.dataset.medio === 'bs' && bs))));
     const pre = document.getElementById(p + '-pre'); if (pre) pre.textContent = bs ? 'Bs' : eu ? '€' : '$';
     const row = box.querySelector('.tasa-row'); if (row) row.hidden = !bs && !eu;
     const ti = document.getElementById(p + '-tasa'); if (ti) ti.placeholder = eu ? '$ por €' : ref === 'eur' ? 'Bs por €' : 'Bs por $';
@@ -1490,8 +1494,17 @@ document.addEventListener('click', async ev => {
   if (b.dataset.tab) { S.sheet = false; return go(b.dataset.tab); }
   if (b.dataset.go) { if (b.dataset.nt) { S.regTipo = b.dataset.nt; S.editing = null; } return go(b.dataset.go); }
   if (b.dataset.tipo) { saveDraft(); S.regTipo = b.dataset.tipo; S.editing = null; S.skipRestore = true; return render(); }
-  if (b.dataset.ref) { const box = b.closest('.pago'); if (!box) return; const p = box.dataset.p, h = document.getElementById(p + '-ref'); if (h) h.value = b.dataset.ref; const t = document.getElementById(p + '-tasa'), rk = tasaKey(val(p + '-medio'), b.dataset.ref); if (t && S.tasas[rk]) t.value = String(S.tasas[rk]).replace('.', ','); syncMedio(); ventaTotal(); saveDraft(); return; }
-  if (b.dataset.medio) { const box = b.closest('.pago'); if (!box) return; const p = box.dataset.p, h = document.getElementById(p + '-medio'); if (h) h.value = b.dataset.medio; const t = document.getElementById(p + '-tasa'); const rk = tasaKey(b.dataset.medio, esBs(b.dataset.medio) ? val(p + '-ref') : ''); if (t && conTasa(b.dataset.medio) && S.tasas[rk]) t.value = String(S.tasas[rk]).replace('.', ','); syncMedio(); ventaTotal(); saveDraft(); return; }
+  if (b.dataset.medio || b.dataset.bsv) {
+    const box = b.closest('.pago'); if (!box) return; const p = box.dataset.p;
+    let m = b.dataset.medio, ref = 'usd';
+    const k = b.dataset.bsv || (m === 'bs' ? lsGet('cf-bsv-' + p) || 'bcv-usd' : '');
+    if (k) { const x = BSV.find(z => z[0] === k) || BSV[0]; m = x[2]; ref = x[3]; }
+    const h = document.getElementById(p + '-medio'); if (h) h.value = m;
+    const hr = document.getElementById(p + '-ref'); if (hr) hr.value = ref;
+    const t = document.getElementById(p + '-tasa'), rk = tasaKey(m, esBs(m) ? ref : '');
+    if (t && conTasa(m) && S.tasas[rk]) t.value = String(S.tasas[rk]).replace('.', ',');
+    syncMedio(); ventaTotal(); saveDraft(); return;
+  }
   if (b.dataset.cat) { const h = $('#r-cat'); if (h) h.value = b.dataset.cat; syncCats(); saveDraft(); return; }
   const act = b.dataset.act; if (!act) return;
   const id = b.dataset.id;

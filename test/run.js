@@ -36,10 +36,9 @@ console.log('enc finca opts',await p.evaluate(()=>[...document.querySelectorAll(
 await p.evaluate(()=>[...document.querySelectorAll('[data-tab="registrar"]')].find(e=>e.offsetParent).click());await p.waitForTimeout(150);
 console.log('enc reg fincas',await p.evaluate(()=>[...document.querySelectorAll('#r-finca option')].map(o=>o.value).join(',')));
 await p.fill('#r-monto','40');await p.click('#reg-form button[type=submit]');await p.waitForTimeout(200);
-await p.click('[data-medio="eur"]');await p.fill('#r-monto','100');await p.fill('#r-tasa','1,1');console.log('eur conv',await p.evaluate(()=>document.getElementById('r-conv').textContent));await p.click('#reg-form button[type=submit]');await p.waitForTimeout(200);
-await p.click('[data-medio="bcv"]');await p.click('[data-ref="eur"]');await p.waitForTimeout(100);console.log('bs-eur tasa prefill',await p.evaluate(()=>document.getElementById('r-tasa').value));await p.fill('#r-monto','2000');await p.fill('#r-tasa','1000');console.log('bs-eur conv',await p.evaluate(()=>document.getElementById('r-conv').textContent));await p.click('#reg-form button[type=submit]');await p.waitForTimeout(200);
+await p.click('[data-medio="bs"]');await p.click('[data-bsv="bcv-eur"]');console.log('bsv chips',await p.evaluate(()=>[...document.querySelectorAll('[data-bsv]')].map(x=>x.dataset.bsv+':'+x.getAttribute('aria-pressed')).join(' ')));await p.waitForTimeout(100);console.log('bs-eur tasa prefill',await p.evaluate(()=>document.getElementById('r-tasa').value));await p.fill('#r-monto','2000');await p.fill('#r-tasa','1000');console.log('bs-eur conv',await p.evaluate(()=>document.getElementById('r-conv').textContent));await p.click('#reg-form button[type=submit]');await p.waitForTimeout(200);
 console.log('bs-eur doc',await p.evaluate(()=>[...window.__store.entries()].filter(([k,d])=>k.startsWith('registros/')&&d.ref==='eur').map(([k,d])=>JSON.stringify({monto:d.monto,montoBs:d.montoBs,tasa:d.tasa,tasaEur:d.tasaEur})).join()));
-console.log('eur doc',await p.evaluate(()=>{const v=[...window.__store.entries()].filter(([k,d])=>k.startsWith('registros/')&&d.medio==='eur').map(([k,d])=>JSON.stringify({monto:d.monto,montoEur:d.montoEur,tasa:d.tasa}));return v.join()}));
+
 await p.screenshot({path:'test/enc-after.png'});
 await ctx.close();
 ({p,ctx}=await session(390,false,'juan@x.com','obr2'));
