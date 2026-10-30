@@ -70,11 +70,16 @@ const CAT_BY = Object.fromEntries(CATS.map(c => [c.id, c]));
 // Short names and icons for the tap-to-choose grid on the expense form.
 const CAT_CORTO = { semilla: 'Semilla', fertilizante: 'Abono', agroquimicos: 'Fumigación', jornales: 'Jornales', riego: 'Riego', maquinaria: 'Gasoil y máquina', otros_cultivo: 'Otro del campo', sacos: 'Sacos', flete: 'Flete', otros_venta: 'Otro de venta', compra_papa: 'Papa comprada', planta: 'Planta', sueldo: 'Sueldo', viajes: 'Viajes', admin: 'Contador', otros_gestion: 'Otro de gestión' };
 // How an expense was paid. Bolívar payments keep the Bs amount and the rate; the dollar amount (monto) is what every total uses.
-const MEDIOS = [['efectivo', 'Efectivo $'], ['zelle', 'Zelle'], ['usdt', 'USDT'], ['bcv', 'Bs BCV'], ['paralelo', 'Bs paralelo']];
+const MEDIOS = [['efectivo', 'Efectivo $'], ['zelle', 'Zelle'], ['usdt', 'USDT'], ['eur', 'Euros €'], ['bcv', 'Bs BCV'], ['paralelo', 'Bs paralelo']];
 const MEDIO_N = Object.fromEntries(MEDIOS);
 const esBs = m => m === 'bcv' || m === 'paralelo';
+// Euros are kept in dollars too: the rate is dollars per euro, from the BCV's euro and dollar rates.
+const esEur = m => m === 'eur';
+const conTasa = m => esBs(m) || esEur(m);
+// The amount as it was typed: Bs, € or $.
+const montoOrig = (e, k) => esBs(e.medio) ? e[k + 'Bs'] : esEur(e.medio) ? e[k + 'Eur'] : e[k];
 const nfBs = x => N(x).toLocaleString('es-VE', { maximumFractionDigits: 2 });
-const medioTxt = r => !r.medio ? '' : esBs(r.medio) ? `Bs ${nfBs(r.precioBs || r.montoBs)}${r.precioBs ? ' el saco' : ''} a ${nfBs(r.tasa)} (${r.medio === 'bcv' ? 'BCV' : 'paralelo'})` : MEDIO_N[r.medio] || '';
+const medioTxt = r => !r.medio ? '' : esEur(r.medio) ? `€ ${nfBs(r.precioEur || r.montoEur)}${r.precioEur ? ' el saco' : ''} a $ ${nfBs(r.tasa)} por € (BCV)` : esBs(r.medio) ? `Bs ${nfBs(r.precioBs || r.montoBs)}${r.precioBs ? ' el saco' : ''} a ${nfBs(r.tasa)} (${r.medio === 'bcv' ? 'BCV' : 'paralelo'})` : MEDIO_N[r.medio] || '';
 const CAT_PRINCIPALES = ['jornales', 'semilla', 'fertilizante', 'agroquimicos', 'riego', 'maquinaria', 'flete', 'sacos'];
 const catIcon = id => icon(ICONS['c_' + id] ? 'c_' + id : 'c_otros');
 function catGrid(sel, simple) {
@@ -283,43 +288,46 @@ function doRender() {
 function ventaTotal() {
   const t = $('#r-total'); if (!t || S.regTipo !== 'venta') return;
   const s = parseNum(val('r-sacos')), p = parseNum(val('r-precio')), m = val('rv-medio'), tasa = parseNum(val('rv-tasa'));
-  const pu = esBs(m) ? (tasa ? p / tasa : 0) : p;
-  t.textContent = s && pu ? `Total: ${usd(s * pu)}${esBs(m) ? ` (Bs ${nfBs(s * p)})` : ''}` : '';
+  const pu = esBs(m) ? (tasa ? p / tasa : 0) : esEur(m) ? p * tasa : p;
+  t.textContent = s && pu ? `Total: ${usd(s * pu)}${esBs(m) ? ` (Bs ${nfBs(s * p)})` : esEur(m) ? ` (€ ${nfBs(s * p)})` : ''}` : '';
 }
 function tasaSrc(m) {
-  const t = S.tasas; if (!esBs(m)) return '';
+  const t = S.tasas; if (!conTasa(m)) return '';
+  if (esEur(m)) return t.eur ? `Dólares por euro según el BCV${t.eurBcv ? ` (1 € = Bs ${nfBs(t.eurBcv)})` : ''}, del ${t.fecha ? fdate(t.fecha) : 'último día'}${t.auto ? '' : ', anotada a mano'}. Si cambiaste a otra, ponla.` : 'Escribe cuántos dólares te dieron por cada euro.';
   return t[m] ? `Tasa ${m === 'bcv' ? 'BCV' : 'paralelo'} de ${t.fecha ? fdate(t.fecha) : 'la última vez'}${t.auto ? '' : ', anotada a mano'}. Si pagaste a otra, cámbiala.` : 'Escribe la tasa a la que se pagó.';
 }
 // One block for every money field: how it was paid (or received) and, in bolívares, at what rate.
 // p prefixes the ids (p-medio, p-tasa…); amtId is the amount input, in Bs or $ depending on the choice.
 function pagoBox(p, amtId, label, medio, amt, tasa, opts = {}) {
-  const md = medio || lsGet('cf-medio-' + p) || (p === 'r' ? lsGet('cf-medio') : '') || 'efectivo', bs = esBs(md);
+  const md = medio || lsGet('cf-medio-' + p) || (p === 'r' ? lsGet('cf-medio') : '') || 'efectivo', bs = esBs(md), eu = esEur(md);
   return `<div class="field wide pago ${opts.big ? 'amt' : ''}" data-p="${p}" data-amt="${amtId}"><label for="${amtId}">${label}</label><input type="hidden" id="${p}-medio" value="${esc(md)}">
     <div class="medios">${MEDIOS.map(([k, n]) => `<button type="button" class="medio" data-medio="${k}" aria-pressed="${k === md}">${n}</button>`).join('')}</div>
-    <div class="amt-in ${opts.big ? '' : 'sm'}"><span id="${p}-pre" class="pre">${bs ? 'Bs' : '$'}</span>${numIn(amtId, amt, opts.ph || '0')}${opts.suf ? `<small class="suf">${opts.suf}</small>` : ''}</div>
-    <div class="tasa-row" ${bs ? '' : 'hidden'}><label for="${p}-tasa">Tasa</label>${numIn(p + '-tasa', tasa || S.tasas[md] || '', 'Bs por $')}<span id="${p}-conv" class="conv"></span></div>
+    <div class="amt-in ${opts.big ? '' : 'sm'}"><span id="${p}-pre" class="pre">${bs ? 'Bs' : eu ? '€' : '$'}</span>${numIn(amtId, amt, opts.ph || '0')}${opts.suf ? `<small class="suf">${opts.suf}</small>` : ''}</div>
+    <div class="tasa-row" ${bs || eu ? '' : 'hidden'}><label for="${p}-tasa">Tasa</label>${numIn(p + '-tasa', tasa || S.tasas[md] || '', eu ? '$ por €' : 'Bs por $')}<span id="${p}-conv" class="conv"></span></div>
     <span class="hint" id="${p}-src">${tasaSrc(md)}</span></div>`;
 }
 // Reads a payment block. Returns { medio, valor (as typed), usd, bs, tasa } or { err }.
 function leerPago(p, amtId, what) {
   const valor = parseNum(val(amtId)), medio = val(p + '-medio') || 'efectivo';
   lsSet('cf-medio-' + p, medio);
-  if (!esBs(medio)) return { medio, valor, usd: valor, bs: null, tasa: null };
+  if (!conTasa(medio)) return { medio, valor, usd: valor, bs: null, eur: null, tasa: null };
   const tasa = parseNum(val(p + '-tasa'));
-  if (!valor) return { err: `Pon ${what} en bolívares.` };
+  if (!valor) return { err: `Pon ${what} en ${esEur(medio) ? 'euros' : 'bolívares'}.` };
   if (!(tasa > 0)) return { err: 'Pon la tasa a la que se pagó.' };
   if (S.tasas[medio] !== tasa) { S.tasas = { ...S.tasas, [medio]: tasa, fecha: val('r-fecha') || val('a-fecha') || today(), auto: false }; lsSet('cf-tasas', JSON.stringify(S.tasas)); }
-  return { medio, valor, usd: Math.round(valor / tasa * 100) / 100, bs: valor, tasa };
+  if (esEur(medio)) return { medio, valor, usd: Math.round(valor * tasa * 100) / 100, bs: null, eur: valor, tasa };
+  return { medio, valor, usd: Math.round(valor / tasa * 100) / 100, bs: valor, eur: null, tasa };
 }
 function syncMedio() {
   document.querySelectorAll('.pago').forEach(box => {
     const p = box.dataset.p, h = document.getElementById(p + '-medio'); if (!h) return;
-    const m = h.value, bs = esBs(m);
+    const m = h.value, bs = esBs(m), eu = esEur(m);
     box.querySelectorAll('.medio').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.medio === m)));
-    const pre = document.getElementById(p + '-pre'); if (pre) pre.textContent = bs ? 'Bs' : '$';
-    const row = box.querySelector('.tasa-row'); if (row) row.hidden = !bs;
+    const pre = document.getElementById(p + '-pre'); if (pre) pre.textContent = bs ? 'Bs' : eu ? '€' : '$';
+    const row = box.querySelector('.tasa-row'); if (row) row.hidden = !bs && !eu;
+    const ti = document.getElementById(p + '-tasa'); if (ti) ti.placeholder = eu ? '$ por €' : 'Bs por $';
     const src = document.getElementById(p + '-src'); if (src) src.textContent = tasaSrc(m);
-    const cv = document.getElementById(p + '-conv'); if (cv) { const a = parseNum(val(box.dataset.amt)), t = parseNum(val(p + '-tasa')); cv.textContent = bs && a && t ? `= ${usd(a / t, 2)}` : ''; }
+    const cv = document.getElementById(p + '-conv'); if (cv) { const a = parseNum(val(box.dataset.amt)), t = parseNum(val(p + '-tasa')); cv.textContent = a && t ? (bs ? `= ${usd(a / t, 2)}` : eu ? `= ${usd(a * t, 2)}` : '') : ''; }
   });
 }
 // Today's BCV and parallel rates to prefill Bolívar payments. If there is no signal, the last ones are kept.
@@ -328,10 +336,14 @@ async function cargarTasas() {
   const hoy = today(); if (S.tasas.auto && S.tasas.fecha === hoy && Date.now() - N(S.tasas.ts) < 3 * 3600e3) return;
   try {
     const ctl = new AbortController(); setTimeout(() => ctl.abort(), 6000);
-    const js = await (await fetch('https://ve.dolarapi.com/v1/dolares', { signal: ctl.signal })).json();
-    const g = f => N((js.find(x => x.fuente === f) || {}).promedio);
-    const bcv = Math.round(g('oficial') * 100) / 100, paralelo = Math.round(g('paralelo') * 100) / 100;
-    if (bcv > 0 && paralelo > 0) { S.tasas = { bcv, paralelo, fecha: hoy, auto: true, ts: Date.now() }; lsSet('cf-tasas', JSON.stringify(S.tasas)); syncMedio(); }
+    // ve.dolarapi.com publishes the BCV's official rates (dollar and euro) and the parallel average.
+    const [js, je] = await Promise.all(['dolares', 'euros'].map(k => fetch('https://ve.dolarapi.com/v1/' + k, { signal: ctl.signal }).then(r => r.json()).catch(() => [])));
+    const g = (l, f) => N(((Array.isArray(l) ? l : []).find(x => x.fuente === f) || {}).promedio);
+    const bcv = Math.round(g(js, 'oficial') * 100) / 100, paralelo = Math.round(g(js, 'paralelo') * 100) / 100, eurBcv = Math.round(g(je, 'oficial') * 100) / 100;
+    if (bcv > 0 && paralelo > 0) {
+      S.tasas = { bcv, paralelo, fecha: hoy, auto: true, ts: Date.now(), ...(eurBcv > 0 ? { eurBcv, eur: Math.round(eurBcv / bcv * 10000) / 10000 } : { eurBcv: S.tasas.eurBcv, eur: S.tasas.eur }) };
+      lsSet('cf-tasas', JSON.stringify(S.tasas)); syncMedio();
+    }
   } catch { /* no signal or service down: keep last rates */ }
 }
 // Drafts: what was typed in a new record stays on this phone until it is saved or discarded, even when changing screens.
@@ -618,7 +630,7 @@ VIEWS.registrar = () => {
   if (t === 'precio') {
     out += fld('r-mercado', 'Mercado', `<select id="r-mercado">${Object.entries(MERCADOS).map(([k, n]) => opt(k, n, e.mercado || 'coche')).join('')}</select>`)
       + fld('r-producto', 'Producto', inp('r-producto', e.producto || 'Papa andina blanca', 'list="dl-prod"') + `<datalist id="dl-prod"><option value="Papa andina blanca"><option value="Papa Granola"><option value="Papa María Bonita"><option value="Papa amarilla"></datalist>`)
-      + pagoBox('rp', 'r-precio', 'Precio por saco', e.medio || (ed ? 'efectivo' : ''), esBs(e.medio) ? e.precioBs : e.precio, e.tasa, { ph: '35', suf: 'por saco' })
+      + pagoBox('rp', 'r-precio', 'Precio por saco', e.medio || (ed ? 'efectivo' : ''), montoOrig(e, 'precio'), e.tasa, { ph: '35', suf: 'por saco' })
       + fld('r-kg', 'Kilos del saco', numIn('r-kg', e.kgSaco ?? 45, '45'))
       + fld('r-desc', 'Fuente', inp('r-desc', e.desc, 'placeholder="Ej.: llamada a un mayorista, 2001online"'), 'wide');
   } else {
@@ -628,7 +640,7 @@ VIEWS.registrar = () => {
       <label class="chip-in" title="Finca">${icon('lotes', 's')}<select id="r-finca" data-act-change="finca" aria-label="Finca">${fincaOptions(df, t === 'gasto')}</select></label>
       <label class="chip-in" title="Lote">${icon('cosecha', 's')}<select id="r-lote" data-lote-for="r-finca" aria-label="Lote">${loteOptions(e.lote || S.prefLote || '')}</select></label></div>`;
     if (t === 'gasto') {
-      out += pagoBox('r', 'r-monto', '¿Cuánto y cómo se pagó?', e.medio || (ed ? 'efectivo' : ''), esBs(e.medio) ? e.montoBs : e.monto, e.tasa, { big: true })
+      out += pagoBox('r', 'r-monto', '¿Cuánto y cómo se pagó?', e.medio || (ed ? 'efectivo' : ''), montoOrig(e, 'monto'), e.tasa, { big: true })
         + `<div class="field wide catf"><label>¿En qué?</label>${catGrid(e.cat || 'jornales', simple)}</div>`
         + fld('r-desc', 'Detalle (opcional)', inp('r-desc', e.desc, 'placeholder="Ej.: 4 jornales de aporque"'), 'wide')
         + (simple ? '' : `<details class="field wide extra" ${e.cantidad ? 'open' : ''}><summary>Cantidad y unidad</summary><div class="grid">${fld('r-cant', 'Cantidad', numIn('r-cant', e.cantidad, 'Ej.: 4')) + fld('r-unidad', 'Unidad', inp('r-unidad', e.unidad, 'placeholder="jornales, sacos, litros…"'))}</div></details>`);
@@ -648,7 +660,7 @@ VIEWS.registrar = () => {
         + fld('r-canal', 'A quién se vendió', `<select id="r-canal">${Object.entries(CANALES).map(([k, n]) => opt(k, n, e.canal || 'camionero')).join('')}</select>`)
         + fld('r-calidad', 'Calidad', `<select id="r-calidad">${Object.entries(CALIDADES).map(([k, n]) => opt(k, n, e.calidad || 'mezclada')).join('')}</select>`)
         + fld('r-sacos', 'Sacos vendidos', numIn('r-sacos', e.sacos, '0'))
-        + pagoBox('rv', 'r-precio', 'Precio por saco y cómo se cobró', e.medio || (ed ? 'efectivo' : ''), esBs(e.medio) ? e.precioBs : e.precio, e.tasa, { ph: String(S.cfg.precioRef), suf: 'por saco' })
+        + pagoBox('rv', 'r-precio', 'Precio por saco y cómo se cobró', e.medio || (ed ? 'efectivo' : ''), montoOrig(e, 'precio'), e.tasa, { ph: String(S.cfg.precioRef), suf: 'por saco' })
         + (simple ? '' : fld('r-kg', 'Kilos por saco', numIn('r-kg', e.kgSaco ?? S.cfg.kgSaco)))
         + `<div class="field"><span class="hint">&nbsp;</span><label class="check"><input type="checkbox" id="r-cobrado" ${e.cobrado === false ? '' : 'checked'}> Ya se cobró</label></div>`
         + fld('r-desc', 'Notas', inp('r-desc', e.desc), 'wide');
@@ -912,7 +924,7 @@ async function guardarAlmacen() {
     const prev = inventario().find(p => p.key === prodKey(producto));
     const unidad = val('a-unidad').trim() || (prev ? prev.unidad : '');
     if (prev && prev.unidad && unidad && prodKey(prev.unidad) !== prodKey(unidad)) return toast(`${prev.producto} se lleva en ${prev.unidad}. Usa la misma unidad para que cuadre el inventario.`);
-    d = { tipo: 'insumo', almacen: true, fecha, finca: 'almacen', producto: prev ? prev.producto : producto, cat: val('a-cat'), cantidad: cant, unidad, monto, medio: pg.medio, montoBs: pg.bs, tasa: pg.tasa, proveedor: val('a-prov').trim(), factura: val('a-fact').trim(), desc: `Compra: ${producto}` };
+    d = { tipo: 'insumo', almacen: true, fecha, finca: 'almacen', producto: prev ? prev.producto : producto, cat: val('a-cat'), cantidad: cant, unidad, monto, medio: pg.medio, montoBs: pg.bs, montoEur: pg.eur, tasa: pg.tasa, proveedor: val('a-prov').trim(), factura: val('a-fact').trim(), desc: `Compra: ${producto}` };
   } else {
     const p = inventario().find(x => x.key === val('a-item'));
     if (!p) return toast('Elige el producto.');
@@ -1463,7 +1475,7 @@ document.addEventListener('click', async ev => {
   if (b.dataset.tab) { S.sheet = false; return go(b.dataset.tab); }
   if (b.dataset.go) { if (b.dataset.nt) { S.regTipo = b.dataset.nt; S.editing = null; } return go(b.dataset.go); }
   if (b.dataset.tipo) { saveDraft(); S.regTipo = b.dataset.tipo; S.editing = null; S.skipRestore = true; return render(); }
-  if (b.dataset.medio) { const box = b.closest('.pago'); if (!box) return; const p = box.dataset.p, h = document.getElementById(p + '-medio'); if (h) h.value = b.dataset.medio; const t = document.getElementById(p + '-tasa'); if (t && esBs(b.dataset.medio) && S.tasas[b.dataset.medio]) t.value = String(S.tasas[b.dataset.medio]).replace('.', ','); syncMedio(); ventaTotal(); saveDraft(); return; }
+  if (b.dataset.medio) { const box = b.closest('.pago'); if (!box) return; const p = box.dataset.p, h = document.getElementById(p + '-medio'); if (h) h.value = b.dataset.medio; const t = document.getElementById(p + '-tasa'); if (t && conTasa(b.dataset.medio) && S.tasas[b.dataset.medio]) t.value = String(S.tasas[b.dataset.medio]).replace('.', ','); syncMedio(); ventaTotal(); saveDraft(); return; }
   if (b.dataset.cat) { const h = $('#r-cat'); if (h) h.value = b.dataset.cat; syncCats(); saveDraft(); return; }
   const act = b.dataset.act; if (!act) return;
   const id = b.dataset.id;
@@ -1657,14 +1669,14 @@ async function guardarRegistro() {
   let r;
   if (t === 'precio') {
     const pg = leerPago('rp', 'r-precio', 'el precio'); if (pg.err) return toast(pg.err); const precio = pg.usd; if (!precio) return toast('Pon el precio por saco.');
-    r = { fecha, medio: pg.medio, precioBs: pg.bs, tasa: pg.tasa, mercado: val('r-mercado'), producto: val('r-producto').trim(), precio, kgSaco: parseNum(val('r-kg')) || 45, desc: val('r-desc').trim() };
+    r = { fecha, medio: pg.medio, precioBs: pg.bs, precioEur: pg.eur, tasa: pg.tasa, mercado: val('r-mercado'), producto: val('r-producto').trim(), precio, kgSaco: parseNum(val('r-kg')) || 45, desc: val('r-desc').trim() };
   } else {
     r = { tipo: t, fecha, finca: val('r-finca'), lote: val('r-lote'), desc: val('r-desc').trim() };
     if (!r.finca) return toast('Elige la finca.');
     if (t === 'gasto') { r.cat = val('r-cat'); const pg = leerPago('r', 'r-monto', 'el monto'); if (pg.err) return toast(pg.err);
-      Object.assign(r, { monto: pg.usd, medio: pg.medio, montoBs: pg.bs, tasa: pg.tasa }); if (has('r-cant')) { r.cantidad = parseNum(val('r-cant')); r.unidad = val('r-unidad').trim(); } if (!r.monto) return toast('Pon el monto del gasto.'); }
+      Object.assign(r, { monto: pg.usd, medio: pg.medio, montoBs: pg.bs, montoEur: pg.eur, tasa: pg.tasa }); if (has('r-cant')) { r.cantidad = parseNum(val('r-cant')); r.unidad = val('r-unidad').trim(); } if (!r.monto) return toast('Pon el monto del gasto.'); }
     if (t === 'cosecha') { const err = leerCosecha(r); if (err) return toast(err); }
-    if (t === 'venta') { r.comprador = val('r-comprador').trim(); r.canal = val('r-canal'); r.calidad = val('r-calidad'); r.sacos = parseNum(val('r-sacos')); const pg = leerPago('rv', 'r-precio', 'el precio'); if (pg.err) return toast(pg.err); Object.assign(r, { precio: pg.usd, medio: pg.medio, precioBs: pg.bs, tasa: pg.tasa }); r.kgSaco = parseNum(val('r-kg')) || (S.editing && (S.regs.find(x => x.id === S.editing) || {}).kgSaco) || S.cfg.kgSaco; r.cobrado = !!document.getElementById('r-cobrado')?.checked; if (!r.sacos || !r.precio) return toast('Pon los sacos y el precio por saco.'); r.monto = Math.round(r.sacos * r.precio * 100) / 100; }
+    if (t === 'venta') { r.comprador = val('r-comprador').trim(); r.canal = val('r-canal'); r.calidad = val('r-calidad'); r.sacos = parseNum(val('r-sacos')); const pg = leerPago('rv', 'r-precio', 'el precio'); if (pg.err) return toast(pg.err); Object.assign(r, { precio: pg.usd, medio: pg.medio, precioBs: pg.bs, precioEur: pg.eur, tasa: pg.tasa }); r.kgSaco = parseNum(val('r-kg')) || (S.editing && (S.regs.find(x => x.id === S.editing) || {}).kgSaco) || S.cfg.kgSaco; r.cobrado = !!document.getElementById('r-cobrado')?.checked; if (!r.sacos || !r.precio) return toast('Pon los sacos y el precio por saco.'); r.monto = Math.round(r.sacos * r.precio * 100) / 100; }
   }
   S.saving = true;
   const col = t === 'precio' ? 'precios' : 'registros';

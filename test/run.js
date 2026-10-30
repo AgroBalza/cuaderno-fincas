@@ -36,6 +36,8 @@ console.log('enc finca opts',await p.evaluate(()=>[...document.querySelectorAll(
 await p.evaluate(()=>[...document.querySelectorAll('[data-tab="registrar"]')].find(e=>e.offsetParent).click());await p.waitForTimeout(150);
 console.log('enc reg fincas',await p.evaluate(()=>[...document.querySelectorAll('#r-finca option')].map(o=>o.value).join(',')));
 await p.fill('#r-monto','40');await p.click('#reg-form button[type=submit]');await p.waitForTimeout(200);
+await p.click('[data-medio="eur"]');await p.fill('#r-monto','100');await p.fill('#r-tasa','1,1');console.log('eur conv',await p.evaluate(()=>document.getElementById('r-conv').textContent));await p.click('#reg-form button[type=submit]');await p.waitForTimeout(200);
+console.log('eur doc',await p.evaluate(()=>{const v=[...window.__store.entries()].filter(([k,d])=>k.startsWith('registros/')&&d.medio==='eur').map(([k,d])=>JSON.stringify({monto:d.monto,montoEur:d.montoEur,tasa:d.tasa}));return v.join()}));
 await p.screenshot({path:'test/enc-after.png'});
 await ctx.close();
 ({p,ctx}=await session(390,false,'juan@x.com','obr2'));
