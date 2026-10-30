@@ -402,12 +402,13 @@ body.nofil .filters { display:none; }
 .chip-in { display:inline-flex; align-items:center; gap:6px; background:var(--sunk); border-radius:999px; padding:0 12px 0 10px; height:38px; max-width:100%; color:var(--muted); font-weight:600; }
 .chip-in input, .chip-in select { appearance:none; -webkit-appearance:none; border:0; background:transparent; font:600 0.9rem var(--f-body); color:var(--ink); padding:0; height:36px; min-width:0; max-width:190px; box-shadow:none; }
 .chip-in input[type=date] { width:auto; }
-.medios { flex-wrap:nowrap !important; overflow-x:auto; scrollbar-width:none; }
 .medios::-webkit-scrollbar { display:none; }
 .medio { flex:none; }
 .lb-f { display:flex; flex-direction:column; gap:10px; margin-bottom:10px; }
 .lb-f .chip-in select { max-width:none; }
 .chip-in:has(select)::after { content:"▾"; font-size:0.8rem; color:var(--muted); margin-left:-2px; pointer-events:none; }
+.refs { display:inline-flex; gap:4px; flex:none; } .refs[hidden] { display:none; }
+.tasa-row { display:flex !important; flex-wrap:wrap; } .tasa-row input { flex:1 1 110px; min-width:0; } .tasa-row .conv { flex:none; }
 .tasa-row[hidden] { display:none !important; }
 @media (min-width:960px) { .menu-t { display:none; } }
 </style>
@@ -426,7 +427,7 @@ body.nofil .filters { display:none; }
 <div id="sheet-root"></div>
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="config.js?v=0c4d2f7b"></script>
-<script type="module" src="app.js?v=0c4d2f7b"></script>
+<script src="config.js?v=369a39d6"></script>
+<script type="module" src="app.js?v=369a39d6"></script>
 </body>
 </html>
