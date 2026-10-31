@@ -1937,10 +1937,18 @@ function waNum(tel) {
 }
 const waLink = (tel, t) => `https://wa.me/${waNum(tel)}?text=${encodeURIComponent(t)}`;
 // The email goes out by itself; WhatsApp can't be sent from the app, so the notice keeps a button that opens the chat already written.
+// Branded welcome email through EmailJS when configured; otherwise Firebase's generic sign-in link.
+async function mandarBienvenida(email, nombre) {
+  const ej = (window.CUADERNO_CONFIG || {}).emailjs || {};
+  if (!(ej.serviceId && ej.templateId && ej.publicKey)) return S.fb.auth.invite(email);
+  const r = await fetch('https://api.emailjs.com/api/v1.0/email/send', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ service_id: ej.serviceId, template_id: ej.templateId, user_id: ej.publicKey, template_params: { to_email: email, nombre: nombre || '', email, app_url: appUrl() } }) });
+  if (!r.ok) throw new Error('emailjs ' + r.status);
+}
 async function avisarMiembro(email, nombre, tel) {
   S.aviso = { email, nombre, tel };
   try {
-    await S.fb.auth.invite(email);
+    await mandarBienvenida(email, nombre);
     await S.db.doc('miembros/' + email).update({ avisado: new Date().toISOString() });
     S.aviso.correo = true;
     toast(`Le llegó un correo a ${email}. Mándale también el WhatsApp.`);

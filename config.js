@@ -10,4 +10,6 @@ window.CUADERNO_CONFIG = {
   },
   // Correos que entran como administradores (deben coincidir con firestore.rules).
   administradores: ["luisbalza97@gmail.com", "agrobalza@gmail.com"],
+  // Correo de bienvenida con la marca (EmailJS). Vacío = se usa el correo genérico de Firebase.
+  emailjs: { serviceId: "", templateId: "", publicKey: "" },
 };
