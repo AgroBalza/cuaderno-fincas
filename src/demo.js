@@ -96,7 +96,7 @@ export function demoData(hoy, esc = 'hoy') {
       const y = y0 + Math.floor((m - 1) / 12), mes = ((m - 1) % 12 + 12) % 12 + 1;
       const siembra = `${ym(y, mes)}-${String(3 + Math.floor(rnd() * 8)).padStart(2, '0')}`;
       const t = lotes.filter(l => l.finca === fid && l.siembra.startsWith(String(y))).length + 1;
-      lotes.push({ id: `sim-${fid}-${siembra}`, finca: fid, siembra, cosecha: add(siembra, 150), nombre: `Tanda ${t} · ${y}`, rend: vary(P.rend, 0.1), costo: vary(1, 0.1) });
+      lotes.push({ id: `sim-${fid}-${siembra}`, finca: fid, siembra, cosecha: add(siembra, 150), nombre: `Siembra ${t} · ${y}`, rend: vary(P.rend, 0.1), costo: vary(1, 0.1) });
     }
   });
   for (const l of lotes) {
