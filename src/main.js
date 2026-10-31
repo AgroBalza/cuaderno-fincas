@@ -1943,7 +1943,7 @@ async function mandarBienvenida(email, nombre) {
   if (!(ej.serviceId && ej.templateId && ej.publicKey)) return S.fb.auth.invite(email);
   const r = await fetch('https://api.emailjs.com/api/v1.0/email/send', { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ service_id: ej.serviceId, template_id: ej.templateId, user_id: ej.publicKey, template_params: { to_email: email, nombre: nombre || '', email, app_url: appUrl() } }) });
-  if (!r.ok) throw new Error('emailjs ' + r.status);
+  if (!r.ok) { const t = await r.text().catch(() => ''); S.ejErr = `EmailJS ${r.status}: ${t}`.slice(0, 200); throw new Error(S.ejErr); }
 }
 async function avisarMiembro(email, nombre, tel) {
   S.aviso = { email, nombre, tel };
@@ -1954,7 +1954,8 @@ async function avisarMiembro(email, nombre, tel) {
     toast(`Le llegó un correo a ${email}. Mándale también el WhatsApp.`);
   } catch (e) {
     console.warn('invite', e);
-    toast('Usuario agregado. El correo automático no salió; avísale por WhatsApp.');
+    toast(S.ejErr ? `El correo no salió (${S.ejErr}). Avísale por WhatsApp.` : 'Usuario agregado. El correo automático no salió; avísale por WhatsApp.');
+    S.ejErr = null;
   }
   render();
 }
