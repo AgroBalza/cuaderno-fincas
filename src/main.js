@@ -432,8 +432,9 @@ function renderHeader() {
     : `<div class="bottom-in" style="grid-template-columns:repeat(${ns.length + (canWrite() ? 1 : 0)},1fr)">${ns.slice(0, 2).map(nb).join('')}${canWrite() ? bt('registrar', 'Anotar', 'fab') : ''}${ns.slice(2).map(nb).join('')}</div>`;
   const bm = $('#bottom'); if (bm.dataset.k !== hk) { bm.innerHTML = bottom; bm.dataset.k = hk; }
   const sr = $('#sheet-root');
-  const sheet = S.sheet ? `<div class="scrim" data-act="sheet-close"></div><div class="sheet" role="dialog" aria-label="Menú"><div class="grab"></div><div class="sheet-list">${more.map(id => `<button data-tab="${id}"><span class="ic">${icon(id)}</span><span>${tabLabel(id)}<small>${TAB_SUB[id] || ''}</small></span></button>`).join('')}<a href="${sugerenciaUrl()}" target="_blank" rel="noopener"><span class="ic">${icon('guia')}</span><span>Enviar una idea o un error<small>Por WhatsApp a Luis</small></span></a>${S.demo ? `<button data-act="demo-salir"><span class="ic">${icon('salir')}</span><span>Salir de la demostración<small>Volver a tus datos reales</small></span></button>` : `<button data-act="logout"><span class="ic">${icon('salir')}</span><span>Cerrar sesión<small>${esc(S.email || '')}</small></span></button>`}</div></div>` : '';
-  if (sr.dataset.k !== String(!!S.sheet)) { sr.innerHTML = sheet; sr.dataset.k = String(!!S.sheet); document.documentElement.classList.toggle('lock', !!S.sheet); }
+  const sheet = S.sheet === 'ayuda' ? ayudaSheet() : S.sheet ? `<div class="scrim" data-act="sheet-close"></div><div class="sheet" role="dialog" aria-label="Menú"><div class="grab"></div><div class="sheet-list">${more.map(id => `<button data-tab="${id}"><span class="ic">${icon(id)}</span><span>${tabLabel(id)}<small>${TAB_SUB[id] || ''}</small></span></button>`).join('')}<a href="${sugerenciaUrl()}" target="_blank" rel="noopener"><span class="ic">${icon('guia')}</span><span>Enviar una idea o un error<small>Por WhatsApp a Luis</small></span></a>${S.demo ? `<button data-act="demo-salir"><span class="ic">${icon('salir')}</span><span>Salir de la demostración<small>Volver a tus datos reales</small></span></button>` : `<button data-act="logout"><span class="ic">${icon('salir')}</span><span>Cerrar sesión<small>${esc(S.email || '')}</small></span></button>`}</div></div>` : '';
+  const sk = String(S.sheet === 'ayuda' ? 'ayuda:' + S.view + ':' + !!S.instalar : !!S.sheet);
+  if (sr.dataset.k !== sk) { sr.innerHTML = sheet; sr.dataset.k = sk; document.documentElement.classList.toggle('lock', !!S.sheet); }
   const cy = new Date().getFullYear(), ys = new Set([S.year]);
   for (let y = Math.min(2024, cy - 2); y <= cy + 10; y++) ys.add(y);
   S.lotes.forEach(l => { const y = +String(l.siembra || '').slice(0, 4); if (y > 1999 && y < 2200) ys.add(y); });
@@ -1107,6 +1108,44 @@ function priceChart(ps, per50) {
 
 // Instructions, written as step-by-step how-tos; each person sees the ones for what they can do.
 const SUGERENCIAS_WA = '34672323220';
+// Short how-to for the screen the person is on; the full guide lives in Instrucciones.
+const AYUDA = {
+  resumen: ['Arriba tocas <b>Gasto</b>, <b>Cosecha</b> o <b>Venta</b> para anotar rápido.', '<b>Para hacer</b> muestra lo pendiente: labores, cobros y tandas.', 'Toca la utilidad del año para ver todos los números.'],
+  registrar: ['Elige qué vas a anotar: gasto, cosecha o venta.', 'Toca la fecha, la finca o el lote de arriba para cambiarlos.', 'Escribe el monto, elige cómo se pagó y toca <b>Guardar</b>. Funciona sin señal.'],
+  numeros: ['La utilidad, las ventas y los gastos del año.', 'Arriba cambias el <b>año</b> o eliges <b>una finca</b>.', 'Abajo está cada finca por separado.'],
+  lotes: ['Cada fila es una tanda de siembra: fecha, semilla y sacos.', 'Toca un dato para cambiarlo; se guarda solo.', '<b>+ Agregar tanda</b> para sembrar otra.'],
+  labores: ['Lo que toca hacer esta semana y lo atrasado.', 'Toca una labor y marca <b>Hecha</b>, <b>Cambiar fecha</b> o <b>No aplica</b>.'],
+  libro: ['Todo lo anotado, lo más nuevo arriba.', 'Toca un registro para <b>Editar</b> o <b>Borrar</b>.', 'Usa <b>Buscar</b> o el mes para encontrar algo.'],
+  cobros: ['Las ventas que todavía no han pagado, por cliente.', 'Toca <b>Copiar recordatorio</b> y pégalo en WhatsApp.', 'Cuando pague, toca <b>Cobrada</b>.'],
+  cierre: ['Las cifras del mes.', 'Escribe el comentario y toca <b>Guardar y cerrar el mes</b>.', 'Luego cópialo para WhatsApp o descarga el reporte.'],
+  liquidacion: ['Cuánto dejó cada finca en el año y cómo se reparte.', 'Toca <b>Copiar</b> para mandarlo a la familia.'],
+  precios: ['Anota cada semana el precio en finca y el de Coche.', 'La gráfica muestra cómo se mueven.'],
+  metas: ['Cómo va cada etapa del plan.', 'Las metas que dependen de los datos se calculan solas.'],
+  almacen: ['<b>Compra</b>: lo que entra al almacén y lo que costó.', '<b>Entrega</b>: lo que se lleva a una finca; el gasto pasa solo a esa finca.'],
+  ajustes: ['Datos generales de las fincas y metas.', 'Abajo, en <b>Usuarios</b>, agregas a alguien con su correo y su WhatsApp.'],
+  guia: ['Toca cada tema para ver los pasos.'],
+};
+const esStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+function instalarHtml() {
+  if (esStandalone()) return '';
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const pasos = ios ? ['Toca <b>Compartir</b>: el cuadrito con la flecha hacia arriba (en Brave está en el menú <b>⋯</b>).', 'Baja y toca <b>Agregar a pantalla de inicio</b> y luego <b>Agregar</b>.', 'Ábrela siempre desde el ícono del logo.']
+    : ['Toca los tres puntos <b>⋮</b> del navegador.', 'Elige <b>Instalar app</b> o <b>Agregar a la pantalla principal</b>.', 'Ábrela siempre desde el ícono del logo.'];
+  return `<h3 class="ay-h">Tenerla como app</h3>${S.instalar ? '<div class="btns"><button class="btn primary" data-act="instalar">Instalar la app</button></div>' : `<ol class="ay-l">${pasos.map(x => `<li>${x}</li>`).join('')}</ol>`}`;
+}
+function ayudaSheet() {
+  const tips = AYUDA[S.view] || AYUDA.resumen;
+  const on = document.body.classList.contains('ayuda');
+  return `<div class="scrim" data-act="sheet-close"></div><div class="sheet" role="dialog" aria-label="Ayuda"><div class="grab"></div>
+    <h3 class="ay-h">Esta pantalla: ${esc(tabLabel(S.view))}</h3><ol class="ay-l">${tips.map(x => `<li>${x}</li>`).join('')}</ol>
+    ${instalarHtml()}
+    <div class="sheet-list">
+      ${tabOk('guia') && S.view !== 'guia' ? `<button data-tab="guia"><span class="ic">${icon('guia')}</span><span>Ver todas las instrucciones<small>Paso a paso, por tema</small></span></button>` : ''}
+      <button data-act="ayuda-tx" aria-pressed="${on}"><span class="ic">?</span><span>${on ? 'Ocultar' : 'Mostrar'} explicaciones en pantalla<small>Notas cortas debajo de cada cosa</small></span></button>
+      <a href="${sugerenciaUrl()}" target="_blank" rel="noopener"><span class="ic">${icon('guia')}</span><span>Enviar una idea o un error<small>Por WhatsApp a Luis</small></span></a>
+    </div></div>`;
+}
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); S.instalar = e; });
 function sugerenciaUrl() {
   const tab = (TABS.find(t => t[0] === S.view) || [])[1] || S.view;
   const quien = S.names[S.email] || S.email || '';
@@ -1120,7 +1159,7 @@ VIEWS.guia = () => {
     <p>Toca cada tema para ver los pasos. Si algo no funciona o se te ocurre una mejora, usa el botón de abajo para mandarlo por WhatsApp.</p>
     <div class="btns"><a class="btn primary" href="${sugerenciaUrl()}" target="_blank" rel="noopener">${icon('guia', 's')}Enviar una idea o un error</a></div></section>
   <section><h3>Para empezar</h3><div class="how-list">
-    ${paso('Instalar la app en el iPhone', ['Abre el link de la app en <b>Safari</b> (tiene que ser Safari).', 'Toca el botón <b>Compartir</b>, el cuadrito con la flecha hacia arriba.', 'Baja y toca <b>Agregar a pantalla de inicio</b> y luego <b>Agregar</b>.', 'Desde ahora ábrela con el ícono del logo, como cualquier app.'], 'En Android: abre el link en Chrome, toca los tres puntos y elige "Instalar app".')}
+    ${paso('Instalar la app en el iPhone', ['Abre el link de la app en <b>Safari</b> o <b>Brave</b>.', 'Toca el botón <b>Compartir</b>, el cuadrito con la flecha hacia arriba (en Brave está en el menú <b>⋯</b>).', 'Baja y toca <b>Agregar a pantalla de inicio</b> y luego <b>Agregar</b>.', 'Desde ahora ábrela con el ícono del logo, como cualquier app.'], 'En Android: abre el link en Chrome, toca los tres puntos y elige "Instalar app".')}
     ${paso('Entrar por primera vez', ['Pídele a Luis que te agregue con tu correo.', 'En la pantalla de entrada toca <b>Primera vez: crear cuenta</b>.', 'Escribe tu nombre, el mismo correo y una contraseña de 6 o más letras.', 'Toca <b>Crear cuenta</b>. Las próximas veces solo tocas <b>Entrar</b>.'], 'Si se te olvida la contraseña, toca "Olvidé mi contraseña" y te llega un correo para cambiarla.')}
     ${paso('Usarla sin señal', ['Anota normal, aunque no haya señal. Todo queda guardado en tu teléfono.', 'Arriba aparece <b>Sin señal · 3 por subir</b> con lo que falta por subir.', 'Cuando llegues a donde hay señal, <b>abre la app unos segundos</b>. Se sube sola.', 'Cuando el aviso desaparece, ya todos lo pueden ver.'], 'Si no abres la app con señal, los demás no ven lo que anotaste. No se pierde, solo llega tarde.')}
     ${paso('Probar sin dañar nada', ['En Ajustes toca <b>Ver demostración</b>, o en la pantalla de entrada <b>Ver demostración con números simulados</b>.', 'Toca y anota lo que quieras: nada de eso se guarda.', 'Arriba puedes cambiar entre los tres escenarios.', 'Toca <b>Salir</b> en la franja de arriba para volver a tus datos.'])}
@@ -1516,7 +1555,9 @@ document.addEventListener('click', async ev => {
     switch (act) {
       case 'confirm': S.confirm = b.dataset.k; render(); break;
       case 'home-all': S.homeAll = true; render(); break;
-      case 'ayuda': document.body.classList.toggle('ayuda'); lsSet('cf-ayuda', document.body.classList.contains('ayuda') ? '1' : ''); b.setAttribute('aria-pressed', String(document.body.classList.contains('ayuda'))); break;
+      case 'ayuda': S.sheet = S.sheet === 'ayuda' ? false : 'ayuda'; render(); break;
+      case 'instalar': if (S.instalar) { S.instalar.prompt(); const r = await S.instalar.userChoice.catch(() => null); if (r && r.outcome === 'accepted') S.instalar = null; } S.sheet = false; render(); break;
+      case 'ayuda-tx': document.body.classList.toggle('ayuda'); lsSet('cf-ayuda', document.body.classList.contains('ayuda') ? '1' : ''); S.sheet = false; render(); break;
       case 'libro-mas': S.libroN = (S.libroN || 60) + 60; render(); break;
       case 'draft-del': clearDraft(); S.skipRestore = true; render(); break;
       case 'zoom': setZoom(+b.dataset.v); render(); break;
