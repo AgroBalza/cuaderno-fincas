@@ -1588,7 +1588,10 @@ document.addEventListener('change', ev => {
   if (el.dataset.aiTipo !== undefined) { syncProposals(); S.proposals[+el.dataset.aiTipo].tipo = el.value; S.skipRestore = true; return render(); }
   if (el.matches('select') && document.querySelector(`select[data-lote-for="${el.id}"]`)) syncLotes($('#view'));
 });
-let rzT = 0; window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { if (S.view === 'resumen' || S.view === 'precios') render(); }, 200); });
+let rzT = 0; window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => {
+  // The phone keyboard resizes the window; re-rendering then would close it and wipe what's being typed.
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '')) return;
+  if (S.auth === 'in' && (S.view === 'resumen' || S.view === 'precios')) render(); }, 200); });
 let qT = 0;
 // The Más sheet closes by dragging it down from its top (or the grab bar), like a native sheet.
 let sheetDrag = null;
