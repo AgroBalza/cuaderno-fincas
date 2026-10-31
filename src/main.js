@@ -1922,7 +1922,7 @@ async function guardarMiembro() {
 // The app link that opens the app; the invite email from Firebase carries a one-tap sign-in version of it.
 const appUrl = () => location.origin + location.pathname;
 function avisoTexto(nombre) {
-  return `Hola${nombre ? ' ' + nombre : ''}. Te agregué a la app de gestión de Agropecuaria Los Granates. Ábrela aquí: ${appUrl()} . Entra con este mismo correo: toca "Primera vez: crear cuenta" o usa el enlace que te llegó al correo.`;
+  return `Hola${nombre ? ' ' + nombre : ''}. Te agregué a la app de gestión de Agropecuaria Los Granates. Ábrela aquí: ${appUrl()} . Entra con este mismo correo: toca "Primera vez: crear cuenta". Te mandé también un correo de bienvenida; si no lo ves, búscalo en spam y márcalo como "No es spam".`;
 }
 // Members saved before multi-farm support only have 'finca'.
 function fincasDe(m) { return m && Array.isArray(m.fincas) && m.fincas.length ? m.fincas : m && m.finca ? [m.finca] : []; }
